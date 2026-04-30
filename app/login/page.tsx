@@ -1,0 +1,207 @@
+"use client";
+
+import { useState } from 'react';
+import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
+import Navbar from '../Components/website/navbar';
+import { FaEnvelope, FaLock, FaArrowRight, FaHome } from 'react-icons/fa';
+
+const STAR_POSITIONS = [
+  { left: 15, top: 20 }, { left: 85, top: 35 }, { left: 45, top: 10 },
+  { left: 25, top: 75 }, { left: 70, top: 60 }, { left: 10, top: 45 },
+  { left: 55, top: 85 }, { left: 35, top: 30 }, { left: 90, top: 15 },
+  { left: 5, top: 90 }, { left: 60, top: 50 }, { left: 80, top: 80 },
+  { left: 20, top: 55 }, { left: 75, top: 25 }, { left: 40, top: 70 },
+  { left: 95, top: 45 }, { left: 30, top: 95 }, { left: 65, top: 5 },
+  { left: 50, top: 40 }, { left: 12, top: 65 },
+];
+
+export default function LoginPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    if (!email || !password) {
+      setError('Email and password are required');
+      setLoading(false);
+      return;
+    }
+
+    setTimeout(() => {
+      setLoading(false);
+      setError('This frontend demo does not connect to a backend login service yet.');
+    }, 600);
+  };
+
+  return (
+    <main className="relative min-h-screen flex flex-col overflow-hidden bg-gray-900">
+      <Navbar />
+
+      <motion.div
+        initial={{ scale: 1.1, opacity: 0 }}
+        animate={{ scale: 1, opacity: 0.6 }}
+        transition={{ duration: 1.5, ease: 'easeOut' }}
+        className="absolute inset-0 z-0"
+      >
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-black/60 z-10" />
+        <img
+          src="/images/login.png"
+          alt="Wedding Background"
+          className="w-full h-full object-cover"
+        />
+      </motion.div>
+
+      <div className="absolute inset-0 pointer-events-none opacity-30">
+        {STAR_POSITIONS.map((pos, i) => (
+          <motion.div
+            key={i}
+            animate={{
+              y: [0, -100, 0],
+              opacity: [0, 1, 0],
+              scale: [0, 1, 0],
+            }}
+            transition={{
+              duration: 5 + (i % 5),
+              repeat: Infinity,
+              delay: i * 0.5,
+            }}
+            className="absolute w-1 h-1 bg-white rounded-full"
+            style={{
+              left: `${pos.left}%`,
+              top: `${pos.top}%`,
+            }}
+          />
+        ))}
+      </div>
+
+      <div className="flex-1 flex items-center justify-center relative z-10 px-4 pt-20 pb-8">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+          className="w-full max-w-md"
+        >
+          <div className="text-center mb-6">
+            <motion.h1
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-4xl font-serif text-white mb-1 drop-shadow-2xl"
+            >
+              Memo<span className="text-pink-400">Album</span>
+            </motion.h1>
+            <p className="text-gray-300 font-light tracking-widest uppercase text-[10px]">
+              Elegance in Every Moment
+            </p>
+          </div>
+
+          <div className="bg-white/10 backdrop-blur-2xl border border-white/20 p-6 md:p-8 rounded-[2rem] shadow-2xl relative overflow-hidden">
+            <div className="absolute -top-24 -left-24 w-48 h-48 bg-pink-500/20 rounded-full blur-[60px]" />
+            <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-rose-500/20 rounded-full blur-[60px]" />
+
+            <h2 className="text-xl font-serif text-white mb-6 text-center">Member Login</h2>
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-1.5 group">
+                <label className="text-pink-100 text-[10px] font-bold uppercase tracking-wider ml-1">Email Address</label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-white/50 group-focus-within:text-pink-400 transition-colors z-20">
+                    <FaEnvelope className="text-base" />
+                  </div>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="your@email.com"
+                    autoComplete="off"
+                    className="w-full bg-white/5 border border-white/20 rounded-xl pl-14 pr-6 py-4 text-white focus:outline-none focus:ring-2 focus:ring-pink-400/50 transition-all placeholder:text-white/20 text-sm autofill:shadow-[0_0_1000px_inset_#111827] autofill:text-white"
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5 group">
+                <div className="flex justify-between items-center ml-1">
+                  <label className="text-pink-100 text-[10px] font-bold uppercase tracking-wider">Password</label>
+                  <Link href="/auth/forgot-password" className="text-pink-400/70 hover:text-pink-400 text-[9px] font-bold uppercase tracking-widest transition-colors">
+                    Forgot?
+                  </Link>
+                </div>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-white/50 group-focus-within:text-pink-400 transition-colors z-20">
+                    <FaLock className="text-base" />
+                  </div>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    autoComplete="current-password"
+                    className="w-full bg-white/5 border border-white/20 rounded-xl pl-14 pr-6 py-4 text-white focus:outline-none focus:ring-2 focus:ring-pink-400/50 transition-all placeholder:text-white/20 text-sm autofill:shadow-[0_0_1000px_inset_#111827] autofill:text-white"
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+
+              <AnimatePresence>
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="bg-red-500/10 border border-red-500/20 text-red-200 px-4 py-3 rounded-xl text-xs text-center"
+                  >
+                    {error}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                type="submit"
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white py-4 rounded-2xl font-bold text-sm uppercase tracking-[0.2em] shadow-xl shadow-pink-900/20 transition-all disabled:opacity-50 flex items-center justify-center gap-3"
+              >
+                {loading ? (
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                ) : (
+                  <>
+                    <span>Sign In</span>
+                    <FaArrowRight className="text-xs" />
+                  </>
+                )}
+              </motion.button>
+            </form>
+
+            <div className="mt-8 text-center space-y-4">
+              <p className="text-gray-400 text-xs">
+                Don&apos;t have an account?{' '}
+                <Link href="/auth/register" className="text-pink-400 hover:text-white font-bold transition-colors">
+                  Join for Free
+                </Link>
+              </p>
+
+              <div className="flex items-center justify-center gap-6 pt-4 border-t border-white/5">
+                <Link href="/" className="text-white/30 hover:text-white/60 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest transition-colors">
+                  <FaHome /> Back to Home
+                </Link>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+      <style jsx global>{`
+        body {
+          overflow-x: hidden;
+        }
+      `}</style>
+    </main>
+  );
+}
