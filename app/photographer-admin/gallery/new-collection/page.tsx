@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Upload,
   Lock,
@@ -16,6 +17,7 @@ interface FormData {
 }
 
 export default function NewCollectionPage() {
+  const router = useRouter();
   const [formData, setFormData] = useState<FormData>({
     albumName: '',
     weddingDate: '',
@@ -307,10 +309,12 @@ export default function NewCollectionPage() {
               </button>
               <div className="flex items-center gap-3">
                 <button
+                  type="button"
+                  onClick={() => router.push('/photographer-admin/curate/template')}
                   className="px-6 py-3 rounded-lg text-[13px] font-bold uppercase tracking-wider transition-all hover:opacity-90"
                   style={{ backgroundColor: '#EADFE2', color: '#B10E6B' }}
                 >
-                  Save as Template
+                  Open Template
                 </button>
                 <button
                   className="text-white px-8 py-3 rounded-lg text-[13px] font-bold uppercase tracking-wider shadow-lg active:scale-95 transition-transform"
