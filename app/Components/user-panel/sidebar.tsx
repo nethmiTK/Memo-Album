@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  LayoutGrid,
   Image,
   Heart,
   User,
@@ -26,7 +25,6 @@ export default function UserSidebar({ isMobileOpen, onClose }: UserSidebarProps)
   const pathname = usePathname();
 
   const mainMenuItems: MenuItem[] = [
-    { label: 'Overview', href: '/user-panel', icon: <LayoutGrid size={20} /> },
     { label: 'My Albums', href: '/user-panel/albums', icon: <Image size={20} /> },
     { label: 'Favorites', href: '/user-panel/favorites', icon: <Heart size={20} /> },
     { label: 'Profile', href: '/user-panel/profile', icon: <User size={20} /> },
