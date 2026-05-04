@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -24,6 +25,47 @@ interface PhotographerSidebarProps {
 
 export default function PhotographerSidebar({ isMobileOpen, onClose }: PhotographerSidebarProps) {
   const pathname = usePathname();
+  const liveFeedRef = useRef<HTMLDivElement | null>(null);
+  const animationRef = useRef<number | null>(null);
+  const pausedRef = useRef(false);
+
+  const liveAssets = [
+    'https://images.unsplash.com/photo-1519741497674-611481863552?w=900&h=700&fit=crop',
+    'https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?w=900&h=700&fit=crop',
+    'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=900&h=700&fit=crop',
+    'https://images.unsplash.com/photo-1511578314322-379afb476865?w=900&h=700&fit=crop',
+    'https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=900&h=700&fit=crop',
+    'https://images.unsplash.com/photo-1523438097201-512ae7d59d4b?w=900&h=700&fit=crop',
+  ];
+
+  useEffect(() => {
+    const el = liveFeedRef.current;
+    if (!el) return;
+
+    let lastTs = performance.now();
+    const speed = 0.03;
+
+    const tick = (ts: number) => {
+      if (!el) return;
+      const delta = ts - lastTs;
+      lastTs = ts;
+
+      if (!pausedRef.current) {
+        el.scrollTop += delta * speed;
+        if (el.scrollTop >= el.scrollHeight / 2) {
+          el.scrollTop = el.scrollTop - el.scrollHeight / 2;
+        }
+      }
+
+      animationRef.current = requestAnimationFrame(tick);
+    };
+
+    animationRef.current = requestAnimationFrame(tick);
+
+    return () => {
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+    };
+  }, []);
 
   const mainMenuItems: MenuItem[] = [
     { label: 'Gallery', href: '/photographer-admin/gallery', icon: <Image size={20} /> },
@@ -42,19 +84,73 @@ export default function PhotographerSidebar({ isMobileOpen, onClose }: Photograp
   const SidebarContent = () => (
     <div className="flex h-full min-h-0 flex-col">
       {/* Header */}
-      <div className="px-5 py-6 border-b" style={{ borderColor: 'rgba(229, 204, 212, 0.2)' }}>
-        <h1
-          className="text-lg font-serif font-semibold italic mb-1"
-          style={{ color: '#B11469' }}
-        >
-          MemoAlbum
-        </h1>
+      <div className="px-5 py-6">
+        <div className="flex items-center gap-2.5 mb-2">
+          <img
+            src="/images/logobg.png"
+            alt="MemoAlbum Logo"
+            className="h-9 w-auto"
+          />
+          <h1
+            className="text-[0.95rem] font-serif font-semibold italic"
+            style={{ color: '#B11469' }}
+          >
+            MemoAlbum
+          </h1>
+        </div>
         <p
           className="text-[11px] tracking-[0.28em] font-semibold uppercase"
           style={{ color: '#9B9095' }}
         >
           The Digital Curator
         </p>
+      </div>
+
+      {/* Live Content Feed */}
+      <div className="px-3 pb-4">
+        <div className="mb-3 flex items-center justify-between px-1">
+          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#534345]">Live Content Feed</span>
+          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#b11469]">Streaming</span>
+        </div>
+
+        <div
+          ref={liveFeedRef}
+          onMouseEnter={() => {
+            pausedRef.current = true;
+          }}
+          onMouseLeave={() => {
+            pausedRef.current = false;
+          }}
+          className="live-feed-scroll h-[220px] overflow-y-auto rounded-xl bg-[#efe0e2] p-2"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
+          <div className="grid grid-cols-3 gap-2">
+            {[...liveAssets, ...liveAssets].map((src, index) => {
+              const pattern = index % 6;
+              const sizeClass =
+                pattern === 0
+                  ? 'col-span-1 row-span-1 h-16'
+                  : pattern === 1
+                    ? 'col-span-1 row-span-1 h-20'
+                    : pattern === 2
+                      ? 'col-span-1 row-span-1 h-24'
+                      : pattern === 3
+                        ? 'col-span-1 row-span-1 h-20'
+                        : pattern === 4
+                          ? 'col-span-1 row-span-1 h-24'
+                          : 'col-span-1 row-span-1 h-18';
+
+              return (
+                <article
+                  key={`${src}-${index}`}
+                  className={`overflow-hidden rounded-lg shadow-[0_10px_18px_-10px_rgba(33,26,27,0.35)] ${sizeClass}`}
+                >
+                  <img src={src} alt={`Live content ${index + 1}`} className="h-full w-full object-cover" />
+                </article>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       {/* Main Navigation */}
@@ -144,6 +240,12 @@ export default function PhotographerSidebar({ isMobileOpen, onClose }: Photograp
       >
         <SidebarContent />
       </aside>
+
+      <style jsx global>{`
+        .live-feed-scroll::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
     </>
   );
 }
