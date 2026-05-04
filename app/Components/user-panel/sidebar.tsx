@@ -40,7 +40,7 @@ export default function UserSidebar({ isMobileOpen, onClose }: UserSidebarProps)
   const SidebarContent = () => (
     <div className="flex h-full min-h-0 flex-col">
       {/* Header */}
-      <div className="px-5 py-6 border-b" style={{ borderColor: 'rgba(229, 204, 212, 0.2)' }}>
+      <div className="px-5 py-6" style={{ borderBottom: 'none' }}>
         <div className="flex items-center gap-2.5 mb-2">
           <img
             src="/images/logobg.png"
@@ -71,22 +71,33 @@ export default function UserSidebar({ isMobileOpen, onClose }: UserSidebarProps)
               key={item.href}
               href={item.href}
               onClick={onClose}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 relative ${
+              className={`flex items-center gap-3 px-4 py-3 transition-all duration-200 relative ${
                 active
                   ? 'font-semibold text-[#D23284]'
                   : 'text-[#6B7387] hover:text-[#D23284]'
               }`}
             >
-              {active && <div className="absolute left-0 top-0 bottom-0 w-1 rounded-r-full bg-[#D23284]"></div>}
+              {active && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 rounded-r-full bg-[#D23284]"></div>}
               <div className={`flex-shrink-0 w-5 h-5 ${active ? 'text-[#D23284]' : 'text-[#6B7387]'}`}>{item.icon}</div>
               <span className="text-sm font-medium tracking-wide">{item.label}</span>
             </Link>
           );
         })}
+
+        {/* Overview Button (Positioned between Profile and Settings/Bottom Nav) */}
+        <div className="px-3 py-6">
+          <Link
+            href="/user-panel"
+            onClick={onClose}
+            className="flex items-center justify-center w-full py-4 bg-[#B11469] text-white rounded-xl font-semibold tracking-wide shadow-lg hover:bg-[#8c0053] transition-all duration-300"
+          >
+            Overview
+          </Link>
+        </div>
       </nav>
 
       {/* Bottom Navigation */}
-      <div className="px-3 py-4 border-t" style={{ borderColor: 'rgba(229, 204, 212, 0.2)' }}>
+      <div className="px-3 py-4" style={{ borderTop: 'none' }}>
         <div className="space-y-1">
           {bottomMenuItems.map((item) => {
             const active = isActive(item.href);
@@ -95,13 +106,13 @@ export default function UserSidebar({ isMobileOpen, onClose }: UserSidebarProps)
                 key={item.href}
                 href={item.href}
                 onClick={onClose}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 relative ${
+                className={`flex items-center gap-3 px-4 py-3 transition-all duration-200 relative ${
                   active
                     ? 'font-semibold text-[#D23284]'
                     : 'text-[#6B7387] hover:text-[#D23284]'
                 }`}
               >
-                {active && <div className="absolute left-0 top-0 bottom-0 w-1 rounded-r-full bg-[#D23284]"></div>}
+                {active && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 rounded-r-full bg-[#D23284]"></div>}
                 <div className={`flex-shrink-0 w-5 h-5 ${active ? 'text-[#D23284]' : 'text-[#6B7387]'}`}>{item.icon}</div>
                 <span className="text-sm font-medium tracking-wide">{item.label}</span>
               </Link>
@@ -118,8 +129,8 @@ export default function UserSidebar({ isMobileOpen, onClose }: UserSidebarProps)
       <aside
         className="hidden md:flex w-64 flex-col flex-shrink-0 overflow-y-auto"
         style={{
-          backgroundColor: '#FFFFFF',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+          backgroundColor: '#F3E5E6',
+          boxShadow: 'none',
         }}
       >
         <SidebarContent />
@@ -135,8 +146,8 @@ export default function UserSidebar({ isMobileOpen, onClose }: UserSidebarProps)
           <aside
             className="fixed left-0 top-0 z-50 h-screen w-64 overflow-y-auto md:hidden flex flex-col"
             style={{
-              backgroundColor: '#FFFFFF',
-              boxShadow: '2px 0 8px rgba(0,0,0,0.15)',
+              backgroundColor: '#F3E5E6',
+              boxShadow: '2px 0 8px rgba(0,0,0,0.1)',
             }}
           >
             <SidebarContent />

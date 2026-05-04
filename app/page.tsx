@@ -111,7 +111,7 @@ export default function HomePage() {
             </p>
             <h1
               className="max-w-xl text-5xl leading-[1.02] text-[#25181d] md:text-7xl"
-              style={{ fontFamily: 'var(--font-newsreader), serif' }}
+               style={{ fontFamily: 'var(--font-newsreader)' }}
             >
               The Vow of Silence
             </h1>
@@ -159,45 +159,84 @@ export default function HomePage() {
         </motion.div>
       </section>
 
-      <section className="bg-[#ecd4db] py-24">
+      <section className="bg-[#ecd4db] py-12 sm:py-18 md:py-24">
         <div className="mx-auto max-w-6xl px-5 md:px-10">
-          <p className="text-center text-xs font-semibold uppercase tracking-[0.24em] text-[#8c0053]">
-            Featured Photographers
-          </p>
-          <h2
-            className="mt-3 text-center text-4xl text-[#25181d]"
-            style={{ fontFamily: 'var(--font-newsreader), serif' }}
-          >
-            Curated Visionaries
-          </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-center text-sm text-[#534345]">
-            Discover artists whose work balances editorial elegance with candid
-            storytelling, crafted for modern wedding memory books.
-          </p>
+          <div className="mb-12">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#8c0053]">
+              Featured Photographers
+            </p>
+            <h2
+              className="mt-3 text-4xl md:text-5xl text-[#25181d] leading-tight"
+              style={{ fontFamily: 'var(--font-newsreader)' }}
+            >
+              Curated Visionaries
+            </h2>
+            <p className="mt-4 max-w-lg text-sm text-[#534345]">
+              Discover artists whose work balances editorial elegance with candid
+              storytelling, crafted for modern wedding memory books.
+            </p>
+          </div>
 
-          <div className="mt-12 grid gap-5 md:grid-cols-3">
-            {featuredPhotographers.map((item, index) => (
+          {/* Asymmetric Editorial Grid */}
+          <div className="grid gap-8 md:grid-cols-12 auto-rows-max mt-12">
+            {/* Featured Large Card (Left) */}
+            <motion.article
+              key={featuredPhotographers[0].name}
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ delay: 0, duration: 0.45 }}
+              className="col-span-1 md:col-span-5 md:row-span-2 group rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-2xl"
+            >
+              <div className="relative h-96 md:h-full overflow-hidden bg-[#ebe0e1]">
+                <img
+                  src={featuredPhotographers[0].image}
+                  alt={featuredPhotographers[0].name}
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent flex flex-col justify-end p-6">
+                  <h3
+                    className="text-2xl md:text-3xl text-white"
+                    style={{ fontFamily: 'var(--font-newsreader)' }}
+                  >
+                    {featuredPhotographers[0].name}
+                  </h3>
+                  <p className="mt-2 text-sm text-white/80 uppercase tracking-[0.18em] font-semibold">
+                    {featuredPhotographers[0].role}
+                  </p>
+                </div>
+              </div>
+            </motion.article>
+
+            {/* Right Side Cards */}
+            {featuredPhotographers.slice(1).map((item, index) => (
               <motion.article
                 key={item.name}
                 initial={{ opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.2 }}
-                transition={{ delay: index * 0.1, duration: 0.45 }}
-                className="rounded-2xl bg-[#fff8f8] p-3"
+                transition={{ delay: (index + 1) * 0.1, duration: 0.45 }}
+                className={`group rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-lg ${
+                  index === 0 ? 'col-span-1 md:col-span-7' : 'col-span-1 md:col-span-3'
+                } ${index === 0 ? 'h-56 md:h-64' : 'h-48 md:h-56'}`}
               >
-                <img
-                  src={item.image}
-                  alt={item.name}
-                  className="h-56 w-full rounded-xl object-cover"
-                />
-                <div className="px-1 py-4">
-                  <h3
-                    className="text-2xl text-[#211a1b]"
-                    style={{ fontFamily: 'var(--font-newsreader), serif' }}
-                  >
-                    {item.name}
-                  </h3>
-                  <p className="mt-1 text-sm text-[#665c5d]">{item.role}</p>
+                <div className="relative w-full h-full bg-[#ebe0e1] overflow-hidden">
+                  <img
+                    src={item.image}
+                    alt={item.name}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent flex flex-col justify-end p-4 md:p-5">
+                    <h3
+                      className="text-xl md:text-2xl text-white"
+                      style={{ fontFamily: 'var(--font-newsreader)' }}
+                    >
+                      {item.name}
+                    </h3>
+                    <p className="mt-1 text-xs text-white/80 uppercase tracking-[0.16em] font-semibold">
+                      {item.role}
+                    </p>
+                  </div>
                 </div>
               </motion.article>
             ))}
@@ -205,19 +244,19 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="bg-[#fff8f8] py-24">
-        <div className="mx-auto grid max-w-6xl items-center gap-10 px-5 md:px-10 lg:grid-cols-[0.9fr_1fr]">
+      <section className="bg-[#fff8f8] py-12 sm:py-18 md:py-24">
+        <div className="mx-auto grid max-w-6xl items-center gap-8 sm:gap-10 px-4 sm:px-5 md:px-10 lg:grid-cols-[0.9fr_1fr]">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#8c0053]">
+            <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.2em] sm:tracking-[0.24em] text-[#8c0053]">
               Photographer Suite
             </p>
             <h2
-              className="mt-3 max-w-md text-5xl leading-tight text-[#25181d]"
-              style={{ fontFamily: 'var(--font-newsreader), serif' }}
+              className="mt-3 max-w-md text-3xl sm:text-4xl md:text-5xl leading-tight text-[#25181d]"
+              style={{ fontFamily: 'var(--font-newsreader)' }}
             >
               For the Visionaries
             </h2>
-            <p className="mt-5 max-w-md text-sm leading-7 text-[#534345]">
+            <p className="mt-4 sm:mt-5 max-w-md text-xs sm:text-sm leading-7 text-[#534345]">
               Elegant management tools built for calm focus, from moodboards and
               drafts to polished final delivery.
             </p>
@@ -249,16 +288,16 @@ export default function HomePage() {
                   <p className="text-xs text-[#ffb0cd]">Albums in Progress</p>
                   <p
                     className="mt-3 text-3xl"
-                    style={{ fontFamily: 'var(--font-newsreader), serif' }}
+                    style={{ fontFamily: 'var(--font-newsreader)' }}
                   >
                     42
                   </p>
                 </div>
                 <div className="rounded-xl bg-white/10 p-4">
-                  <p className="text-xs text-[#ffb0cd]">New Requests</p>
+                  <p className="text-xs text-[#ffb0cd]">Photographer</p>
                   <p
                     className="mt-3 text-3xl"
-                    style={{ fontFamily: 'var(--font-newsreader), serif' }}
+                    style={{ fontFamily: 'var(--font-newsreader)' }}
                   >
                     17
                   </p>
@@ -280,14 +319,14 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="bg-[#fff8f7] py-24">
+      <section className="bg-[#fff8f7] py-12 sm:py-18 md:py-24">
         <div className="mx-auto max-w-6xl px-5 md:px-10">
           <p className="text-center text-xs font-semibold uppercase tracking-[0.24em] text-[#8c0053]">
             The Method
           </p>
           <h2
             className="mt-3 text-center text-4xl text-[#25181d] md:text-5xl"
-            style={{ fontFamily: 'var(--font-newsreader), serif' }}
+            style={{ fontFamily: 'var(--font-newsreader)' }}
           >
             Seamless Collaboration
           </h2>
@@ -300,12 +339,12 @@ export default function HomePage() {
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1, duration: 0.45 }}
               >
-                <p className="text-3xl text-[#d23284]" style={{ fontFamily: 'var(--font-newsreader), serif' }}>
+                <p className="text-3xl text-[#d23284]" style={{ fontFamily: 'var(--font-newsreader)' }}>
                   {step.number}
                 </p>
                 <h3
                   className="mt-2 text-3xl text-[#25181d]"
-                  style={{ fontFamily: 'var(--font-newsreader), serif' }}
+                  style={{ fontFamily: 'var(--font-newsreader)' }}
                 >
                   {step.title}
                 </h3>
@@ -316,19 +355,19 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="bg-[#f5dce3] py-24">
-        <div className="mx-auto grid max-w-6xl gap-10 px-5 md:px-10 lg:grid-cols-[0.9fr_1fr]">
+      <section className="bg-[#f5dce3] py-12 sm:py-18 md:py-24">
+        <div className="mx-auto grid max-w-6xl gap-8 sm:gap-10 px-5 md:px-10 lg:grid-cols-[0.9fr_1fr]">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#8c0053]">
+            <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.2em] sm:tracking-[0.24em] text-[#8c0053]">
             Seasonal Folders
             </p>
             <h2
-              className="mt-3 max-w-md text-5xl leading-tight text-[#25181d]"
-              style={{ fontFamily: 'var(--font-newsreader), serif' }}
+              className="mt-3 max-w-md text-3xl sm:text-4xl md:text-5xl leading-tight text-[#25181d]"
+              style={{ fontFamily: 'var(--font-newsreader)' }}
             >
               Seasonal Archives
             </h2>
-            <p className="mt-5 max-w-sm text-sm leading-7 text-[#534345]">
+            <p className="mt-4 sm:mt-5 max-w-sm text-xs sm:text-sm leading-7 text-[#534345]">
               A seasonal collection arranged by mood and light, so each chapter
               of your wedding journey feels intentional.
             </p>
@@ -354,7 +393,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="bg-[#fff8f8] py-24">
+      <section className="bg-[#fff8f8] py-12 sm:py-18 md:py-24">
         <div className="mx-auto grid max-w-6xl gap-10 px-5 md:px-10 lg:grid-cols-[1fr_1fr] lg:items-center">
           <img
             src="https://images.unsplash.com/photo-1525258946800-98cfd641d0de?auto=format&fit=crop&w=1000&q=80"
@@ -367,7 +406,7 @@ export default function HomePage() {
             </p>
             <h2
               className="mt-3 text-5xl leading-tight text-[#25181d]"
-              style={{ fontFamily: 'var(--font-newsreader), serif' }}
+              style={{ fontFamily: 'var(--font-newsreader)' }}
             >
               The Art of Stillness
             </h2>
@@ -382,48 +421,122 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="bg-[#fff8f7] py-24">
-        <div className="mx-auto max-w-6xl px-5 md:px-10">
-          <p className="text-center text-xs font-semibold uppercase tracking-[0.24em] text-[#8c0053]">
-            Journal Shelf
-          </p>
-          <h2
-            className="mt-3 text-center text-5xl text-[#25181d]"
-            style={{ fontFamily: 'var(--font-newsreader), serif' }}
-          >
-            Recent Journals
-          </h2>
+      <section className="bg-[#fff8f7] py-12 sm:py-18 md:py-24">
+        <div className="mx-auto max-w-6xl px-4 sm:px-5 md:px-10">
+          <div className="mb-8 sm:mb-10 md:mb-12">
+            <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.2em] sm:tracking-[0.24em] text-[#8c0053]">
+              Journal Shelf
+            </p>
+            <h2
+              className="mt-3 text-2xl sm:text-3xl md:text-4xl lg:text-5xl text-[#25181d] leading-tight"
+              style={{ fontFamily: 'var(--font-newsreader)' }}
+            >
+              Recent Journals
+            </h2>
+            <p className="mt-3 sm:mt-4 max-w-lg text-xs sm:text-sm text-[#534345]">
+              A curated selection of editorial moments and visual stories from our archive.
+            </p>
+          </div>
 
-          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {journalEntries.map((entry, index) => (
+          {/* Asymmetric Editorial Grid */}
+          <div className="grid gap-4 sm:gap-5 md:gap-6 md:grid-cols-12 auto-rows-max">
+            {/* Featured Large Card (Left) */}
+            <motion.article
+              key={journalEntries[0].title}
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.15 }}
+              transition={{ delay: 0, duration: 0.4 }}
+              className="col-span-1 md:col-span-6 md:row-span-2 group rounded-2xl overflow-hidden h-96 md:h-full transition-all duration-300 hover:shadow-2xl"
+            >
+              <div className="relative w-full h-full overflow-hidden bg-[#ebe0e1]">
+                <img
+                  src={journalEntries[0].image}
+                  alt={journalEntries[0].title}
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent flex flex-col justify-end p-6">
+                  <h3
+                    className="text-2xl md:text-3xl text-white font-light"
+                    style={{ fontFamily: 'var(--font-newsreader)' }}
+                  >
+                    {journalEntries[0].title}
+                  </h3>
+                  <p className="mt-2 text-xs text-white/80 uppercase tracking-[0.18em] font-semibold">
+                    Personal Archive
+                  </p>
+                </div>
+              </div>
+            </motion.article>
+
+            {/* Right Column - Grid of 4 Cards */}
+            {journalEntries.slice(1, 5).map((entry, index) => (
               <motion.article
                 key={entry.title}
                 initial={{ opacity: 0, y: 16 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.15 }}
-                transition={{ delay: index * 0.06, duration: 0.4 }}
-                className="rounded-2xl bg-[#ffffff] p-3 shadow-[0_20px_48px_rgba(33,26,27,0.05)]"
+                transition={{ delay: (index + 1) * 0.06, duration: 0.4 }}
+                className="col-span-1 md:col-span-3 group rounded-2xl overflow-hidden h-40 md:h-48 transition-all duration-300 hover:shadow-lg"
               >
-                <img
-                  src={entry.image}
-                  alt={entry.title}
-                  className="h-48 w-full rounded-xl object-cover"
-                />
-                  <h3
-                    className="mt-4 text-lg text-[#25181d]"
-                    style={{ fontFamily: 'var(--font-newsreader), serif' }}
-                  >
-                  {entry.title}
-                </h3>
-                <p className="mt-1 text-xs uppercase tracking-[0.18em] text-[#8b7079]">
-                  Personal Archive
-                </p>
+                <div className="relative w-full h-full overflow-hidden bg-[#ebe0e1]">
+                  <img
+                    src={entry.image}
+                    alt={entry.title}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/45 to-transparent flex flex-col justify-end p-4">
+                    <h3
+                      className="text-base md:text-lg text-white font-light"
+                      style={{ fontFamily: 'var(--font-newsreader)' }}
+                    >
+                      {entry.title}
+                    </h3>
+                    <p className="mt-1 text-[10px] text-white/70 uppercase tracking-[0.16em] font-semibold">
+                      Personal Archive
+                    </p>
+                  </div>
+                </div>
               </motion.article>
             ))}
           </div>
 
-          <div className="mt-10 flex justify-center">
-            <button className="rounded-full bg-[#f3e5e6] px-6 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-[#8c0053] transition hover:bg-[#ecd4db]">
+          {/* Bottom Row - Remaining Cards */}
+          <div className="grid gap-6 md:grid-cols-2 auto-rows-max mt-6">
+            {journalEntries.slice(5).map((entry, index) => (
+              <motion.article
+                key={entry.title}
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.15 }}
+                transition={{ delay: (index + 5) * 0.06, duration: 0.4 }}
+                className="group rounded-2xl overflow-hidden h-48 md:h-56 transition-all duration-300 hover:shadow-lg"
+              >
+                <div className="relative w-full h-full overflow-hidden bg-[#ebe0e1]">
+                  <img
+                    src={entry.image}
+                    alt={entry.title}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/45 to-transparent flex flex-col justify-end p-4">
+                    <h3
+                      className="text-lg md:text-xl text-white font-light"
+                      style={{ fontFamily: 'var(--font-newsreader)' }}
+                    >
+                      {entry.title}
+                    </h3>
+                    <p className="mt-1 text-[10px] text-white/70 uppercase tracking-[0.16em] font-semibold">
+                      Personal Archive
+                    </p>
+                  </div>
+                </div>
+              </motion.article>
+            ))}
+          </div>
+
+          {/* CTA Section */}
+          <div className="mt-14 text-center">
+            <button className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-full font-serif font-semibold text-white transition-all duration-300 hover:shadow-lg active:scale-95" style={{ background: 'linear-gradient(135deg, #d23284 0%, #890051 100%)' }}>
               Explore Full Journal
             </button>
           </div>

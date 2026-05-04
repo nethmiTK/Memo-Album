@@ -5,6 +5,7 @@ import { motion, AnimatePresence, useScroll, useTransform, useInView, useMotionV
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from '../Components/website/navbar';
+import Footer from '../Components/website/Footer';
 
 interface Album {
   _id: string;
@@ -249,8 +250,10 @@ function UniqueHero3D({ albums, videos, categories, heroOpacity, heroScale }: { 
             className="w-full md:w-1/2 space-y-3 text-center md:text-left"
           >
             <div className="space-y-1">
-              <h1 className="text-4xl sm:text-5xl md:text-6xl font-serif font-black text-gray-900 leading-tight tracking-tight">
-                Capturing <br />
+ <h1
+              className="max-w-xl text-5xl leading-[1.02] text-[#25181d] md:text-7xl"
+               style={{ fontFamily: 'var(--font-newsreader)' }}
+            >                Capturing <br />
                 <span className="relative">
                   <span className="relative z-10 bg-gradient-to-r from-[#920857] via-[#b43c8f] to-[#920857] bg-clip-text text-transparent">Forever</span>
                   <motion.svg
@@ -852,7 +855,7 @@ export default function AlbumPage() {
               whileInView="visible"
               viewport={{ once: true, margin: "-100px" }}
               variants={scaleUpVariants}
-              className="py-24 relative"
+              className="py-12 sm:py-18 md:py-24 relative"
             >
               <div className="absolute top-0 right-0 floating-premium-text opacity-[0.02] select-none">ALBUMS</div>
 
@@ -860,19 +863,21 @@ export default function AlbumPage() {
                 initial={{ opacity: 0, y: 50 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                className="mb-12 text-center px-4"
+                className="mb-8 sm:mb-10 md:mb-12 text-center px-4"
                 id="album-gallery"
               >
-                <span className="text-[#920857] font-black text-[8px] md:text-[10px] uppercase tracking-[0.4em] mb-2 block">Our Work</span>
-                <h2 className="text-xl md:text-7xl font-serif font-black text-gray-900 leading-tight">
-                  Curated <span className="text-[#920857] italic">Masterpieces</span>
+                <span className="text-[#920857] font-black text-[8px] sm:text-[9px] md:text-[10px] uppercase tracking-[0.35em] sm:tracking-[0.4em] mb-2 block">Our Work</span>
+ <h2
+              className="max-w-xl text-5xl leading-[1.02] text-[#25181d] md:text-7xl"
+               style={{ fontFamily: 'var(--font-newsreader)' }}
+            >                  Curated <span className="text-[#920857] italic">Masterpieces</span>
                 </h2>
-                <div className="w-10 md:w-24 h-0.5 md:h-1 bg-[#e7c5df] mx-auto mt-4 rounded-full" />
+                <div className="w-8 sm:w-16 md:w-24 h-0.5 md:h-1 bg-[#e7c5df] mx-auto mt-3 sm:mt-4 rounded-full" />
               </motion.div>
 
               {/* Category selection */}
-              <div className="relative mb-12 group">
-                <div className="flex overflow-x-auto no-scrollbar items-center md:justify-center gap-3 px-6 pb-4 -mx-6 md:mx-0 snap-x snap-mandatory">
+              <div className="relative mb-8 sm:mb-10 md:mb-12 group">
+                <div className="flex overflow-x-auto no-scrollbar items-center md:justify-center gap-2 sm:gap-3 px-4 sm:px-6 pb-3 sm:pb-4 -mx-4 sm:-mx-6 md:mx-0 snap-x snap-mandatory">
                   {categories.map((cat) => (
                     <motion.button
                       key={cat}
@@ -936,18 +941,21 @@ export default function AlbumPage() {
               whileInView="visible"
               viewport={{ once: true, margin: "-100px" }}
               variants={scaleUpVariants}
-              className="py-24 relative"
+              className="py-12 sm:py-18 md:py-24 relative"
             >
-              <div className="container mx-auto px-6">
+              <div className="container mx-auto px-4 sm:px-6 md:px-12">
                 <motion.div
                   initial={{ opacity: 0, y: 30 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  className="mb-14 grid gap-6 md:grid-cols-[0.9fr_1fr] md:items-end"
+                  className="mb-10 sm:mb-12 md:mb-14 grid gap-4 sm:gap-6 md:grid-cols-[0.9fr_1fr] md:items-end"
                 >
                   <div>
                     <span className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.45em] text-[#920857] mb-2 block">Seasonal Folders</span>
-                    <h2 className="text-3xl md:text-6xl font-serif font-black text-[#211a1b] leading-tight">The Collections</h2>
+<h1
+              className="max-w-xl text-5xl leading-[1.02] text-[#25181d] md:text-7xl"
+               style={{ fontFamily: 'var(--font-newsreader)' }}
+            >  The Collections</h1>
                   </div>
                   <p className="max-w-md text-sm leading-7 text-[#5d4f54] md:justify-self-end">
                     Curating each chapter with asymmetrical rhythm, soft atmosphere, and the timeless elegance of editorial albums.
@@ -1010,17 +1018,20 @@ export default function AlbumPage() {
               whileInView="visible"
               viewport={{ once: true, margin: "-100px" }}
               variants={scaleUpVariants}
-              className="py-24 relative"
+              className="py-12 sm:py-18 md:py-24 relative"
               id="video-stories"
             >
               <div className="container mx-auto px-4 sm:px-6 md:px-12">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-                  <motion.div className="lg:col-span-12 text-center mb-12">
-                    <span className="text-[#920857] font-black text-[8px] md:text-[10px] uppercase tracking-[0.4em] mb-2 block">Cinematic Films</span>
-                    <h2 className="text-xl md:text-7xl font-serif font-black text-gray-900">Captured <span className="text-[#920857] italic">Stories</span></h2>
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 sm:gap-10 md:gap-12 items-center">
+                  <motion.div className="lg:col-span-12 text-center mb-8 sm:mb-10 md:mb-12">
+                    <span className="text-[#920857] font-black text-[8px] sm:text-[9px] md:text-[10px] uppercase tracking-[0.35em] sm:tracking-[0.4em] mb-2 block">Cinematic Films</span>
+                    <h1
+              className="max-w-xl text-5xl leading-[1.02] text-[#25181d] md:text-7xl"
+               style={{ fontFamily: 'var(--font-newsreader)' }}
+            >  Captured <span className="text-[#920857] italic">Stories</span></h1>
                   </motion.div>
 
-                  <div className="lg:col-span-12 grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="lg:col-span-12 grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
                     {videos.slice(0, 4).map((video, idx) => (
                       <motion.div
                         key={video._id}
@@ -1045,11 +1056,11 @@ export default function AlbumPage() {
             </motion.section>
 
             {/* ═══ SECTION 4: Join The Atelier ═══ */}
-            <section className="bg-[#efe5e8] py-20 md:py-24">
+            <section className="bg-[#efe5e8] py-12 sm:py-16 md:py-20 lg:py-24">
               <div className="mx-auto grid max-w-6xl items-center gap-10 px-5 md:grid-cols-2 md:px-10">
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[#920857]/70">Join The Atelier</p>
-                  <h3 className="mt-3 text-4xl leading-tight text-[#211a1b] md:text-6xl" style={{ fontFamily: 'var(--font-newsreader), serif' }}>
+                  <h3 className="mt-3 text-4xl leading-tight text-[#211a1b] md:text-6xl" style={{ fontFamily: 'var(--font-newsreader)' }}>
                     Curate Your Legacy
                   </h3>
                   <p className="mt-5 max-w-md text-sm leading-7 text-[#534345]">
@@ -1082,9 +1093,9 @@ export default function AlbumPage() {
             </section>
 
             {/* ═══ SECTION 5: Newsletter ═══ */}
-            <section className="bg-[#f6eff1] py-20">
+            <section className="bg-[#f6eff1] py-12 sm:py-16 md:py-20">
               <div className="mx-auto max-w-4xl px-5 text-center md:px-10">
-                <h3 className="text-4xl italic text-[#211a1b] md:text-5xl" style={{ fontFamily: 'var(--font-newsreader), serif' }}>
+                <h3 className="text-4xl italic text-[#211a1b] md:text-5xl" style={{ fontFamily: 'var(--font-newsreader)' }}>
                   Stay within the narrative.
                 </h3>
                 <p className="mx-auto mt-4 max-w-2xl text-sm text-[#6b5b60]">
@@ -1103,49 +1114,13 @@ export default function AlbumPage() {
               </div>
             </section>
 
-            {/* ═══ SECTION 6: Minimal Footer ═══ */}
-            <footer className="bg-[#e6e2e3] py-12">
-              <div className="mx-auto flex max-w-6xl flex-col gap-8 px-5 text-[#7c6d72] md:px-10">
-                <div className="flex flex-col items-start justify-between gap-5 md:flex-row">
-                  <p className="text-xs uppercase tracking-[0.2em] text-[#534345]">The Archive</p>
-                  <div className="flex flex-wrap gap-5 text-[11px] uppercase tracking-[0.18em]">
-                    <Link href="/album" className="hover:text-[#920857]">Archives</Link>
-                    <Link href="/album" className="hover:text-[#920857]">Exhibitions</Link>
-                    <Link href="/photographer-admin" className="hover:text-[#920857]">Studio</Link>
-                    <Link href="/privacy-policy" className="hover:text-[#920857]">Privacy</Link>
-                    <Link href="/about-us" className="hover:text-[#920857]">Journal</Link>
-                  </div>
-                </div>
-                <div className="flex flex-col justify-between gap-2 text-[10px] uppercase tracking-[0.16em] md:flex-row">
-                  <p>© 2026 The Editorial Archive.</p>
-                  <p>Curated with intentionality.</p>
-                </div>
-              </div>
-            </footer>
+           <Footer />
           </div>
         </div>
       </main>
 
-      <AnimatePresence>
-        {selectedAlbum && viewMode === 'browse' && (
-          <AlbumDetailView
-            album={selectedAlbum}
-            images={getProcessedImages(selectedAlbum!)}
-            onClose={() => setSelectedAlbum(null)}
-            onOpenBook={() => setViewMode('book')}
-          />
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {selectedAlbum && viewMode === 'book' && (
-          <FullScreenBookViewer
-            album={selectedAlbum}
-            images={getProcessedImages(selectedAlbum!)}
-            onClose={() => { setSelectedAlbum(null); setViewMode('browse'); }}
-          />
-        )}
-      </AnimatePresence>
+       
+ 
     </>
   );
 }

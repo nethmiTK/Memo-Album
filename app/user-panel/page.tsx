@@ -1,9 +1,17 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { Image, Heart, Settings, HelpCircle } from 'lucide-react';
+import SecureOnboarding from '@/app/Components/user-panel/Secure';
 
 export default function UserPanelPage() {
+  const [showOnboarding, setShowOnboarding] = useState(true);
+
+  if (showOnboarding) {
+    return <SecureOnboarding onClose={() => setShowOnboarding(false)} />;
+  }
+
   const menuItems = [
     {
       title: 'My Albums',
