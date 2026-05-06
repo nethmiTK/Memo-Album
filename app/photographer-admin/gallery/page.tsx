@@ -247,7 +247,7 @@ export default function GalleryPage() {
                   <span className="bg-[#E8DEF8] text-[#1F1A24] px-2 py-0.5 rounded text-[9px] font-bold uppercase">Shared</span>
                 </div>
                 <div className="mt-3">
-                  <h4 className="text-2xl font-serif text-black">Amalfi Summer '23</h4>
+                  <h4 className="text-2xl font-serif text-black">Amalfi Summer &apos;23</h4>
                 </div>
                 <div className="mt-8 pt-6 border-t border-[#EFE7E4] flex items-center justify-between">
                   <div className="flex items-center gap-5 text-[#6A5D62]">
