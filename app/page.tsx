@@ -98,45 +98,45 @@ export default function HomePage() {
     >
       <Navbar />
 
-      <section className="mx-auto max-w-6xl px-5 pb-24 pt-16 md:px-10 md:pt-24">
+      <section className="mx-auto max-w-6xl px-4 sm:px-5 pb-16 sm:pb-24 pt-12 sm:pt-16 md:px-10 md:pt-24">
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: 'easeOut' }}
-          className="grid items-center gap-10 lg:grid-cols-[1.05fr_1fr]"
+          className="grid items-center gap-6 sm:gap-8 md:gap-10 lg:grid-cols-[1.05fr_1fr]"
         >
           <div>
-            <p className="mb-5 text-xs font-semibold uppercase tracking-[0.28em] text-[#8c0053]">
+            <p className="mb-3 sm:mb-5 text-[10px] sm:text-xs font-semibold uppercase tracking-[0.24em] sm:tracking-[0.28em] text-[#8c0053]">
               Archive Marketplace
             </p>
             <h1
-              className="max-w-xl text-5xl leading-[1.02] text-[#25181d] md:text-7xl"
+              className="max-w-xl text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl leading-[1.1] sm:leading-[1.05] text-[#25181d]"
                style={{ fontFamily: 'var(--font-newsreader)' }}
             >
               The Vow of Silence
             </h1>
-            <p className="mt-6 max-w-lg text-sm leading-7 text-[#534345] md:text-base">
+            <p className="mt-4 sm:mt-6 max-w-lg text-xs sm:text-sm leading-6 sm:leading-7 text-[#534345] md:text-base">
               An editorial destination where couples and photographers co-create
               wedding archives with grace, depth, and timeless emotional detail.
             </p>
-            <div className="mt-9 flex flex-wrap gap-4">
+            <div className="mt-6 sm:mt-9 flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4">
               <Link
                 href="/album"
-                className="rounded-xl bg-gradient-to-r from-[#890051] to-[#d23284] px-6 py-3 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(137,0,81,0.18)] transition hover:-translate-y-0.5"
+                className="rounded-xl bg-gradient-to-r from-[#890051] to-[#d23284] px-5 sm:px-6 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold text-white shadow-[0_18px_40px_rgba(137,0,81,0.18)] transition hover:-translate-y-0.5 text-center"
               >
                 Begin Archive
               </Link>
               <Link
                 href="/about-us"
-                className="rounded-xl bg-[#f3e5e6] px-6 py-3 text-sm font-semibold text-[#8c0053] transition hover:bg-[#ecd4db]"
+                className="rounded-xl bg-[#f3e5e6] px-5 sm:px-6 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold text-[#8c0053] transition hover:bg-[#ecd4db] text-center"
               >
                 Curator Notes
               </Link>
             </div>
           </div>
 
-          <div className="relative mx-auto w-full max-w-[480px]">
-            <div className="absolute -left-8 top-16 hidden h-48 w-40 rounded-2xl bg-[#fff8f8]/75 p-3 shadow-[0_30px_80px_rgba(33,26,27,0.12)] backdrop-blur-md md:block">
+          <div className="relative mx-auto w-full max-w-[280px] sm:max-w-[380px] md:max-w-[480px]">
+            <div className="absolute -left-6 sm:-left-8 top-10 sm:top-16 hidden h-40 sm:h-48 w-32 sm:w-40 rounded-2xl bg-[#fff8f8]/75 p-3 shadow-[0_30px_80px_rgba(33,26,27,0.12)] backdrop-blur-md md:block">
               <img
                 src="https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&w=800&q=80"
                 alt="Ring details"
@@ -147,38 +147,38 @@ export default function HomePage() {
               initial={{ opacity: 0, rotate: -2, y: 30 }}
               animate={{ opacity: 1, rotate: 0, y: 0 }}
               transition={{ delay: 0.2, duration: 0.8, ease: 'easeOut' }}
-              className="overflow-hidden rounded-3xl bg-[#fff8f8] p-3 shadow-[0_38px_80px_rgba(33,26,27,0.15)]"
+              className="overflow-hidden rounded-2xl sm:rounded-3xl bg-[#fff8f8] p-2 sm:p-3 shadow-[0_20px_50px_rgba(33,26,27,0.15)] sm:shadow-[0_38px_80px_rgba(33,26,27,0.15)]"
             >
               <img
                 src="https://images.unsplash.com/photo-1520854221256-17451cc331bf?auto=format&fit=crop&w=1200&q=80"
                 alt="Bride portrait"
-                className="h-[510px] w-full rounded-2xl object-cover"
+                className="h-[280px] sm:h-[380px] md:h-[510px] w-full rounded-xl sm:rounded-2xl object-cover"
               />
             </motion.div>
           </div>
         </motion.div>
       </section>
 
-      <section className="bg-[#ecd4db] py-12 sm:py-18 md:py-24">
-        <div className="mx-auto max-w-6xl px-5 md:px-10">
-          <div className="mb-12">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#8c0053]">
+      <section className="bg-[#ecd4db] py-12 sm:py-16 md:py-24">
+        <div className="mx-auto max-w-6xl px-4 sm:px-5 md:px-10">
+          <div className="mb-8 sm:mb-10 md:mb-12">
+            <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.2em] sm:tracking-[0.24em] text-[#8c0053]">
               Featured Photographers
             </p>
             <h2
-              className="mt-3 text-4xl md:text-5xl text-[#25181d] leading-tight"
+              className="mt-2 sm:mt-3 text-2xl sm:text-3xl md:text-4xl lg:text-5xl text-[#25181d] leading-tight"
               style={{ fontFamily: 'var(--font-newsreader)' }}
             >
               Curated Visionaries
             </h2>
-            <p className="mt-4 max-w-lg text-sm text-[#534345]">
+            <p className="mt-3 sm:mt-4 max-w-lg text-xs sm:text-sm text-[#534345]">
               Discover artists whose work balances editorial elegance with candid
               storytelling, crafted for modern wedding memory books.
             </p>
           </div>
 
           {/* Asymmetric Editorial Grid */}
-          <div className="grid gap-8 md:grid-cols-12 auto-rows-max mt-12">
+          <div className="grid gap-4 sm:gap-6 md:gap-8 md:grid-cols-12 auto-rows-max mt-8 sm:mt-10 md:mt-12">
             {/* Featured Large Card (Left) */}
             <motion.article
               key={featuredPhotographers[0].name}
@@ -186,22 +186,22 @@ export default function HomePage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, amount: 0.2 }}
               transition={{ delay: 0, duration: 0.45 }}
-              className="col-span-1 md:col-span-5 md:row-span-2 group rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-2xl"
+              className="col-span-1 md:col-span-5 md:row-span-2 group rounded-xl sm:rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-2xl"
             >
-              <div className="relative h-96 md:h-full overflow-hidden bg-[#ebe0e1]">
+              <div className="relative h-64 sm:h-80 md:h-full overflow-hidden bg-[#ebe0e1]">
                 <img
                   src={featuredPhotographers[0].image}
                   alt={featuredPhotographers[0].name}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent flex flex-col justify-end p-6">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent flex flex-col justify-end p-4 sm:p-6">
                   <h3
-                    className="text-2xl md:text-3xl text-white"
+                    className="text-lg sm:text-2xl md:text-3xl text-white leading-tight"
                     style={{ fontFamily: 'var(--font-newsreader)' }}
                   >
                     {featuredPhotographers[0].name}
                   </h3>
-                  <p className="mt-2 text-sm text-white/80 uppercase tracking-[0.18em] font-semibold">
+                  <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-white/80 uppercase tracking-[0.14em] sm:tracking-[0.18em] font-semibold">
                     {featuredPhotographers[0].role}
                   </p>
                 </div>
@@ -216,9 +216,9 @@ export default function HomePage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.2 }}
                 transition={{ delay: (index + 1) * 0.1, duration: 0.45 }}
-                className={`group rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-lg ${
+                className={`group rounded-xl sm:rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-lg ${
                   index === 0 ? 'col-span-1 md:col-span-7' : 'col-span-1 md:col-span-3'
-                } ${index === 0 ? 'h-56 md:h-64' : 'h-48 md:h-56'}`}
+                } ${index === 0 ? 'h-48 sm:h-56 md:h-64' : 'h-40 sm:h-48 md:h-56'}`}
               >
                 <div className="relative w-full h-full bg-[#ebe0e1] overflow-hidden">
                   <img
@@ -226,14 +226,14 @@ export default function HomePage() {
                     alt={item.name}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent flex flex-col justify-end p-4 md:p-5">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent flex flex-col justify-end p-3 sm:p-4 md:p-5">
                     <h3
-                      className="text-xl md:text-2xl text-white"
+                      className="text-base sm:text-lg md:text-2xl text-white leading-tight"
                       style={{ fontFamily: 'var(--font-newsreader)' }}
                     >
                       {item.name}
                     </h3>
-                    <p className="mt-1 text-xs text-white/80 uppercase tracking-[0.16em] font-semibold">
+                    <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-xs text-white/80 uppercase tracking-[0.12em] sm:tracking-[0.16em] font-semibold">
                       {item.role}
                     </p>
                   </div>
@@ -244,30 +244,30 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="bg-[#fff8f8] py-12 sm:py-18 md:py-24">
-        <div className="mx-auto grid max-w-6xl items-center gap-8 sm:gap-10 px-4 sm:px-5 md:px-10 lg:grid-cols-[0.9fr_1fr]">
+      <section className="bg-[#fff8f8] py-12 sm:py-16 md:py-24">
+        <div className="mx-auto grid max-w-6xl items-center gap-6 sm:gap-8 md:gap-10 px-4 sm:px-5 md:px-10 lg:grid-cols-[0.9fr_1fr]">
           <div>
-            <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.2em] sm:tracking-[0.24em] text-[#8c0053]">
+            <p className="text-[9px] sm:text-[10px] md:text-xs font-semibold uppercase tracking-[0.18em] sm:tracking-[0.2em] md:tracking-[0.24em] text-[#8c0053]">
               Photographer Suite
             </p>
             <h2
-              className="mt-3 max-w-md text-3xl sm:text-4xl md:text-5xl leading-tight text-[#25181d]"
+              className="mt-2 sm:mt-3 max-w-md text-2xl sm:text-3xl md:text-4xl lg:text-5xl leading-tight text-[#25181d]"
               style={{ fontFamily: 'var(--font-newsreader)' }}
             >
               For the Visionaries
             </h2>
-            <p className="mt-4 sm:mt-5 max-w-md text-xs sm:text-sm leading-7 text-[#534345]">
+            <p className="mt-3 sm:mt-4 md:mt-5 max-w-md text-[10px] sm:text-xs md:text-sm leading-6 sm:leading-7 text-[#534345]">
               Elegant management tools built for calm focus, from moodboards and
               drafts to polished final delivery.
             </p>
-            <ul className="mt-7 space-y-3 text-sm text-[#534345]">
+            <ul className="mt-5 sm:mt-6 md:mt-7 space-y-2 sm:space-y-3 text-[10px] sm:text-xs md:text-sm text-[#534345]">
               <li>• Timeline presets for proposal-to-print workflows.</li>
               <li>• Gallery scrubber for rapid spread reviews.</li>
               <li>• Shared approvals between studio and couples.</li>
             </ul>
             <Link
               href="/photographer-admin"
-              className="mt-8 inline-flex rounded-xl bg-[#211a1b] px-6 py-3 text-sm font-semibold text-[#ffecf1] transition hover:bg-[#3b2c31]"
+              className="mt-6 sm:mt-8 inline-flex rounded-xl bg-[#211a1b] px-5 sm:px-6 py-2.5 sm:py-3 text-[10px] sm:text-xs md:text-sm font-semibold text-[#ffecf1] transition hover:bg-[#3b2c31]"
             >
               Enter Suite
             </Link>
@@ -277,7 +277,7 @@ export default function HomePage() {
             initial={{ opacity: 0, x: 30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true, amount: 0.3 }}
-            className="rounded-3xl bg-[#f3e5e6] p-5 shadow-[0_40px_80px_rgba(33,26,27,0.08)]"
+            className="rounded-2xl sm:rounded-3xl bg-[#f3e5e6] p-3 sm:p-5 shadow-[0_40px_80px_rgba(33,26,27,0.08)]"
           >
             <div className="rounded-2xl bg-[#211a1b] p-6 text-[#ffecf1]">
               <div className="flex items-center justify-between mb-6">
@@ -325,18 +325,18 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="bg-[#fff8f7] py-12 sm:py-18 md:py-24">
-        <div className="mx-auto max-w-6xl px-5 md:px-10">
-          <p className="text-center text-xs font-semibold uppercase tracking-[0.24em] text-[#8c0053]">
+      <section className="bg-[#fff8f7] py-12 sm:py-16 md:py-24">
+        <div className="mx-auto max-w-6xl px-4 sm:px-5 md:px-10">
+          <p className="text-center text-[10px] sm:text-xs font-semibold uppercase tracking-[0.2em] sm:tracking-[0.24em] text-[#8c0053]">
             The Method
           </p>
           <h2
-            className="mt-3 text-center text-4xl text-[#25181d] md:text-5xl"
+            className="mt-2 sm:mt-3 text-center text-2xl sm:text-3xl md:text-4xl lg:text-5xl text-[#25181d]"
             style={{ fontFamily: 'var(--font-newsreader)' }}
           >
             Seamless Collaboration
           </h2>
-          <div className="mt-14 grid gap-10 md:grid-cols-3">
+          <div className="mt-10 sm:mt-12 md:mt-14 grid gap-6 sm:gap-8 md:gap-10 md:grid-cols-3">
             {collaborationSteps.map((step, index) => (
               <motion.div
                 key={step.number}

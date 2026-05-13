@@ -81,7 +81,7 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="relative min-h-screen flex flex-col overflow-hidden bg-gray-900">
+    <main className="relative min-h-screen flex flex-col #FFFFF8 bg-gradient-to-t from-[#B69392] to-[#fff0f0] overflow-hidden">
       <Navbar />
 
       <motion.div
@@ -135,7 +135,7 @@ export default function LoginPage() {
                   Email Address
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-5 flex items-center text-white/50">
+                  <div className="absolute inset-y-0 left-0 pl-5 flex items-center text-BLACK/50">
                     <FaEnvelope className="text-base" />
                   </div>
                   <input
@@ -157,7 +157,7 @@ export default function LoginPage() {
                   </Link>
                 </div>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-5 flex items-center text-white/50">
+                  <div className="absolute inset-y-0 left-0 pl-5 flex items-center text-black/50">
                     <FaLock className="text-base" />
                   </div>
                   <input
@@ -201,18 +201,7 @@ export default function LoginPage() {
               </motion.button>
             </form>
 
-            <div className="mt-8 text-center space-y-4">
-              <p className="text-gray-400 text-sm">
-                Don&apos;t have an account?{" "}
-                <Link href="/auth/register" className="text-pink-400 hover:text-white font-medium">
-                  Register Now
-                </Link>
-              </p>
-
-              <Link href="/" className="inline-flex items-center gap-2 text-white/40 hover:text-white/70 text-sm transition-colors">
-                <FaHome /> Back to Home
-              </Link>
-            </div>
+             
           </div>
         </motion.div>
       </div>
