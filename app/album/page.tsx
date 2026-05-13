@@ -1,4 +1,4 @@
-'use client';
+ 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence, useScroll, useTransform, useInView, useMotionValue, useSpring, Variants, MotionValue } from 'framer-motion';
@@ -778,7 +778,7 @@ export default function AlbumPage() {
     setLoading(false);
   }, []);
 
-  const categories = ['All', ...Array.from(new Set(albums.map(a => a.category).filter(Boolean)))];
+  const categories = ['All', 'Wedding', 'Engagement'];
   const filteredAlbums = activeCategory === 'All' ? albums : albums.filter(a => a.category === activeCategory);
 
   const handleAlbumClick = (album: Album) => {
@@ -832,7 +832,7 @@ export default function AlbumPage() {
   return (
     <>
       <Navbar />
-      <main className="min-h-screen bg-[#fff8f8] pb-24 relative">
+      <main className="min-h-screen bg-[#fff8f8] relative">
         <div className="flex flex-col">
           {/* ═══ 3D Perspective Hero ═══ */}
           <motion.div
@@ -903,9 +903,9 @@ export default function AlbumPage() {
                     initial="hidden"
                     whileInView="visible"
                     viewport={{ once: true }}
-                    className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-5"
+                    className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-5 mb-8"
                   >
-                    {filteredAlbums.slice(0, 10).map((album, idx) => {
+                    {filteredAlbums.slice(0, 25).map((album, idx) => {
                       const imageArray = getImageArray(album.images);
                       const firstImage = imageArray[0] ? getImageUrl(imageArray[0]) : '/images/placeholder-album.jpg';
                       return (
@@ -923,7 +923,7 @@ export default function AlbumPage() {
                             <p className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] text-[#e6c8de] mb-1">{album.category}</p>
                             <h3 className="text-xs md:text-2xl font-serif font-bold leading-tight uppercase tracking-tight">{album.album_title}</h3>
                             <div className="mt-4 flex items-center justify-between opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all">
-                              <span className="text-[10px] font-bold tracking-widest uppercase">View Details</span>
+                              <span className="text-[10px] font-bold tracking-widest uppercase">View</span>
                               <div className="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center text-sm">→</div>
                             </div>
                           </div>
@@ -931,6 +931,16 @@ export default function AlbumPage() {
                       );
                     })}
                   </motion.div>
+                  <div className="flex justify-center">
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="px-8 py-3 bg-gradient-to-r from-[#920857] to-[#b43c8f] text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all uppercase text-sm tracking-widest"
+                      onClick={() => document.getElementById('album-gallery')?.scrollIntoView({ behavior: 'smooth' })}
+                    >
+                      View All Albums
+                    </motion.button>
+                  </div>
                 </div>
               )}
             </motion.section>
@@ -967,46 +977,44 @@ export default function AlbumPage() {
                     <div className="animate-spin rounded-full h-10 w-10 border-4 border-[#920857] border-t-transparent" />
                   </div>
                 ) : (
-                  <div className="grid gap-5 md:grid-cols-12">
-                    {filteredAlbums.length > 0 ? (
-                      filteredAlbums.slice(0, 4).map((album, idx) => (
-                        <motion.div
-                          key={album._id}
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          whileInView={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: idx * 0.05 }}
-                          viewport={{ once: true }}
-                          className={`relative overflow-hidden group cursor-pointer bg-[#fdf8fa] shadow-[0_24px_44px_rgba(33,26,27,0.12)] transition-all duration-500 rounded-2xl ${
-                            idx === 0
-                              ? 'md:col-span-7 md:row-span-1 md:h-[300px]'
-                              : idx === 1
-                                ? 'md:col-span-5 md:h-[420px] md:mt-8'
-                                : idx === 2
-                                  ? 'md:col-span-4 md:h-[250px]'
-                                  : 'md:col-span-8 md:h-[250px]'
-                          } h-[250px]`}
-                          onClick={() => handleAlbumClick(album)}
-                        >
-                          <img
-                            src={album.cover_image ? getImageUrl(album.cover_image) : (getImageArray(album.images)[0] ? getImageUrl(getImageArray(album.images)[0]) : '/images/placeholder-album.jpg')}
-                            alt={album.album_title}
-                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                            onError={(e) => { e.currentTarget.src = '/images/placeholder-album.jpg'; }}
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent flex flex-col items-start justify-end p-4 md:p-6">
-                            <span className="text-[#f0dce8] text-[9px] font-black uppercase tracking-[0.22em] mb-1">
-                              Volume {String(idx + 1).padStart(2, '0')}
-                            </span>
-                            <h3 className="text-sm md:text-xl font-serif font-bold text-white leading-tight">
-                              {album.album_title}
-                            </h3>
-                            <p className="mt-1 text-[10px] md:text-xs text-white/80">{album.category}</p>
-                          </div>
-                        </motion.div>
-                      ))
-                    ) : (
-                      <div className="col-span-full py-20 text-center text-gray-500 font-serif italic">No albums found in this category.</div>
-                    )}
+                  <div>
+                    <div className="grid gap-5 md:grid-cols-2">
+                      {filteredAlbums.length > 0 ? (
+                        filteredAlbums.slice(0, 8).map((album, idx) => (
+                          <motion.div
+                            key={album._id}
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            whileInView={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: idx * 0.05 }}
+                            viewport={{ once: true }}
+                            className="relative overflow-hidden group cursor-pointer bg-[#fdf8fa] shadow-[0_24px_44px_rgba(33,26,27,0.12)] transition-all duration-500 rounded-2xl h-[280px] md:h-[320px]"
+                            onClick={() => handleAlbumClick(album)}
+                          >
+                            <img
+                              src={album.cover_image ? getImageUrl(album.cover_image) : (getImageArray(album.images)[0] ? getImageUrl(getImageArray(album.images)[0]) : '/images/placeholder-album.jpg')}
+                              alt={album.album_title}
+                              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                              onError={(e) => { e.currentTarget.src = '/images/placeholder-album.jpg'; }}
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent flex flex-col items-start justify-end p-4 md:p-6">
+                              <span className="text-[#f0dce8] text-[9px] font-black uppercase tracking-[0.22em] mb-1">
+                                Collection {String(idx + 1).padStart(2, '0')}
+                              </span>
+                              <h3 className="text-sm md:text-lg font-serif font-bold text-white leading-tight">
+                                {album.album_title}
+                              </h3>
+                              <p className="mt-1 text-[10px] md:text-xs text-white/80">{album.category}</p>
+                              <div className="mt-3 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-all">
+                                <span className="text-[10px] font-bold tracking-widest uppercase text-white">View</span>
+                                <div className="w-6 h-6 rounded-full bg-white text-black flex items-center justify-center text-xs">→</div>
+                              </div>
+                            </div>
+                          </motion.div>
+                        ))
+                      ) : (
+                        <div className="col-span-full py-20 text-center text-gray-500 font-serif italic">No albums found in this category.</div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -1091,36 +1099,11 @@ export default function AlbumPage() {
                 </div>
               </div>
             </section>
-
-            {/* ═══ SECTION 5: Newsletter ═══ */}
-            <section className="bg-[#f6eff1] py-12 sm:py-16 md:py-20">
-              <div className="mx-auto max-w-4xl px-5 text-center md:px-10">
-                <h3 className="text-4xl italic text-[#211a1b] md:text-5xl" style={{ fontFamily: 'var(--font-newsreader)' }}>
-                  Stay within the narrative.
-                </h3>
-                <p className="mx-auto mt-4 max-w-2xl text-sm text-[#6b5b60]">
-                  Receive our monthly journal featuring behind-the-scenes visionaries and exclusive collection previews.
-                </p>
-                <div className="mx-auto mt-10 flex max-w-xl flex-col gap-3 sm:flex-row">
-                  <input
-                    type="email"
-                    placeholder="Email Address"
-                    className="w-full rounded-xl bg-white px-4 py-3 text-sm text-[#3f3236] outline-none ring-1 ring-[#d9c6cf] placeholder:text-[#9e8a92] focus:ring-2 focus:ring-[#920857]/40"
-                  />
-                  <button className="rounded-xl bg-gradient-to-r from-[#920857] to-[#b43c8f] px-7 py-3 text-xs font-semibold uppercase tracking-[0.15em] text-white">
-                    Subscribe
-                  </button>
-                </div>
-              </div>
-            </section>
-
+ 
            <Footer />
           </div>
         </div>
       </main>
-
-       
- 
     </>
   );
 }

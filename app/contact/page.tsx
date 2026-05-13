@@ -51,25 +51,12 @@ export default function ContactPage() {
             <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-1">
               <div className="group transition-all">
                 <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#8b7079] mb-3 group-hover:text-[#8c0053]">General Inquiries</h3>
-                <a href="mailto:hello@memoalbum.com" className="text-2xl md:text-3xl hover:italic transition-all" style={{ fontFamily: 'var(--font-newsreader)' }}>
-                  hello@memoalbum.com
+                <a href="mailto:info@memoalbum.com" className="text-2xl md:text-3xl hover:italic transition-all" style={{ fontFamily: 'var(--font-newsreader)' }}>
+           info@memoalbum.com
                 </a>
               </div>
               
-              <div className="group transition-all">
-                <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#8b7079] mb-3 group-hover:text-[#8c0053]">Visit Our Studio</h3>
-                <p className="text-2xl md:text-3xl" style={{ fontFamily: 'var(--font-newsreader)' }}>
-                  124 Atelier Way, Suite 400<br/>Manhattan, NY 10013
-                </p>
-              </div>
-
-              <div className="flex gap-8 items-center pt-4">
-                {['Instagram', 'Pinterest', 'Vogue'].map(platform => (
-                  <a key={platform} href="#" className="text-[11px] uppercase tracking-[0.2em] text-[#534345] hover:text-[#890051] transition-colors">
-                    {platform}
-                  </a>
-                ))}
-              </div>
+                
             </div>
           </motion.div>
 
@@ -91,7 +78,7 @@ export default function ContactPage() {
                     <label className="block text-[10px] uppercase tracking-[0.2em] text-[#8b7079] mb-2 ml-1 group-focus-within:text-[#890051] transition-colors">Full Name</label>
                     <input 
                       type="text" 
-                      placeholder="Julianne Vough"
+                      placeholder="Your Name"
                       className="w-full bg-transparent border-b border-[#211a1b]/10 py-3 focus:border-[#890051] outline-none transition-all placeholder:text-[#8b7079]/30 text-lg" 
                     />
                   </div>
@@ -99,7 +86,7 @@ export default function ContactPage() {
                     <label className="block text-[10px] uppercase tracking-[0.2em] text-[#8b7079] mb-2 ml-1 group-focus-within:text-[#890051] transition-colors">Email Address</label>
                     <input 
                       type="email" 
-                      placeholder="hello@atelier.com"
+                      placeholder="Your Email"
                       className="w-full bg-transparent border-b border-[#211a1b]/10 py-3 focus:border-[#890051] outline-none transition-all placeholder:text-[#8b7079]/30 text-lg" 
                     />
                   </div>
@@ -111,7 +98,7 @@ export default function ContactPage() {
                     <label className="block text-[10px] uppercase tracking-[0.2em] text-[#8b7079] mb-2 ml-1 group-focus-within:text-[#890051] transition-colors">Location</label>
                     <input 
                       type="text" 
-                      placeholder="Paris, France"
+                      placeholder="Your Location"
                       className="w-full bg-transparent border-b border-[#211a1b]/10 py-3 focus:border-[#890051] outline-none transition-all placeholder:text-[#8b7079]/30 text-lg" 
                     />
                   </div>

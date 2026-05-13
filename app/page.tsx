@@ -279,41 +279,47 @@ export default function HomePage() {
             viewport={{ once: true, amount: 0.3 }}
             className="rounded-3xl bg-[#f3e5e6] p-5 shadow-[0_40px_80px_rgba(33,26,27,0.08)]"
           >
-            <div className="rounded-2xl bg-[#211a1b] p-5 text-[#ffecf1]">
-              <p className="text-[11px] uppercase tracking-[0.26em] text-[#ffb0cd]">
-                Live Dashboard
-              </p>
-              <div className="mt-5 grid grid-cols-2 gap-3">
-                <div className="rounded-xl bg-white/10 p-4">
-                  <p className="text-xs text-[#ffb0cd]">Albums in Progress</p>
-                  <p
-                    className="mt-3 text-3xl"
-                    style={{ fontFamily: 'var(--font-newsreader)' }}
-                  >
-                    42
-                  </p>
-                </div>
-                <div className="rounded-xl bg-white/10 p-4">
-                  <p className="text-xs text-[#ffb0cd]">Photographer</p>
-                  <p
-                    className="mt-3 text-3xl"
-                    style={{ fontFamily: 'var(--font-newsreader)' }}
-                  >
-                    17
-                  </p>
+            <div className="rounded-2xl bg-[#211a1b] p-6 text-[#ffecf1]">
+              <div className="flex items-center justify-between mb-6">
+                <p className="text-[11px] uppercase tracking-[0.26em] text-[#ffb0cd] font-semibold">
+                  Live Dashboard
+                </p>
+                <div className="h-2 w-2 rounded-full bg-[#00d084] animate-pulse"></div>
+              </div>
+              
+              <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 p-6 border border-white/15 hover:border-white/25 transition-all duration-300 mb-5">
+                <p className="text-[10px] text-[#ffb0cd] uppercase tracking-widest font-semibold">Active Photographers</p>
+                <p
+                  className="mt-5 text-5xl font-semibold tracking-tight"
+                  style={{ fontFamily: 'var(--font-newsreader)' }}
+                >
+                  17
+                </p>
+                <div className="mt-5 pt-5 border-t border-white/10">
+                  <p className="text-[10px] text-white/60 uppercase tracking-wide">Status: All systems operational</p>
                 </div>
               </div>
-              <div className="mt-4 rounded-xl bg-white/10 p-4 text-sm">
-                <p className="text-xs text-[#ffb0cd]">Today&rsquo;s Priority</p>
-                <p className="mt-2">Final review: Silva x Monique archive</p>
-              </div>
-            </div>
 
-            <div className="mx-auto mt-4 w-[88%] rounded-2xl bg-[#fff8f8] p-4 shadow-[0_16px_28px_rgba(33,26,27,0.07)]">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-[#8b7079]">Final Feedback</p>
-              <p className="mt-2 text-sm text-[#534345]">
-                "Please brighten spread 12 slightly before export."
-              </p>
+              {/* Google Reviews Section */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3, duration: 0.5 }}
+                className="rounded-lg bg-gradient-to-br from-white/5 to-white/0 p-5 border border-white/10"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-[10px] text-[#ffb0cd] uppercase tracking-widest font-semibold">Reviews</p>
+                  <div className="flex gap-0.5">
+                    {[...Array(5)].map((_, i) => (
+                      <span key={i} className="text-xs text-[#ffd700]">★</span>
+                    ))}
+                  </div>
+                </div>
+                <p className="text-xs text-white/80 leading-relaxed">
+                  "Exceptional service. The team truly understands the art of preservation."
+                </p>
+                <p className="mt-3 text-[9px] text-white/50 uppercase tracking-wide">— Google Reviews</p>
+              </motion.div>
             </div>
           </motion.div>
         </div>
