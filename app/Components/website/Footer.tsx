@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 
 const footerExploreLinks = [
@@ -16,10 +17,16 @@ const footerLegalLinks = [
 ];
 
 const Footer = () => {
+    const [activeLink, setActiveLink] = useState<string | null>(null);
+
+    const handleClick = (label: string) => {
+        setActiveLink(label);
+    };
+
     return (
         <footer className="relative bg-[#A11462]/20 backdrop-blur-2xl border-t border-[#A11462]/30 py-12 sm:py-14 md:py-16">
             {/* Glassmorphic background effect */}
-            <div className="absolute inset-0 bg-gradient-to-b from-[#A11462]/10 to-[#A11462]/5 pointer-events-none" />
+            <div className="absolute inset-0 bg-linear-to-b from-[#A11462]/10 to-[#A11462]/5 pointer-events-none" />
             
             <div className="relative z-10 mx-auto grid max-w-6xl gap-8 sm:gap-10 px-4 sm:px-5 md:grid-cols-4 md:px-10">
                 <div>
@@ -39,7 +46,12 @@ const Footer = () => {
                     <p className="text-[10px] sm:text-xs uppercase tracking-[0.2em] text-white font-semibold">Explore</p>
                     <div className="mt-3 sm:mt-4 space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-white/85">
                         {footerExploreLinks.map((link) => (
-                            <Link key={link.label} href={link.href} className="block hover:text-white transition-colors duration-300 hover:font-medium">
+                            <Link
+                                key={link.label}
+                                href={link.href}
+                                onClick={() => handleClick(link.label)}
+                                className={`block cursor-pointer transition-colors duration-300 ${activeLink === link.label ? 'text-[#97095A] font-medium' : 'hover:text-white hover:font-medium text-white/85'}`}
+                            >
                                 {link.label}
                             </Link>
                         ))}
@@ -50,7 +62,12 @@ const Footer = () => {
                     <p className="text-[10px] sm:text-xs uppercase tracking-[0.2em] text-white font-semibold">Legal</p>
                     <div className="mt-3 sm:mt-4 space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-white/85">
                         {footerLegalLinks.map((link) => (
-                            <Link key={link.label} href={link.href} className="block hover:text-white transition-colors duration-300 hover:font-medium">
+                            <Link
+                                key={link.label}
+                                href={link.href}
+                                onClick={() => handleClick(link.label)}
+                                className={`block cursor-pointer transition-colors duration-300 ${activeLink === link.label ? 'text-[#97095A] font-medium' : 'hover:text-white hover:font-medium text-white/85'}`}
+                            >
                                 {link.label}
                             </Link>
                         ))}
@@ -60,7 +77,11 @@ const Footer = () => {
                 <div>
                     <p className="text-[10px] sm:text-xs uppercase tracking-[0.2em] text-white font-semibold">Contact</p>
                     <div className="mt-3 sm:mt-4 space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-white/85">
-                        <a href="mailto:hello@memoalbum.com" className="block hover:text-white transition-colors duration-300 hover:font-medium">
+                        <a
+                            href="mailto:hello@memoalbum.com"
+                            onClick={() => handleClick('Contact')}
+                            className={`block cursor-pointer transition-colors duration-300 ${activeLink === 'Contact' ? 'text-[#97095A] font-medium' : 'hover:text-white hover:font-medium text-white/85'}`}
+                        >
                             memoalbum.com
                         </a>
                     </div>

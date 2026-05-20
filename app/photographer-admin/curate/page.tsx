@@ -13,7 +13,7 @@ import {
 interface FormData {
   albumName: string;
   weddingDate: string;
-  accessControl: 'public' | 'private' | 'password';
+  accessControl: 'public' | 'private';
 }
 
 export default function NewCollectionPage() {
@@ -53,7 +53,7 @@ export default function NewCollectionPage() {
     }));
   };
 
-  const handleAccessControlChange = (type: 'public' | 'private' | 'password') => {
+  const handleAccessControlChange = (type: 'public' | 'private') => {
     setFormData((prev) => ({
       ...prev,
       accessControl: type,
@@ -149,7 +149,7 @@ export default function NewCollectionPage() {
           </div>
 
           {/* Access Controls Section */}
-          <div className="p-8 rounded-xl shadow-sm min-h-[352px]" style={{ backgroundColor: '#ffffff' }}>
+          <div className="p-8 rounded-xl shadow-sm" style={{ backgroundColor: '#ffffff' }}>
             <h3 className="label-sm tracking-widest uppercase text-[10px] text-[#9a8a8e] mb-6 font-bold">
               Access Controls
             </h3>
@@ -187,24 +187,6 @@ export default function NewCollectionPage() {
                   <p className="text-[11px] text-[#9a8a8e]">Accessible only via unique URL</p>
                 </div>
               </label>
-
-              {/* Password Protected */}
-              <label className="flex items-center p-4 min-h-[104px] bg-surface-container-low rounded-xl cursor-pointer group transition-colors hover:bg-surface-container" style={{ backgroundColor: '#fdf1f3' }}>
-                <input
-                  type="radio"
-                  name="accessControl"
-                  value="password"
-                  checked={formData.accessControl === 'password'}
-                  onChange={() => handleAccessControlChange('password')}
-                  className="h-4 w-4"
-                  style={{ accentColor: '#b10e6b' }}
-                />
-                <div className="ml-4">
-                  <p className="text-sm font-semibold text-[#211a1b]">Password Protected</p>
-                  <p className="text-[11px] text-[#9a8a8e]">Secure PIN required for viewing</p>
-                </div>
-              </label>
-
             </div>
           </div>
         </div>

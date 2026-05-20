@@ -35,30 +35,24 @@ const narrativeAssets = [
 
 const spreadPages = [
   {
-    title: 'Opening Spread',
-    type: 'double' as const,
-    images: [
-      'https://images.unsplash.com/photo-1523438097201-512ae7d59d4b?w=1200&h=1400&fit=crop',
-      'https://images.unsplash.com/photo-1519741497674-611481863552?w=1200&h=1400&fit=crop',
-    ],
+    title: 'Minimal Layout',
+    layout: 'minimal',
+    images: ['https://images.unsplash.com/photo-1523438097201-512ae7d59d4b?w=1200&h=1400&fit=crop'],
   },
   {
-    title: 'Detail Page',
-    type: 'single' as const,
-    images: ['https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=1200&h=1400&fit=crop'],
+    title: 'Editorial Layout',
+    layout: 'editorial',
+    images: ['https://images.unsplash.com/photo-1519741497674-611481863552?w=1200&h=1400&fit=crop'],
   },
   {
-    title: 'Ceremony Spread',
-    type: 'double' as const,
-    images: [
-      'https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&h=1400&fit=crop',
-      'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200&h=1400&fit=crop',
-    ],
+    title: 'Mosaic Layout',
+    layout: 'mosaic',
+    images: ['https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&h=1400&fit=crop'],
   },
   {
-    title: 'Final Frame',
-    type: 'single' as const,
-    images: ['https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?w=1200&h=1400&fit=crop'],
+    title: 'Portrait Layout',
+    layout: 'portrait',
+    images: ['https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200&h=1400&fit=crop'],
   },
 ];
 
@@ -115,11 +109,11 @@ export default function TemplateWorkspacePage() {
               <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#534345]">Live Content Feed</span>
               <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#b10e6b]">Streaming assets</span>
             </div>
-            <div className="overflow-x-auto pb-2">
-              <div className="flex min-w-max gap-4 pr-3">
-                {[...liveAssets, ...liveAssets].map((src, index) => (
+            <div className="overflow-x-auto pb-2 scroll-smooth" style={{ scrollBehavior: 'smooth' }}>
+              <div className="inline-flex gap-4 pr-3">
+                {liveAssets.map((src, index) => (
                   <article
-                    key={`${src}-${index}`}
+                    key={index}
                     className="w-[280px] flex-shrink-0 overflow-hidden rounded-[1rem] bg-[#fff8f7] shadow-[0_20px_40px_-18px_rgba(33,26,27,0.22)]"
                   >
                     <img alt="Live content preview" className="h-[300px] w-full object-cover grayscale transition-all duration-700 hover:grayscale-0" src={src} />
@@ -216,35 +210,27 @@ export default function TemplateWorkspacePage() {
                   >
                     {spreadPages.map((page, index) => (
                       <article key={page.title} className="flex h-full w-full items-stretch justify-stretch bg-white p-4 md:p-6">
-                        {page.type === 'double' ? (
-                          <div className="grid h-full w-full grid-cols-2 gap-4">
-                            <div className="overflow-hidden rounded-[1rem] bg-[#f3e5e6]">
-                              <img alt={`${page.title} left`} className="h-full w-full object-cover" src={page.images[0]} />
+                        <div className="grid h-full w-full grid-cols-5 gap-4">
+                          <div className="col-span-3 overflow-hidden rounded-[1rem] bg-[#f3e5e6]">
+                            <img alt={page.title} className="h-full w-full object-cover" src={page.images[0]} />
+                          </div>
+                          <div className="col-span-2 flex flex-col justify-between rounded-[1rem] bg-[#fdfcfc] p-5">
+                            <div>
+                              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#b10e6b]">Page {index + 1}</p>
+                              <h4 className="mt-2 font-[Newsreader] text-3xl italic text-[#211a1b]">{page.title}</h4>
+                              <p className="mt-3 text-sm leading-6 text-[#534345]">
+                                {page.layout === 'minimal' && 'Clean and spacious layout with maximum whitespace.'}
+                                {page.layout === 'editorial' && 'Editorial spread with text and image harmony.'}
+                                {page.layout === 'mosaic' && 'Multi-image mosaic grid layout.'}
+                                {page.layout === 'portrait' && 'Full-page portrait layout for single hero images.'}
+                              </p>
                             </div>
-                            <div className="overflow-hidden rounded-[1rem] bg-[#ebe0e1]">
-                              <img alt={`${page.title} right`} className="h-full w-full object-cover" src={page.images[1]} />
+                            <div className="flex items-center justify-between rounded-[1rem] bg-[#ebe0e1] px-4 py-3 text-[10px] font-bold uppercase tracking-[0.18em] text-[#534345]">
+                              <span>{page.layout}</span>
+                              <span className="inline-flex items-center gap-2 text-[#b10e6b]"><ChevronDown className="h-3.5 w-3.5" />Flip</span>
                             </div>
                           </div>
-                        ) : (
-                          <div className="grid h-full w-full grid-cols-5 gap-4">
-                            <div className="col-span-3 overflow-hidden rounded-[1rem] bg-[#f3e5e6]">
-                              <img alt={`${page.title} main`} className="h-full w-full object-cover" src={page.images[0]} />
-                            </div>
-                            <div className="col-span-2 flex flex-col justify-between rounded-[1rem] bg-[#fdfcfc] p-5">
-                              <div>
-                                <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#b10e6b]">Page {index + 1}</p>
-                                <h4 className="mt-2 font-[Newsreader] text-3xl italic text-[#211a1b]">{page.title}</h4>
-                                <p className="mt-3 text-sm leading-6 text-[#534345]">
-                                  The page flip reveals a single hero frame paired with editorial notes and margin rhythm.
-                                </p>
-                              </div>
-                              <div className="flex items-center justify-between rounded-[1rem] bg-[#ebe0e1] px-4 py-3 text-[10px] font-bold uppercase tracking-[0.18em] text-[#534345]">
-                                <span>Spread {index + 1}</span>
-                                <span className="inline-flex items-center gap-2 text-[#b10e6b]"><ChevronDown className="h-3.5 w-3.5" />Flip</span>
-                              </div>
-                            </div>
-                          </div>
-                        )}
+                        </div>
                       </article>
                     ))}
                   </FlipBook>

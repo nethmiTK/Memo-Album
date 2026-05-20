@@ -122,7 +122,7 @@ export default function HomePage() {
             <div className="mt-6 sm:mt-9 flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4">
               <Link
                 href="/album"
-                className="rounded-xl bg-gradient-to-r from-[#890051] to-[#d23284] px-5 sm:px-6 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold text-white shadow-[0_18px_40px_rgba(137,0,81,0.18)] transition hover:-translate-y-0.5 text-center"
+                className="rounded-xl bg-linear-to-r from-[#890051] to-[#d23284] px-5 sm:px-6 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold text-white shadow-[0_18px_40px_rgba(137,0,81,0.18)] transition hover:-translate-y-0.5 text-center"
               >
                 Begin Archive
               </Link>
@@ -135,8 +135,8 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="relative mx-auto w-full max-w-[280px] sm:max-w-[380px] md:max-w-[480px]">
-            <div className="absolute -left-6 sm:-left-8 top-10 sm:top-16 hidden h-40 sm:h-48 w-32 sm:w-40 rounded-2xl bg-[#fff8f8]/75 p-3 shadow-[0_30px_80px_rgba(33,26,27,0.12)] backdrop-blur-md md:block">
+          <div className="relative mx-auto w-full max-w-85 sm:max-w-95 md:max-w-120 mt-2 sm:mt-0">
+            <div className="absolute left-0 top-4 z-20 h-28 w-24 rounded-xl border border-white/70 bg-[#fff8f8]/92 p-2 shadow-[0_24px_60px_rgba(33,26,27,0.18)] backdrop-blur-md sm:left-4 sm:top-4 sm:h-28 sm:w-24 md:-left-8 md:top-16 md:h-48 md:w-40 md:rounded-2xl md:p-3">
               <img
                 src="https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&w=800&q=80"
                 alt="Ring details"
@@ -147,12 +147,12 @@ export default function HomePage() {
               initial={{ opacity: 0, rotate: -2, y: 30 }}
               animate={{ opacity: 1, rotate: 0, y: 0 }}
               transition={{ delay: 0.2, duration: 0.8, ease: 'easeOut' }}
-              className="overflow-hidden rounded-2xl sm:rounded-3xl bg-[#fff8f8] p-2 sm:p-3 shadow-[0_20px_50px_rgba(33,26,27,0.15)] sm:shadow-[0_38px_80px_rgba(33,26,27,0.15)]"
+              className="overflow-hidden rounded-[22px] sm:rounded-3xl bg-[#fff8f8] p-2 sm:p-3 shadow-[0_20px_50px_rgba(33,26,27,0.15)] sm:shadow-[0_38px_80px_rgba(33,26,27,0.15)] pt-14 sm:pt-3"
             >
               <img
                 src="https://images.unsplash.com/photo-1520854221256-17451cc331bf?auto=format&fit=crop&w=1200&q=80"
                 alt="Bride portrait"
-                className="h-[280px] sm:h-[380px] md:h-[510px] w-full rounded-xl sm:rounded-2xl object-cover"
+                className="h-80 sm:h-95 md:h-127.5 w-full rounded-[18px] sm:rounded-2xl object-cover object-[center_35%]"
               />
             </motion.div>
           </div>
@@ -194,7 +194,7 @@ export default function HomePage() {
                   alt={featuredPhotographers[0].name}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent flex flex-col justify-end p-4 sm:p-6">
+                <div className="absolute inset-0 bg-linear-to-t from-black/40 via-black/10 to-transparent flex flex-col justify-end p-4 sm:p-6">
                   <h3
                     className="text-lg sm:text-2xl md:text-3xl text-white leading-tight"
                     style={{ fontFamily: 'var(--font-newsreader)' }}
@@ -226,7 +226,7 @@ export default function HomePage() {
                     alt={item.name}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent flex flex-col justify-end p-3 sm:p-4 md:p-5">
+                  <div className="absolute inset-0 bg-linear-to-t from-black/50 via-black/20 to-transparent flex flex-col justify-end p-3 sm:p-4 md:p-5">
                     <h3
                       className="text-base sm:text-lg md:text-2xl text-white leading-tight"
                       style={{ fontFamily: 'var(--font-newsreader)' }}

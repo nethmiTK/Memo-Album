@@ -1,10 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Camera, User as UserIcon, ArrowLeft, LogOut } from 'lucide-react';
-import Link from 'next/link';
-import { useProtectedRoute, logout } from '@/lib/useAuth';
-import { useRouter } from 'next/navigation';
+import { Camera, User as UserIcon } from 'lucide-react';
 
 interface UserProfile {
   name: string;
@@ -15,8 +12,6 @@ interface UserProfile {
 }
 
 export default function ProfilePage() {
-  const router = useRouter();
-  const { user, loading: authLoading } = useProtectedRoute(['client', 'couple']);
   const [profile, setProfile] = useState<UserProfile>({
     name: '',
     email: '',
@@ -27,87 +22,39 @@ export default function ProfilePage() {
   const [twoFactorAuth, setTwoFactorAuth] = useState(false);
 
   useEffect(() => {
-    if (!authLoading) {
-      const loadProfile = async () => {
-        try {
-          const token = localStorage.getItem('token');
-          const response = await fetch('/api/admin/users/' + user?.id, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-            },
-          });
+    const loadProfile = () => {
+      const userRaw = localStorage.getItem('user');
+      const userDataRaw = localStorage.getItem('userData');
+      let user: any = {};
+      let userData: any = {};
+      try {
+        user = userRaw ? JSON.parse(userRaw) : {};
+        userData = userDataRaw ? JSON.parse(userDataRaw) : {};
+      } catch {
+        user = {};
+        userData = {};
+      }
 
-          if (response.ok) {
-            const data = await response.json();
-            setProfile({
-              name: data.user?.name || '',
-              email: data.user?.email || '',
-              phone: data.user?.phone || '',
-              profileImage: data.user?.profilePic || '',
-              bio: data.user?.bio || '',
-            });
-          } else {
-            // Fallback to localStorage if API fails
-            const userRaw = localStorage.getItem('user');
-            const userData = userRaw ? JSON.parse(userRaw) : {};
-            setProfile({
-              name: userData.name || '',
-              email: userData.email || '',
-              phone: userData.phone || '',
-              profileImage: userData.profilePic || '',
-              bio: userData.bio || '',
-            });
-          }
-        } catch (error) {
-          console.error('Error loading profile:', error);
-          const userRaw = localStorage.getItem('user');
-          const userData = userRaw ? JSON.parse(userRaw) : {};
-          setProfile({
-            name: userData.name || '',
-            email: userData.email || '',
-            phone: userData.phone || '',
-            profileImage: userData.profilePic || '',
-            bio: userData.bio || '',
-          });
-        }
-        setLoading(false);
-      };
+      setProfile({
+        name: user.name || user.fullName || userData.name || userData.fullName || '',
+        email: user.email || userData.email || '',
+        phone: user.phone || userData.phone || '',
+        profileImage: user.profileImage || user.profilePic || userData.profileImage || userData.profilePic || '',
+        bio: user.bio || userData.bio || '',
+      });
+      setLoading(false);
+    };
 
-      loadProfile();
-    }
-  }, [authLoading, user?.id]);
+    loadProfile();
+  }, []);
 
   const handleSaveProfile = async () => {
     // TODO: Save profile changes to API
     setIsEditing(false);
   };
 
-  if (authLoading || loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <p className="text-gray-600">Loading...</p>
-      </div>
-    );
-  }
-
   return (
     <div className="px-4 md:px-8 lg:px-12 py-8 pb-24 md:pb-8">
-      {/* Top Navigation */}
-      <div className="flex items-center justify-between mb-8 pb-4 border-b" style={{ borderColor: 'rgba(229, 204, 212, 0.2)' }}>
-        <Link href="/user-panel" className="flex items-center gap-2 text-sm font-medium transition-colors hover:text-pink-600" style={{ color: '#D23284' }}>
-          <ArrowLeft size={18} />
-          Back to Panel
-        </Link>
-        <button
-          onClick={logout}
-          className="flex items-center gap-2 text-sm font-medium transition-colors hover:text-red-600"
-          style={{ color: '#6B7387' }}
-        >
-          <LogOut size={18} />
-          Logout
-        </button>
-      </div>
-
       <div className="mb-12 pb-8 border-b-4" style={{ borderColor: '#D23284' }}>
         <h1 className="text-4xl md:text-5xl font-serif font-bold mb-2" style={{ color: '#2C1E26' }}>
           The Profile

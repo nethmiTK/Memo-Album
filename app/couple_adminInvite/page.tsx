@@ -1,38 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
-import { Image, Heart, Settings, HelpCircle, Home } from 'lucide-react';
+import { Image, Heart, Settings, HelpCircle } from 'lucide-react';
 import SecureOnboarding from '@/app/Components/user-panel/Secure';
-import { useProtectedRoute } from '@/lib/useAuth';
 
 export default function UserPanelPage() {
-  const { user, loading: authLoading } = useProtectedRoute(['client', 'couple']);
   const [showOnboarding, setShowOnboarding] = useState(true);
 
-  useEffect(() => {
-    if (!authLoading && user) {
-      // Load onboarding preference
-      const hasSeenOnboarding = localStorage.getItem('hasSeenOnboarding');
-      if (hasSeenOnboarding === 'true') {
-        setShowOnboarding(false);
-      }
-    }
-  }, [authLoading, user]);
-
-  if (authLoading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <p className="text-gray-600">Loading...</p>
-      </div>
-    );
-  }
-
   if (showOnboarding) {
-    return <SecureOnboarding onClose={() => {
-      setShowOnboarding(false);
-      localStorage.setItem('hasSeenOnboarding', 'true');
-    }} />;
+    return <SecureOnboarding onClose={() => setShowOnboarding(false)} />;
   }
 
   const menuItems = [

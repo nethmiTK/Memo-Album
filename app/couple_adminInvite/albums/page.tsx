@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Plus, Image as ImageIcon, ArrowRight } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { useProtectedRoute, logout } from '@/lib/useAuth';
+import { useProtectedRoute } from '@/lib/useAuth';
 
 interface Album {
   id: string;
@@ -14,7 +14,7 @@ interface Album {
 }
 
 export default function AlbumsPage() {
-  const { user, loading: authLoading } = useProtectedRoute(['client', 'couple']);
+  const { user, loading: authLoading } = useProtectedRoute(['couple']);
   const [albums, setAlbums] = useState<Album[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -27,10 +27,8 @@ export default function AlbumsPage() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-600">Loading...</p>
-        </div>
+      <div className="flex items-center justify-center py-20">
+        <p className="text-gray-600">Loading...</p>
       </div>
     );
   }

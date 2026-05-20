@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "../Components/website/navbar";
-import { FaEnvelope, FaLock, FaArrowRight, FaHome } from "react-icons/fa";
+import { FaEnvelope, FaLock, FaArrowRight, FaHome, FaEye, FaEyeSlash } from "react-icons/fa";
 
 const STAR_POSITIONS = [
   { left: 15, top: 20 }, { left: 85, top: 35 }, { left: 45, top: 10 },
@@ -21,6 +21,32 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Load saved email from localStorage on mount
+  useEffect(() => {
+    const savedEmail = localStorage.getItem("savedEmail");
+    if (savedEmail) {
+      setEmail(savedEmail);
+    }
+  }, []);
+
+  const handleRedirect = (role: string) => {
+    switch (role?.toLowerCase()) {
+      case "admin":
+        window.location.href = "http://localhost:3000/admin/dashboard";
+        break;
+      case "photographer":
+        window.location.href = "http://localhost:3001/photographer-admin/settings";
+        break;
+      case "couple":
+        window.location.href = "http://localhost:3001/couple_adminInvite/albums";
+        break;
+      case "client":
+      default:
+        window.location.href = "/user-panel/albums";
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,13 +65,13 @@ export default function LoginPage() {
       const res = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: email.toLowerCase(), password }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || "Invalid email or password");
+        setError(data.message || "Invalid email or password");
         setLoading(false);
         return;
       }
@@ -55,23 +81,10 @@ export default function LoginPage() {
       // Store auth data
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem("savedEmail", email); // Save email for autofill
 
       // Role-based redirection
-      if (user.role === "customer") {
-        window.location.href = "/my-albums";
-      } 
-      else if (user.role === "photographer") {
-        window.location.href = "/photographer-admin";     // ← Updated
-      } 
-      else if (user.role === "superadmin") {
-        setError("Super Admin should use the Admin Portal.");
-        setLoading(false);
-        return;
-      } 
-      else {
-        setError("Unknown user role. Please contact support.");
-        setLoading(false);
-      }
+      handleRedirect(user.role);
     } catch (err) {
       console.error(err);
       setError("Cannot connect to server. Please try again later.");
@@ -150,24 +163,26 @@ export default function LoginPage() {
               </div>
 
               <div className="space-y-1.5 group">
-                <div className="flex justify-between items-center ml-1">
-                  <label className="text-pink-100 text-[10px] font-bold uppercase tracking-wider">Password</label>
-                  <Link href="/auth/forgot-password" className="text-pink-400/70 hover:text-pink-400 text-[9px] font-bold uppercase tracking-widest transition-colors">
-                    Forgot?
-                  </Link>
-                </div>
+                <label className="text-pink-100 text-[10px] font-bold uppercase tracking-wider ml-1">Password</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-5 flex items-center text-black/50">
                     <FaLock className="text-base" />
                   </div>
                   <input
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full bg-white/5 border border-white/20 rounded-xl pl-14 pr-6 py-4 text-white focus:outline-none focus:ring-2 focus:ring-pink-400/50 transition-all placeholder:text-white/30"
+                    className="w-full bg-white/5 border border-white/20 rounded-xl pl-14 pr-14 py-4 text-white focus:outline-none focus:ring-2 focus:ring-pink-400/50 transition-all placeholder:text-white/30"
                     disabled={loading}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-5 flex items-center text-white/60 hover:text-white/80 transition-colors"
+                  >
+                    {showPassword ? <FaEyeSlash className="text-base" /> : <FaEye className="text-base" />}
+                  </button>
                 </div>
               </div>
 

@@ -60,8 +60,44 @@ export default function SettingsPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      
+      if (!token) {
+        alert('Authentication token not found. Please log in again.');
+        setSaving(false);
+        return;
+      }
+
+      const response = await fetch('http://localhost:3001/api/photographer/update-profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          username: formData.username,
+          email: formData.email,
+          businessName: formData.businessName,
+          whatsappNo: formData.whatsappNo,
+          contactNo: formData.contactNo,
+          address: formData.address,
+          bio: formData.bio,
+          profileImage: profilePreview,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(`Error: ${data.message || 'Failed to update profile'}`);
+        setSaving(false);
+        return;
+      }
+
+      // Update local storage with the response data
       const updatedUser = {
         ...(user || {}),
+        ...data.user,
         username: formData.username,
         email: formData.email,
         businessName: formData.businessName,
@@ -78,9 +114,10 @@ export default function SettingsPage() {
       window.dispatchEvent(new Event('profile-updated'));
       setUser(updatedUser);
       setProfileFile(null);
-      alert('Details updated locally. No backend call was made.');
+      alert('Profile updated successfully!');
     } catch (err) {
-      alert('Error updating local profile data');
+      console.error('Error updating profile:', err);
+      alert('Error updating profile: ' + err.message);
     } finally {
       setSaving(false);
     }
