@@ -49,18 +49,23 @@ export default function SettingsPage() {
 
   const handleLogout = () => {
     localStorage.removeItem('user');
+    localStorage.removeItem('userData');
     localStorage.removeItem('token');
     localStorage.removeItem('authToken');
+    localStorage.removeItem('adminToken');
     document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
     document.cookie = "authToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
     document.cookie = "vendorNextRoute=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-    window.location.href = '/auth/login';
+    window.location.href = '/login';
   };
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      const token =
+        localStorage.getItem('token') ||
+        localStorage.getItem('authToken') ||
+        localStorage.getItem('adminToken');
       
       if (!token) {
         alert('Authentication token not found. Please log in again.');
@@ -68,7 +73,9 @@ export default function SettingsPage() {
         return;
       }
 
-      const response = await fetch('http://localhost:3001/api/photographer/update-profile', {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+
+      const response = await fetch(`${API_URL}/photographer/update-profile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -86,10 +93,20 @@ export default function SettingsPage() {
         }),
       });
 
-      const data = await response.json();
+      const contentType = response.headers.get('content-type') || '';
+      let data: any = null;
+      if (contentType.includes('application/json')) {
+        data = await response.json();
+      }
 
       if (!response.ok) {
-        alert(`Error: ${data.message || 'Failed to update profile'}`);
+        alert(`Error: ${data?.message || 'Failed to update profile'}`);
+        setSaving(false);
+        return;
+      }
+
+      if (!data) {
+        alert('Invalid server response while updating profile.');
         setSaving(false);
         return;
       }
@@ -115,9 +132,10 @@ export default function SettingsPage() {
       setUser(updatedUser);
       setProfileFile(null);
       alert('Profile updated successfully!');
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Error updating profile:', err);
-      alert('Error updating profile: ' + err.message);
+      const errorMessage = err instanceof Error ? err.message : 'Unexpected error';
+      alert('Error updating profile: ' + errorMessage);
     } finally {
       setSaving(false);
     }
