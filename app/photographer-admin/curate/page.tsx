@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Upload } from 'lucide-react';
 import LiveContentFeed from './LiveContentFeed';
+import { apiFetch, handleAuthError } from '@/lib/api';
 
 interface FormData {
   albumName: string;
@@ -23,9 +24,37 @@ export default function NewCollectionPage() {
   const [files, setFiles] = useState<File[]>([]);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
+
+  const mergeFiles = (incomingFiles: File[]) => {
+    setFiles((previousFiles) => {
+      const existingKeys = new Set(previousFiles.map((file) => `${file.name}-${file.size}-${file.lastModified}`));
+      const mergedFiles = [...previousFiles];
+
+      incomingFiles.forEach((file) => {
+        const key = `${file.name}-${file.size}-${file.lastModified}`;
+        if (!existingKeys.has(key)) {
+          existingKeys.add(key);
+          mergedFiles.push(file);
+        }
+      });
+
+      return mergedFiles;
+    });
+  };
+
+  const fileToDataUrl = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = () => reject(new Error(`Failed to read file: ${file.name}`));
+      reader.readAsDataURL(file);
+    });
 
   useEffect(() => {
     if (files.length > 0) {
@@ -62,19 +91,80 @@ export default function NewCollectionPage() {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
-    if (e.dataTransfer.files) setFiles(Array.from(e.dataTransfer.files));
+    if (e.dataTransfer.files) mergeFiles(Array.from(e.dataTransfer.files));
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.currentTarget.files) setFiles(Array.from(e.currentTarget.files));
+    if (e.currentTarget.files) mergeFiles(Array.from(e.currentTarget.files));
   };
 
   const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setCoverFile(file);
       const reader = new FileReader();
       reader.onload = (ev) => setCoverPreview(ev.target?.result as string);
       reader.readAsDataURL(file);
+    }
+  };
+
+  const saveCurateDraft = async () => {
+    setIsSaving(true);
+    setSaveMessage(null);
+
+    try {
+      const mediaItems = await Promise.all(
+        files.map(async (file, index) => ({
+          id: `media-${index + 1}`,
+          order: index + 1,
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+          mediaKind: file.type.startsWith('video') ? 'video' : 'image',
+          dataUrl: file.type.startsWith('image') ? await fileToDataUrl(file) : '',
+        }))
+      );
+
+      const payload = {
+        albumName: formData.albumName,
+        weddingDate: formData.weddingDate,
+        accessControl: formData.accessControl,
+        coverPhoto: coverPreview || '',
+        coverPhotoName: coverFile?.name || '',
+        mediaItems,
+        progress: uploadProgress,
+      };
+
+      const response = await apiFetch('/curate', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+
+      if (response.status === 401) {
+        handleAuthError(response);
+        return false;
+      }
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || 'Failed to save curate draft');
+      }
+
+      setSaveMessage('Draft saved');
+      return true;
+    } catch (error) {
+      setSaveMessage(error instanceof Error ? error.message : 'Failed to save draft');
+      return false;
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleNext = async () => {
+    const saved = await saveCurateDraft();
+    if (saved) {
+      router.push('/photographer-admin/curate/template');
     }
   };
 
@@ -159,15 +249,15 @@ export default function NewCollectionPage() {
             <div className="flex justify-between items-center mb-4">
               <h3 className="label-sm tracking-widest uppercase text-[10px] text-[#9a8a8e] font-bold">COVER UPLOAD </h3>
              </div>
-            <label className="block aspect-[16/9] rounded-xl overflow-hidden cursor-pointer border-2 border-dashed border-[#b10e6b]/30 hover:border-[#b10e6b]">
+            <label className="block aspect-video rounded-xl overflow-hidden cursor-pointer border-2 border-dashed border-[#b10e6b]/30 hover:border-[#b10e6b]">
               <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverChange} />
               {coverPreview ? (
                 <img src={coverPreview} alt="Cover" className="w-full h-full object-cover" />
               ) : (
-                <div className="h-full flex flex-col items-center justify-center bg-[#fff8f7]">
-                  <Upload size={48} className="text-[#b10e6b] mb-4" />
-                  <p className="text-lg font-medium">Drop Cover Photo Here</p>
-                  <p className="text-sm text-gray-500">Recommended 1920×1080px</p>
+                <div className="h-full flex flex-col items-center justify-center bg-[#fff8f7] px-6 text-center">
+                  <Upload size={64} className="text-[#b10e6b] mb-3" />
+                  <p className="text-sm md:text-base font-medium text-[#211a1b]">Drop cover photo here</p>
+                  <p className="mt-1 text-xs md:text-sm text-gray-500">Recommended 1920×1080px</p>
                 </div>
               )}
             </label>
@@ -179,7 +269,7 @@ export default function NewCollectionPage() {
          
 
           {/* Media Repository */}
-          <div className="bg-white min-h-[52px] rounded-xl shadow-sm overflow-hidden flex flex-col border border-[#b10e6b]/5">
+          <div className="bg-white min-h-13 rounded-xl shadow-sm overflow-hidden flex flex-col border border-[#b10e6b]/5">
             <div className="p-8 border-b flex justify-between items-center">
               <div>
                 <h3 className="label-sm tracking-widest uppercase text-[10px] text-[#9a8a8e] font-bold">MEDIA REPOSITORY</h3>
@@ -203,7 +293,7 @@ export default function NewCollectionPage() {
 
               <div className="text-center space-y-6">
                 <div className="w-24 h-24 rounded-full flex items-center justify-center mx-auto" style={{ backgroundColor: '#f7ecef' }}>
-                  <Upload size={48} style={{ color: '#b10e6b' }} />
+                  <Upload size={56} style={{ color: '#b10e6b' }} />
                 </div>
                 <p className="serif text-3xl text-[#211a1b]">Drag your memories here</p>
                 <p className="text-sm text-[#9a8a8e]">
@@ -226,7 +316,9 @@ export default function NewCollectionPage() {
           </div>
 
           {/* Live Content Feed */}
-<LiveContentFeed files={files || []} />    </div>
+          <LiveContentFeed files={files || []} />
+          {saveMessage ? <p className="text-sm text-[#b10e6b] px-1">{saveMessage}</p> : null}
+        </div>
       </div>
 
       {/* Action Buttons */}
@@ -234,12 +326,17 @@ export default function NewCollectionPage() {
         <button className="px-8 py-4 text-sm font-bold uppercase tracking-wider text-gray-400 hover:text-gray-600">
           Discard Draft
         </button>
-        <button className="px-8 py-4 text-sm font-bold uppercase tracking-wider bg-[#EADFE2] text-[#B10E6B] rounded-lg">
+        <button
+          onClick={saveCurateDraft}
+          disabled={isSaving}
+          className="px-8 py-4 text-sm font-bold uppercase tracking-wider bg-[#EADFE2] text-[#B10E6B] rounded-lg disabled:opacity-60"
+        >
           Save Draft
         </button>
         <button 
-          onClick={() => router.push('/photographer-admin/curate/template')}
-          className="px-8 py-4 text-sm font-bold uppercase tracking-wider bg-[#b10e6b] text-white rounded-lg"
+          onClick={handleNext}
+          disabled={isSaving}
+          className="px-8 py-4 text-sm font-bold uppercase tracking-wider bg-[#b10e6b] text-white rounded-lg disabled:opacity-60"
         >
           Next
         </button>
