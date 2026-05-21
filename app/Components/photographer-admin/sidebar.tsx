@@ -9,6 +9,7 @@ import {
   Settings,
   Archive,
   HelpCircle,
+  LayoutTemplate 
 } from 'lucide-react';
 
 interface MenuItem {
@@ -30,7 +31,11 @@ export default function PhotographerSidebar({ isMobileOpen, onClose }: Photograp
     { label: 'Curate', href: '/photographer-admin/curate', icon: <Sparkles size={20} /> },
     { label: 'Clients', href: '/photographer-admin/clients', icon: <Users size={20} /> },
     { label: 'Settings', href: '/photographer-admin/settings', icon: <Settings size={20} /> },
+        { label: 'Templates', href: '/photographer-admin/curate/template', icon: <LayoutTemplate size={20} /> },
+
   ];
+
+  
 
   const bottomMenuItems: MenuItem[] = [
     { label: 'Archive', href: '/photographer-admin/archive', icon: <Archive size={20} /> },
@@ -73,11 +78,20 @@ export default function PhotographerSidebar({ isMobileOpen, onClose }: Photograp
               }`}
             >
               {active && <div className="absolute left-0 top-0 bottom-0 w-1 rounded-r-full bg-[#D23284]"></div>}
-              <div className={`flex-shrink-0 w-5 h-5 ${active ? 'text-[#D23284]' : 'text-[#6B7387]'}`}>{item.icon}</div>
+              <div
+                className={active ? 'text-[#D23284]' : 'text-[#6B7387]'}
+                style={{ flexShrink: 0, width: '1.25rem', height: '1.25rem' }}
+              >
+                {item.icon}
+              </div>
               <span className="text-sm font-medium tracking-wide">{item.label}</span>
             </Link>
           );
         })}
+
+        
+
+        
       </nav>
 
       {/* New Collection Button */}
@@ -108,7 +122,12 @@ export default function PhotographerSidebar({ isMobileOpen, onClose }: Photograp
               }`}
             >
               {active && <div className="absolute left-0 top-0 bottom-0 w-1 rounded-r-full bg-[#D23284]"></div>}
-              <div className={`flex-shrink-0 w-5 h-5 ${active ? 'text-[#D23284]' : 'text-[#6B7387]'}`}>{item.icon}</div>
+              <div
+                className={active ? 'text-[#D23284]' : 'text-[#6B7387]'}
+                style={{ flexShrink: 0, width: '1.25rem', height: '1.25rem' }}
+              >
+                {item.icon}
+              </div>
               <span className="text-sm font-medium tracking-wide">{item.label}</span>
             </Link>
           );
@@ -121,8 +140,8 @@ export default function PhotographerSidebar({ isMobileOpen, onClose }: Photograp
     <>
       {/* Desktop Sidebar */}
       <aside
-        className="hidden md:flex md:w-64 h-screen min-h-0 flex-col overflow-hidden flex-shrink-0"
-        style={{ backgroundColor: '#F3E5E6' }}
+        className="hidden md:flex md:w-64 h-screen min-h-0 flex-col overflow-hidden"
+        style={{ flexShrink: 0, backgroundColor: '#F3E5E6' }}
       >
         <SidebarContent />
       </aside>
@@ -137,10 +156,10 @@ export default function PhotographerSidebar({ isMobileOpen, onClose }: Photograp
       )}
 
       <aside
-        className={`md:hidden fixed left-0 top-0 bottom-0 w-72 z-50 transform transition-transform duration-200 flex flex-col overflow-hidden flex-shrink-0 ${
+        className={`md:hidden fixed left-0 top-0 bottom-0 w-72 z-50 transform transition-transform duration-200 flex flex-col overflow-hidden ${
           isMobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
-        style={{ backgroundColor: '#F3E5E6' }}
+        style={{ flexShrink: 0, backgroundColor: '#F3E5E6' }}
       >
         <SidebarContent />
       </aside>

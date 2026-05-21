@@ -12,6 +12,16 @@ interface FormData {
   accessControl: 'public' | 'private';
 }
 
+interface PersistedMediaItem {
+  id: string;
+  order: number;
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+  mediaKind: 'image' | 'video' | 'other';
+  dataUrl?: string;
+}
+
 export default function NewCollectionPage() {
   const router = useRouter();
   const [formData, setFormData] = useState<FormData>({
@@ -22,6 +32,7 @@ export default function NewCollectionPage() {
 
   const [isDragging, setIsDragging] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
+  const [persistedMediaItems, setPersistedMediaItems] = useState<PersistedMediaItem[]>([]);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -30,6 +41,21 @@ export default function NewCollectionPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
+
+  const parseApiJson = async (response: Response) => {
+    const rawText = await response.text();
+
+    try {
+      return rawText ? JSON.parse(rawText) : {};
+    } catch {
+      const htmlResponse = rawText.trim().startsWith('<!DOCTYPE') || rawText.trim().startsWith('<html');
+      throw new Error(
+        htmlResponse
+          ? 'Server returned HTML instead of JSON. Check API URL/backend server and login session.'
+          : 'Invalid API response format.'
+      );
+    }
+  };
 
   const mergeFiles = (incomingFiles: File[]) => {
     setFiles((previousFiles) => {
@@ -55,6 +81,53 @@ export default function NewCollectionPage() {
       reader.onerror = () => reject(new Error(`Failed to read file: ${file.name}`));
       reader.readAsDataURL(file);
     });
+
+  useEffect(() => {
+    const loadExistingDraft = async () => {
+      try {
+        const response = await apiFetch('/curate/current');
+
+        if (response.status === 401) {
+          handleAuthError(response);
+          return;
+        }
+
+        const result = await parseApiJson(response);
+        const curate = result?.curate;
+
+        if (!response.ok || !result?.success || !curate) {
+          return;
+        }
+
+        setFormData({
+          albumName: curate.albumName || 'The Everly-Brooks Nuptials',
+          weddingDate: curate.weddingDate ? new Date(curate.weddingDate).toISOString().split('T')[0] : '',
+          accessControl: curate.accessControl === 'private' ? 'private' : 'public',
+        });
+
+        setCoverPreview(curate.coverPhoto || null);
+        setUploadProgress(Number.isFinite(Number(curate.progress)) ? Number(curate.progress) : 0);
+
+        if (Array.isArray(curate.mediaItems)) {
+          const normalized = curate.mediaItems.map((item: PersistedMediaItem, index: number) => ({
+            id: item.id || `persisted-${index + 1}`,
+            order: Number.isFinite(Number(item.order)) ? Number(item.order) : index + 1,
+            fileName: item.fileName || '',
+            fileType: item.fileType || '',
+            fileSize: Number(item.fileSize) || 0,
+            mediaKind: item.mediaKind || 'image',
+            dataUrl: item.dataUrl || '',
+          }));
+
+          setPersistedMediaItems(normalized);
+        }
+      } catch {
+        // Keep default empty state when no existing draft is found.
+      }
+    };
+
+    loadExistingDraft();
+  }, []);
 
   useEffect(() => {
     if (files.length > 0) {
@@ -108,15 +181,15 @@ export default function NewCollectionPage() {
     }
   };
 
-  const saveCurateDraft = async () => {
+  const saveCurateDraft = async (status: 'save_draft' | 'saved' = 'save_draft') => {
     setIsSaving(true);
     setSaveMessage(null);
 
     try {
-      const mediaItems = await Promise.all(
+      const uploadedMediaItems = await Promise.all(
         files.map(async (file, index) => ({
-          id: `media-${index + 1}`,
-          order: index + 1,
+          id: `media-${persistedMediaItems.length + index + 1}`,
+          order: persistedMediaItems.length + index + 1,
           fileName: file.name,
           fileType: file.type,
           fileSize: file.size,
@@ -124,6 +197,16 @@ export default function NewCollectionPage() {
           dataUrl: file.type.startsWith('image') ? await fileToDataUrl(file) : '',
         }))
       );
+
+      const mediaItems = files.length > 0
+        ? [
+            ...persistedMediaItems.map((item, index) => ({
+              ...item,
+              order: index + 1,
+            })),
+            ...uploadedMediaItems,
+          ]
+        : persistedMediaItems;
 
       const payload = {
         albumName: formData.albumName,
@@ -133,6 +216,7 @@ export default function NewCollectionPage() {
         coverPhotoName: coverFile?.name || '',
         mediaItems,
         progress: uploadProgress,
+        status,
       };
 
       const response = await apiFetch('/curate', {
@@ -145,13 +229,19 @@ export default function NewCollectionPage() {
         return false;
       }
 
-      const result = await response.json();
+      const result = await parseApiJson(response);
 
       if (!response.ok || !result.success) {
         throw new Error(result.message || 'Failed to save curate draft');
       }
 
-      setSaveMessage('Draft saved');
+      if (result.curate?.mediaItems && Array.isArray(result.curate.mediaItems)) {
+        setPersistedMediaItems(result.curate.mediaItems);
+      }
+
+      setFiles([]);
+
+      setSaveMessage(status === 'saved' ? 'Saved and moved to next step' : 'Draft saved');
       return true;
     } catch (error) {
       setSaveMessage(error instanceof Error ? error.message : 'Failed to save draft');
@@ -162,7 +252,7 @@ export default function NewCollectionPage() {
   };
 
   const handleNext = async () => {
-    const saved = await saveCurateDraft();
+    const saved = await saveCurateDraft('saved');
     if (saved) {
       router.push('/photographer-admin/curate/template');
     }
@@ -316,7 +406,7 @@ export default function NewCollectionPage() {
           </div>
 
           {/* Live Content Feed */}
-          <LiveContentFeed files={files || []} />
+          <LiveContentFeed files={files || []} persistedMediaItems={persistedMediaItems} />
           {saveMessage ? <p className="text-sm text-[#b10e6b] px-1">{saveMessage}</p> : null}
         </div>
       </div>
@@ -327,7 +417,7 @@ export default function NewCollectionPage() {
           Discard Draft
         </button>
         <button
-          onClick={saveCurateDraft}
+          onClick={() => saveCurateDraft('save_draft')}
           disabled={isSaving}
           className="px-8 py-4 text-sm font-bold uppercase tracking-wider bg-[#EADFE2] text-[#B10E6B] rounded-lg disabled:opacity-60"
         >
