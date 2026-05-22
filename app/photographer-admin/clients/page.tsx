@@ -57,6 +57,12 @@ export default function CuratePage() {
   const [secondaryEmail, setSecondaryEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState('');
+  const [toastMessage, setToastMessage] = useState('');
+
+  const showToast = (value: string) => {
+    setToastMessage(value);
+    window.setTimeout(() => setToastMessage(''), 2200);
+  };
 
   const selectedAlbum = useMemo(
     () => albums.find((album) => album._id === selectedAlbumId) || null,
@@ -119,6 +125,7 @@ export default function CuratePage() {
 
     if (!primaryEmail.trim() || !secondaryEmail.trim()) {
       setMessage('Please enter both email addresses.');
+      showToast('Please enter both emails');
       setIsSubmitting(false);
       return;
     }
@@ -145,9 +152,11 @@ export default function CuratePage() {
       setPrimaryEmail('');
       setSecondaryEmail('');
       setMessage('Invitation sent and saved to the invite table.');
+      showToast('Invite sent');
       await loadInvites();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Failed to send invitation');
+      showToast(error instanceof Error ? error.message : 'Failed to send invitation');
     } finally {
       setIsSubmitting(false);
     }
@@ -155,6 +164,7 @@ export default function CuratePage() {
 
   return (
     <div className="min-h-full bg-[#FFF8F7] p-4 sm:p-6 md:p-8">
+      {toastMessage ? <div className="fixed right-5 top-5 z-50 rounded-2xl bg-[#1f1a1b] px-4 py-3 text-sm text-white shadow-2xl">{toastMessage}</div> : null}
       <div className="max-w-7xl mx-auto">
         <header className="py-8">
           <div className="flex flex-col md:flex-row justify-between items-start">

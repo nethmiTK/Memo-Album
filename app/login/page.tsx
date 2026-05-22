@@ -34,13 +34,13 @@ export default function LoginPage() {
   const handleRedirect = (role: string) => {
     switch (role?.toLowerCase()) {
       case "admin":
-        window.location.href = "http://localhost:3000/admin/dashboard";
+        window.location.href = "/admin/dashboard";
         break;
       case "photographer":
-        window.location.href = "http://localhost:3001/photographer-admin/settings";
+        window.location.href = "/photographer-admin/settings";
         break;
       case "couple":
-        window.location.href = "http://localhost:3001/couple_adminInvite/albums";
+        window.location.href = "/couple_adminInvite/albums";
         break;
       case "client":
       default:
@@ -94,7 +94,7 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="relative min-h-screen flex flex-col #FFFFF8 bg-gradient-to-t from-[#B69392] to-[#fff0f0] overflow-hidden">
+    <main className="relative min-h-screen flex flex-col #FFFFF8 bg-linear-to-t from-[#B69392] to-[#fff0f0] overflow-hidden">
       <Navbar />
 
       <motion.div
@@ -103,7 +103,7 @@ export default function LoginPage() {
         transition={{ duration: 1.5, ease: "easeOut" }}
         className="absolute inset-0 z-0"
       >
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-black/60 z-10" />
+        <div className="absolute inset-0 bg-linear-to-t from-black via-black/40 to-black/60 z-10" />
         <img
           src="/images/login.png"
           alt="Wedding Background"
@@ -139,7 +139,7 @@ export default function LoginPage() {
             </p>
           </div>
 
-          <div className="bg-white/10 backdrop-blur-2xl border border-white/20 p-6 md:p-8 rounded-[2rem] shadow-2xl relative overflow-hidden">
+          <div className="bg-white/10 backdrop-blur-2xl border border-white/20 p-6 md:p-8 rounded-4xl shadow-2xl relative overflow-hidden">
             <h2 className="text-xl font-serif text-white mb-6 text-center">Welcome Back</h2>
 
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -204,7 +204,7 @@ export default function LoginPage() {
                 whileTap={{ scale: 0.98 }}
                 type="submit"
                 disabled={loading}
-                className="w-full bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white py-4 rounded-2xl font-bold text-sm uppercase tracking-widest shadow-xl disabled:opacity-50 flex items-center justify-center gap-3"
+                className="w-full bg-linear-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white py-4 rounded-2xl font-bold text-sm uppercase tracking-widest shadow-xl disabled:opacity-50 flex items-center justify-center gap-3"
               >
                 {loading ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

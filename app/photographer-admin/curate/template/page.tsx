@@ -160,6 +160,8 @@ function SpreadPage({ spread }: { spread: TemplateSpread }) {
 export default function TemplateWorkspacePage() {
   const router = useRouter();
   const bookRef = useRef<any>(null);
+  const previewHoverRef = useRef(false);
+  const lastPreviewMoveRef = useRef(0);
 
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateId>('template-1');
   const [spreads, setSpreads] = useState<TemplateSpread[]>([]);
@@ -172,12 +174,18 @@ export default function TemplateWorkspacePage() {
   const [coverPhotoName, setCoverPhotoName] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [saveMessage, setSaveMessage] = useState<string>('');
+  const [toastMessage, setToastMessage] = useState('');
   const [draftAlbums, setDraftAlbums] = useState<CurateDraftListResponse['curates']>([]);
   const [selectedDraftId, setSelectedDraftId] = useState('');
   const flipBookKey = `${selectedDraftId || 'draft'}-${selectedTemplate}-${spreads.length}`;
 
   const flipNext = () => bookRef.current?.pageFlip?.().flipNext?.();
   const flipPrev = () => bookRef.current?.pageFlip?.().flipPrev?.();
+
+  const showToast = (value: string) => {
+    setToastMessage(value);
+    window.setTimeout(() => setToastMessage(''), 2200);
+  };
 
   const orderedAssets = useMemo(
     () => [...mediaItems].sort((a, b) => a.order - b.order),
@@ -283,6 +291,7 @@ export default function TemplateWorkspacePage() {
         throw new Error(result.message || 'Save failed');
       }
 
+      showToast(status === 'saved' ? 'Template saved' : 'Draft saved');
       return true;
     } catch (error) {
       setSaveMessage(error instanceof Error ? error.message : 'Failed to save');
@@ -295,6 +304,7 @@ export default function TemplateWorkspacePage() {
     const saved = await saveTemplateState(templateId, orderedAssets, 'save_draft');
     if (saved) {
       setSaveMessage('Template selected and synced');
+      showToast('Template selected');
       await loadTemplatePreview(templateId);
     }
   };
@@ -319,6 +329,7 @@ export default function TemplateWorkspacePage() {
     const saved = await saveTemplateState(selectedTemplate, normalized, 'save_draft');
     if (saved) {
       setSaveMessage('Narrative order saved');
+      showToast('Order saved');
       await loadTemplatePreview(selectedTemplate);
     }
   };
@@ -327,6 +338,17 @@ export default function TemplateWorkspacePage() {
     loadDraft();
     loadDraftAlbums();
   }, []);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      const isIdle = Date.now() - lastPreviewMoveRef.current > 2500;
+      if (!previewHoverRef.current && isIdle && spreads.length > 0) {
+        flipNext();
+      }
+    }, 3000);
+
+    return () => window.clearInterval(timer);
+  }, [spreads.length]);
 
   useEffect(() => {
     if (!isLoading) {
@@ -351,6 +373,7 @@ export default function TemplateWorkspacePage() {
 
   return (
     <div className="min-h-screen bg-[#fff8f8] px-4 py-8 text-[#211a1b] md:px-6 lg:px-8">
+      {toastMessage ? <div className="fixed right-5 top-5 z-50 rounded-2xl bg-[#1f1a1b] px-4 py-3 text-sm text-white shadow-2xl">{toastMessage}</div> : null}
       <main className="mx-auto max-w-400 space-y-10">
         <section className="space-y-3">
           <h2 className="font-[Newsreader] text-4xl italic md:text-5xl">Template Workspace</h2>
@@ -477,7 +500,19 @@ export default function TemplateWorkspacePage() {
               Dynamic Asset Rotation
             </div>
 
-            <div className="overflow-hidden rounded-2xl bg-[#fff8f7]">
+            <div
+              className="overflow-hidden rounded-2xl bg-[#fff8f7]"
+              onMouseEnter={() => {
+                previewHoverRef.current = true;
+                lastPreviewMoveRef.current = Date.now();
+              }}
+              onMouseMove={() => {
+                lastPreviewMoveRef.current = Date.now();
+              }}
+              onMouseLeave={() => {
+                previewHoverRef.current = false;
+              }}
+            >
               {spreads.length > 0 ? (
                 <FlipBook
                   key={flipBookKey}
@@ -528,6 +563,7 @@ export default function TemplateWorkspacePage() {
             onClick={async () => {
               const saved = await saveTemplateState(selectedTemplate, orderedAssets, 'saved');
               if (saved) {
+                showToast('Saved and moving to clients');
                 router.push('/photographer-admin/clients');
               }
             }}
@@ -537,7 +573,20 @@ export default function TemplateWorkspacePage() {
           </button>
           <button
             type="button"
-            onClick={() => router.push('/photographer-admin/curate')}
+            onClick={async () => {
+              try {
+                const response = await apiFetch('/curate/current', { method: 'DELETE' });
+                if (response.status === 401) {
+                  handleAuthError(response);
+                  return;
+                }
+                if (!response.ok) throw new Error('Failed to discard draft');
+                showToast('Draft discarded');
+                router.push('/photographer-admin/curate');
+              } catch (error) {
+                showToast(error instanceof Error ? error.message : 'Failed to discard draft');
+              }
+            }}
             className="rounded-[0.9rem] bg-[#ebe0e1] px-6 py-3 text-sm font-bold uppercase tracking-[0.14em] text-[#534345]"
           >
             Discard

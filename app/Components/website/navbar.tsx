@@ -23,16 +23,36 @@ export default function Navbar() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const userData = localStorage.getItem('user');
-    if (token && userData) {
+    const resolveUser = () => {
+      const token = localStorage.getItem('token');
+      const userRaw = localStorage.getItem('user');
+      const userDataRaw = localStorage.getItem('userData');
+
+      if (!token) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
       try {
-        setUser(JSON.parse(userData));
+        const user = userRaw ? JSON.parse(userRaw) : {};
+        const userData = userDataRaw ? JSON.parse(userDataRaw) : {};
+        setUser({ ...user, ...userData });
       } catch (e) {
         console.error('Failed to parse user data');
+        setUser(null);
       }
-    }
-    setLoading(false);
+
+      setLoading(false);
+    };
+
+    resolveUser();
+    window.addEventListener('storage', resolveUser);
+    window.addEventListener('profile-updated', resolveUser as EventListener);
+    return () => {
+      window.removeEventListener('storage', resolveUser);
+      window.removeEventListener('profile-updated', resolveUser as EventListener);
+    };
   }, []);
 
   const handleLogout = () => {
@@ -41,6 +61,10 @@ export default function Navbar() {
     setProfileOpen(false);
     router.push('/');
   };
+
+  const profileHref = user?.role?.toLowerCase() === 'photographer' ? '/photographer-admin/settings' : '/user-panel/profile';
+  const profileLabel = 'My Profile';
+  const profileImageSrc = user?.profileImage || user?.profilePic || '';
 
   return (
     <header className="sticky top-0 z-40 border-b border-[#211a1b]/10 bg-[#fff8f8]/85 backdrop-blur-md">
@@ -72,7 +96,7 @@ export default function Navbar() {
           {!loading && !user ? (
             <Link
               href="/login"
-              className="hidden sm:block rounded-full bg-gradient-to-r from-[#890051] to-[#d23284] px-4 py-1.5 sm:py-2 text-[9px] sm:text-[10px] font-semibold uppercase tracking-[0.18em] text-white shadow-[0_8px_16px_rgba(137,0,81,0.15)] sm:shadow-[0_14px_30px_rgba(137,0,81,0.22)] transition-all hover:shadow-lg"
+              className="hidden sm:block rounded-full bg-linear-to-r from-[#890051] to-[#d23284] px-4 py-1.5 sm:py-2 text-[9px] sm:text-[10px] font-semibold uppercase tracking-[0.18em] text-white shadow-[0_8px_16px_rgba(137,0,81,0.15)] sm:shadow-[0_14px_30px_rgba(137,0,81,0.22)] transition-all hover:shadow-lg"
             >
               Sign In
             </Link>
@@ -82,9 +106,9 @@ export default function Navbar() {
                 onClick={() => setProfileOpen(!profileOpen)}
                 className="flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-black/5 transition-colors"
               >
-                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-[#890051] to-[#d23284] flex items-center justify-center text-white font-bold text-sm overflow-hidden">
-                  {user?.profilePic ? (
-                    <img src={user.profilePic} alt={user.name} className="w-full h-full object-cover" />
+                <div className="w-8 h-8 rounded-full bg-linear-to-r from-[#890051] to-[#d23284] flex items-center justify-center text-white font-bold text-sm overflow-hidden">
+                  {profileImageSrc ? (
+                    <img src={profileImageSrc} alt={user.name} className="w-full h-full object-cover" />
                   ) : (
                     <span>{user?.name?.charAt(0)?.toUpperCase() || 'U'}</span>
                   )}
@@ -113,12 +137,12 @@ export default function Navbar() {
                       className="absolute top-12 right-0 z-40 bg-white rounded-lg shadow-lg border border-[#8c0053]/10 overflow-hidden"
                     >
                       <Link
-                        href="/user-panel/profile"
+                        href={profileHref}
                         onClick={() => setProfileOpen(false)}
                         className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-[#534345] hover:bg-[#fff8f8] transition-colors border-b border-[#8c0053]/10"
                       >
                         <User size={16} />
-                        My Profile
+                        {profileLabel}
                       </Link>
                       <button
                         onClick={handleLogout}
@@ -176,7 +200,7 @@ export default function Navbar() {
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ duration: 0.3, ease: 'easeInOut' }}
-              className="fixed top-0 left-0 h-screen w-1/2 md:hidden z-50 bg-gradient-to-br from-[#fff8f8] via-[#ffe8f0] to-[#ffd4e0] flex flex-col justify-start pt-20 px-4 overflow-y-auto"
+              className="fixed top-0 left-0 h-screen w-1/2 md:hidden z-50 bg-linear-to-br from-[#fff8f8] via-[#ffe8f0] to-[#ffd4e0] flex flex-col justify-start pt-20 px-4 overflow-y-auto"
             >
               {/* Navigation Links */}
               <nav className="flex flex-col gap-4 w-full">
@@ -193,7 +217,7 @@ export default function Navbar() {
                       onClick={() => setMobileMenuOpen(false)}
                       className={`block w-full px-5 py-3 rounded-xl text-base font-bold uppercase tracking-wide transition-all text-center cursor-pointer ${
                         pathname === link.href
-                          ? 'bg-gradient-to-r from-[#890051] to-[#d23284] text-white shadow-lg'
+                          ? 'bg-linear-to-r from-[#890051] to-[#d23284] text-white shadow-lg'
                           : 'bg-white/70 text-[#534345] hover:bg-white/90 hover:shadow-lg'
                       }`}
                     >
@@ -204,7 +228,7 @@ export default function Navbar() {
               </nav>
 
               {/* Divider */}
-              <div className="w-full h-1 bg-gradient-to-r from-[#8c0053]/40 via-[#A11462]/40 to-transparent rounded-full my-4" />
+              <div className="w-full h-1 bg-linear-to-r from-[#8c0053]/40 via-[#A11462]/40 to-transparent rounded-full my-4" />
 
               {/* Mobile Sign In or Profile */}
               {!user ? (
@@ -217,7 +241,7 @@ export default function Navbar() {
                   <Link
                     href="/login"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="block w-full px-5 py-3 rounded-xl bg-gradient-to-r from-[#890051] to-[#d23284] text-white text-base font-bold uppercase tracking-wide text-center shadow-lg hover:shadow-xl transition-all cursor-pointer"
+                    className="block w-full px-5 py-3 rounded-xl bg-linear-to-r from-[#890051] to-[#d23284] text-white text-base font-bold uppercase tracking-wide text-center shadow-lg hover:shadow-xl transition-all cursor-pointer"
                   >
                     Sign In
                   </Link>
@@ -231,12 +255,12 @@ export default function Navbar() {
                     className="w-full"
                   >
                     <Link
-                      href="/user-panel/profile"
+                      href={profileHref}
                       onClick={() => setMobileMenuOpen(false)}
                       className="flex items-center gap-3 w-full px-5 py-3 rounded-xl bg-white/70 text-[#534345] text-base font-bold uppercase tracking-wide text-center hover:bg-white/90 hover:shadow-lg transition-all cursor-pointer"
                     >
                       <User size={20} />
-                      My Profile
+                      {profileLabel}
                     </Link>
                   </motion.div>
                   <motion.div

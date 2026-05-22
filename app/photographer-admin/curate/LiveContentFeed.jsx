@@ -3,10 +3,10 @@
 import { useEffect, useRef, useState } from 'react';
 
 /**
- * @param {{ files?: File[], persistedMediaItems?: Array<{ dataUrl?: string, mediaKind?: string }> }} props
+ * @param {{ files?: File[], persistedMediaItems?: Array<{ id?: string, dataUrl?: string, mediaKind?: string }>, onRemoveUpload?: (index: number) => void, onRemovePersisted?: (id: string) => void }} props
  */
 export default function LiveContentFeed(props) {
-  const { files = [], persistedMediaItems = [] } = props;
+  const { files = [], persistedMediaItems = [], onRemoveUpload, onRemovePersisted } = props;
   const scrollRef = useRef(null);
   const lastPointerMoveRef = useRef(0);
   const [mediaItems, setMediaItems] = useState([]);
@@ -17,6 +17,7 @@ export default function LiveContentFeed(props) {
       .filter((item) => item?.dataUrl)
       .map((item, index) => ({
         key: `persisted-${index + 1}`,
+        id: item.id || `persisted-${index + 1}`,
         url: item.dataUrl,
         type: item.mediaKind === 'video' ? 'video' : 'image',
         persisted: true,
@@ -85,12 +86,25 @@ export default function LiveContentFeed(props) {
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
           {mediaItems.map((media, index) => (
-            <div key={`${media.key}-${index}`} className="rounded-2xl overflow-hidden bg-[#fdf1f3] border border-[#f3e4ea]">
+            <div key={`${media.key}-${index}`} className="relative rounded-2xl overflow-hidden bg-[#fdf1f3] border border-[#f3e4ea]">
               {media.type === 'video' ? (
                 <video src={media.url} autoPlay muted loop playsInline style={{ height: '220px' }} className="w-full object-cover" />
               ) : (
                 <img src={media.url} alt="Uploaded media" style={{ height: '220px' }} className="w-full object-cover" />
               )}
+              <button
+                type="button"
+                onClick={() => {
+                  if (media.persisted) {
+                    onRemovePersisted?.(media.id);
+                  } else {
+                    onRemoveUpload?.(index);
+                  }
+                }}
+                className="absolute right-3 top-3 rounded-full bg-black/55 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white hover:bg-black/75"
+              >
+                Remove
+              </button>
             </div>
           ))}
         </div>

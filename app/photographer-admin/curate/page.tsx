@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Upload } from 'lucide-react';
 import LiveContentFeed from './LiveContentFeed';
@@ -38,9 +38,15 @@ export default function NewCollectionPage() {
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
+
+  const showToast = (value: string) => {
+    setToastMessage(value);
+    window.setTimeout(() => setToastMessage(''), 2400);
+  };
 
   const parseApiJson = async (response: Response) => {
     const rawText = await response.text();
@@ -181,6 +187,27 @@ export default function NewCollectionPage() {
     }
   };
 
+  const removeUploadAt = (indexToRemove: number) => {
+    setFiles((current) => current.filter((_, index) => index !== indexToRemove));
+    showToast('Image removed');
+  };
+
+  const removePersistedMedia = (mediaId: string) => {
+    setPersistedMediaItems((current) => current.filter((item) => item.id !== mediaId));
+    showToast('Saved image removed');
+  };
+
+  const totalStorageUsed = useMemo(() => {
+    const fileBytes = files.reduce((sum, file) => sum + file.size, 0);
+    const persistedBytes = persistedMediaItems.reduce((sum, item) => sum + (Number(item.fileSize) || 0), 0);
+    return fileBytes + persistedBytes;
+  }, [files, persistedMediaItems]);
+
+  const formatStorage = (bytes: number) => {
+    const gb = bytes / (1024 * 1024 * 1024);
+    return `${gb.toFixed(gb >= 1 ? 1 : 2)} GB`;
+  };
+
   const saveCurateDraft = async (status: 'save_draft' | 'saved' = 'save_draft') => {
     setIsSaving(true);
     setSaveMessage(null);
@@ -241,6 +268,7 @@ export default function NewCollectionPage() {
 
       setFiles([]);
 
+      showToast(status === 'saved' ? 'Curate saved' : 'Draft saved');
       setSaveMessage(status === 'saved' ? 'Saved and moved to next step' : 'Draft saved');
       return true;
     } catch (error) {
@@ -254,7 +282,29 @@ export default function NewCollectionPage() {
   const handleNext = async () => {
     const saved = await saveCurateDraft('saved');
     if (saved) {
+      showToast('Saved to curate table');
       router.push('/photographer-admin/curate/template');
+    }
+  };
+
+  const handleDiscard = async () => {
+    try {
+      const response = await apiFetch('/curate/current', { method: 'DELETE' });
+      if (response.status === 401) {
+        handleAuthError(response);
+        return;
+      }
+      if (!response.ok) {
+        throw new Error('Failed to discard draft');
+      }
+      setFiles([]);
+      setPersistedMediaItems([]);
+      setCoverPreview(null);
+      setCoverFile(null);
+      showToast('Draft discarded');
+      router.push('/photographer-admin/curate');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Failed to discard draft');
     }
   };
 
@@ -367,7 +417,7 @@ export default function NewCollectionPage() {
               </div>
               <div className="text-right">
                 <p className="text-[10px] font-bold text-[#b10e6b] uppercase">STORAGE USED</p>
-                <p className="text-xs">4.2 GB / 50 GB</p>
+                <p className="text-xs">{formatStorage(totalStorageUsed)} / 5.0 GB</p>
               </div>
             </div>
 
@@ -406,14 +456,16 @@ export default function NewCollectionPage() {
           </div>
 
           {/* Live Content Feed */}
-          <LiveContentFeed files={files || []} persistedMediaItems={persistedMediaItems} />
+          <LiveContentFeed files={files || []} persistedMediaItems={persistedMediaItems} onRemoveUpload={removeUploadAt} onRemovePersisted={removePersistedMedia} />
           {saveMessage ? <p className="text-sm text-[#b10e6b] px-1">{saveMessage}</p> : null}
         </div>
       </div>
 
+      {toastMessage ? <div className="fixed right-5 top-5 z-50 rounded-2xl bg-[#1f1a1b] px-4 py-3 text-sm text-white shadow-2xl">{toastMessage}</div> : null}
+
       {/* Action Buttons */}
       <div className="mt-12 flex flex-wrap gap-4 justify-end">
-        <button className="px-8 py-4 text-sm font-bold uppercase tracking-wider text-gray-400 hover:text-gray-600">
+        <button onClick={handleDiscard} className="px-8 py-4 text-sm font-bold uppercase tracking-wider text-gray-400 hover:text-gray-600">
           Discard Draft
         </button>
         <button
