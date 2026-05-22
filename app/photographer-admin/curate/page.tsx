@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Upload } from 'lucide-react';
+import { Upload, X } from 'lucide-react';
+import { toast } from 'react-toastify';
 import LiveContentFeed from './LiveContentFeed';
 import { apiFetch, handleAuthError } from '@/lib/api';
 
@@ -25,7 +26,7 @@ interface PersistedMediaItem {
 export default function NewCollectionPage() {
   const router = useRouter();
   const [formData, setFormData] = useState<FormData>({
-    albumName: 'The Everly-Brooks Nuptials',
+    albumName: ' ',
     weddingDate: '',
     accessControl: 'public',
   });
@@ -38,15 +39,16 @@ export default function NewCollectionPage() {
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
-  const [toastMessage, setToastMessage] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
-  const showToast = (value: string) => {
-    setToastMessage(value);
-    window.setTimeout(() => setToastMessage(''), 2400);
-  };
+  const toastStyle = {
+    style: {
+      background: '#FDF3F2',
+      color: '#000',
+    },
+  } as const;
 
   const parseApiJson = async (response: Response) => {
     const rawText = await response.text();
@@ -187,14 +189,23 @@ export default function NewCollectionPage() {
     }
   };
 
+  const removeCoverPhoto = () => {
+    setCoverPreview(null);
+    setCoverFile(null);
+    if (coverInputRef.current) {
+      coverInputRef.current.value = '';
+    }
+    toast.success('Cover photo removed', toastStyle);
+  };
+
   const removeUploadAt = (indexToRemove: number) => {
     setFiles((current) => current.filter((_, index) => index !== indexToRemove));
-    showToast('Image removed');
+    toast.success('Image removed', toastStyle);
   };
 
   const removePersistedMedia = (mediaId: string) => {
     setPersistedMediaItems((current) => current.filter((item) => item.id !== mediaId));
-    showToast('Saved image removed');
+    toast.success('Saved image removed', toastStyle);
   };
 
   const totalStorageUsed = useMemo(() => {
@@ -268,11 +279,12 @@ export default function NewCollectionPage() {
 
       setFiles([]);
 
-      showToast(status === 'saved' ? 'Curate saved' : 'Draft saved');
+      toast.success(status === 'saved' ? 'Curate saved' : 'Draft saved', toastStyle);
       setSaveMessage(status === 'saved' ? 'Saved and moved to next step' : 'Draft saved');
       return true;
     } catch (error) {
       setSaveMessage(error instanceof Error ? error.message : 'Failed to save draft');
+      toast.error(error instanceof Error ? error.message : 'Failed to save draft', toastStyle);
       return false;
     } finally {
       setIsSaving(false);
@@ -282,7 +294,7 @@ export default function NewCollectionPage() {
   const handleNext = async () => {
     const saved = await saveCurateDraft('saved');
     if (saved) {
-      showToast('Saved to curate table');
+      // toast.success('Saved to curate table', toastStyle);
       router.push('/photographer-admin/curate/template');
     }
   };
@@ -301,10 +313,10 @@ export default function NewCollectionPage() {
       setPersistedMediaItems([]);
       setCoverPreview(null);
       setCoverFile(null);
-      showToast('Draft discarded');
+      toast.success('Draft discarded', toastStyle);
       router.push('/photographer-admin/curate');
     } catch (error) {
-      showToast(error instanceof Error ? error.message : 'Failed to discard draft');
+      toast.error(error instanceof Error ? error.message : 'Failed to discard draft', toastStyle);
     }
   };
 
@@ -389,10 +401,24 @@ export default function NewCollectionPage() {
             <div className="flex justify-between items-center mb-4">
               <h3 className="label-sm tracking-widest uppercase text-[10px] text-[#9a8a8e] font-bold">COVER UPLOAD </h3>
              </div>
-            <label className="block aspect-video rounded-xl overflow-hidden cursor-pointer border-2 border-dashed border-[#b10e6b]/30 hover:border-[#b10e6b]">
+            <label className="group relative block aspect-video rounded-xl overflow-hidden cursor-pointer border-2 border-dashed border-[#b10e6b]/30 hover:border-[#b10e6b]">
               <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverChange} />
               {coverPreview ? (
-                <img src={coverPreview} alt="Cover" className="w-full h-full object-cover" />
+                <>
+                  <img src={coverPreview} alt="Cover" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      removeCoverPhoto();
+                    }}
+                    className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-black/75"
+                    aria-label="Remove cover photo"
+                  >
+                    <X size={16} />
+                  </button>
+                </>
               ) : (
                 <div className="h-full flex flex-col items-center justify-center bg-[#fff8f7] px-6 text-center">
                   <Upload size={64} className="text-[#b10e6b] mb-3" />
@@ -460,8 +486,6 @@ export default function NewCollectionPage() {
           {saveMessage ? <p className="text-sm text-[#b10e6b] px-1">{saveMessage}</p> : null}
         </div>
       </div>
-
-      {toastMessage ? <div className="fixed right-5 top-5 z-50 rounded-2xl bg-[#1f1a1b] px-4 py-3 text-sm text-white shadow-2xl">{toastMessage}</div> : null}
 
       {/* Action Buttons */}
       <div className="mt-12 flex flex-wrap gap-4 justify-end">

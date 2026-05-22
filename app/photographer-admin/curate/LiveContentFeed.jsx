@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { X } from 'lucide-react';
 
 /**
  * @param {{ files?: File[], persistedMediaItems?: Array<{ id?: string, dataUrl?: string, mediaKind?: string }>, onRemoveUpload?: (index: number) => void, onRemovePersisted?: (id: string) => void }} props
@@ -101,9 +102,10 @@ export default function LiveContentFeed(props) {
                     onRemoveUpload?.(index);
                   }
                 }}
-                className="absolute right-3 top-3 rounded-full bg-black/55 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white hover:bg-black/75"
+                className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-black/75"
+                aria-label={media.persisted ? 'Remove saved media' : 'Remove uploaded media'}
               >
-                Remove
+                <X size={16} />
               </button>
             </div>
           ))}

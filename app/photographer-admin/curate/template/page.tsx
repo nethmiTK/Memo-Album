@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, GripVertical } from 'lucide-react';
 import HTMLFlipBook from 'react-pageflip';
+import { toast } from 'react-toastify';
 import { apiFetch, handleAuthError } from '@/lib/api';
 import { TEMPLATE_CHOICES, type TemplateId } from './templates';
 
@@ -174,7 +175,6 @@ export default function TemplateWorkspacePage() {
   const [coverPhotoName, setCoverPhotoName] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [saveMessage, setSaveMessage] = useState<string>('');
-  const [toastMessage, setToastMessage] = useState('');
   const [draftAlbums, setDraftAlbums] = useState<CurateDraftListResponse['curates']>([]);
   const [selectedDraftId, setSelectedDraftId] = useState('');
   const flipBookKey = `${selectedDraftId || 'draft'}-${selectedTemplate}-${spreads.length}`;
@@ -182,10 +182,12 @@ export default function TemplateWorkspacePage() {
   const flipNext = () => bookRef.current?.pageFlip?.().flipNext?.();
   const flipPrev = () => bookRef.current?.pageFlip?.().flipPrev?.();
 
-  const showToast = (value: string) => {
-    setToastMessage(value);
-    window.setTimeout(() => setToastMessage(''), 2200);
-  };
+  const toastStyle = {
+    style: {
+      background: '#FDF3F2',
+      color: '#000',
+    },
+  } as const;
 
   const orderedAssets = useMemo(
     () => [...mediaItems].sort((a, b) => a.order - b.order),
@@ -291,10 +293,11 @@ export default function TemplateWorkspacePage() {
         throw new Error(result.message || 'Save failed');
       }
 
-      showToast(status === 'saved' ? 'Template saved' : 'Draft saved');
+      toast.success(status === 'saved' ? 'Template saved' : 'Draft saved', toastStyle);
       return true;
     } catch (error) {
       setSaveMessage(error instanceof Error ? error.message : 'Failed to save');
+      toast.error(error instanceof Error ? error.message : 'Failed to save', toastStyle);
       return false;
     }
   };
@@ -304,7 +307,7 @@ export default function TemplateWorkspacePage() {
     const saved = await saveTemplateState(templateId, orderedAssets, 'save_draft');
     if (saved) {
       setSaveMessage('Template selected and synced');
-      showToast('Template selected');
+      toast.success('Template selected', toastStyle);
       await loadTemplatePreview(templateId);
     }
   };
@@ -329,7 +332,7 @@ export default function TemplateWorkspacePage() {
     const saved = await saveTemplateState(selectedTemplate, normalized, 'save_draft');
     if (saved) {
       setSaveMessage('Narrative order saved');
-      showToast('Order saved');
+      toast.success('Order saved', toastStyle);
       await loadTemplatePreview(selectedTemplate);
     }
   };
@@ -373,7 +376,6 @@ export default function TemplateWorkspacePage() {
 
   return (
     <div className="min-h-screen bg-[#fff8f8] px-4 py-8 text-[#211a1b] md:px-6 lg:px-8">
-      {toastMessage ? <div className="fixed right-5 top-5 z-50 rounded-2xl bg-[#1f1a1b] px-4 py-3 text-sm text-white shadow-2xl">{toastMessage}</div> : null}
       <main className="mx-auto max-w-400 space-y-10">
         <section className="space-y-3">
           <h2 className="font-[Newsreader] text-4xl italic md:text-5xl">Template Workspace</h2>
@@ -563,7 +565,7 @@ export default function TemplateWorkspacePage() {
             onClick={async () => {
               const saved = await saveTemplateState(selectedTemplate, orderedAssets, 'saved');
               if (saved) {
-                showToast('Saved and moving to clients');
+                toast.success('Saved and moving to clients', toastStyle);
                 router.push('/photographer-admin/clients');
               }
             }}
@@ -581,10 +583,10 @@ export default function TemplateWorkspacePage() {
                   return;
                 }
                 if (!response.ok) throw new Error('Failed to discard draft');
-                showToast('Draft discarded');
+                toast.success('Draft discarded', toastStyle);
                 router.push('/photographer-admin/curate');
               } catch (error) {
-                showToast(error instanceof Error ? error.message : 'Failed to discard draft');
+                toast.error(error instanceof Error ? error.message : 'Failed to discard draft', toastStyle);
               }
             }}
             className="rounded-[0.9rem] bg-[#ebe0e1] px-6 py-3 text-sm font-bold uppercase tracking-[0.14em] text-[#534345]"
