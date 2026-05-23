@@ -83,7 +83,7 @@ export default function SettingsPage() {
           bio: apiUser.bio || current.bio,
         }));
       } catch (error) {
-        console.error('Failed to hydrate photographer profile:', error);
+        console.error('Failed to   photographer profile:', error);
       } finally {
         setLoading(false);
       }
