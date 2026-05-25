@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { apiFetch, getUser, handleAuthError } from '@/lib/api';
-import { Upload, Eye, Trash2, PenLine } from 'lucide-react';
+import { Upload, Eye, Trash2, PenLine, ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'react-toastify';
 import { TemplateBookFlip } from '@/app/Components/photographer-admin/template-book-flip';
@@ -94,6 +94,8 @@ const CreateAlbum: React.FC = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [bookAlbumId, setBookAlbumId] = useState<string | null>(null);
   const [isSyncingBook, setIsSyncingBook] = useState(false);
+  const [currentMediaPage, setCurrentMediaPage] = useState(0);
+  const [draggedItem, setDraggedItem] = useState<MediaItem | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const loggedInPhotographer = getUser();
   const photographerLabel =
@@ -153,44 +155,67 @@ const CreateAlbum: React.FC = () => {
 
   const handleAlbumSearch = (value: string) => {
     setAlbumSearch(value);
-    setSelectedAlbum('');
     if (value.trim()) {
-      const filtered = albums.filter((album) =>
-        fuzzyMatch(value, album.albumName, album.status, photographerLabel)
-      );
+      const filtered = albums.filter((album) => {
+        const lowerValue = value.toLowerCase();
+        const isDraftSearch = lowerValue.includes('draft');
+        const isSavedSearch = lowerValue.includes('saved') || lowerValue.includes('publish');
+        
+        if (isDraftSearch && album.status !== 'saved' && album.status !== 'published') {
+          return true;
+        }
+        if (isSavedSearch && (album.status === 'saved' || album.status === 'published')) {
+          return true;
+        }
+        
+        return fuzzyMatch(value, album.albumName, album.status, photographerLabel);
+      });
       setAlbumSuggestions(filtered);
+      
+      if (filtered.length === 1) {
+        handleSelectAlbum(filtered[0]);
+      } else {
+        setSelectedAlbum('');
+      }
     } else {
       setAlbumSuggestions([]);
+      setSelectedAlbum('');
     }
   };
 
   const handleTemplateSearch = (value: string) => {
     setTemplateSearch(value);
-    setSelectedTemplate('');
-    setSelectedTemplateData(null);
     if (value.trim()) {
-      const filtered = templates.filter((template) =>
-        fuzzyMatch(
+      const filtered = templates.filter((template) => {
+        const lowerValue = value.toLowerCase();
+        
+        return fuzzyMatch(
           value,
           template.name,
           template.description,
           template.accent,
-          template._id,
-          ...(template.pages || []).flatMap((page) => [
-            page.pageLabel,
-            ...(page.slots || []).map((slot) => slot.label),
-          ])
-        )
-      );
+          template._id
+        );
+      });
       setTemplateSuggestions(filtered);
+      
+      if (filtered.length === 1) {
+        handleSelectTemplate(filtered[0]);
+      } else {
+        setSelectedTemplate('');
+        setSelectedTemplateData(null);
+      }
     } else {
       setTemplateSuggestions([]);
+      setSelectedTemplate('');
+      setSelectedTemplateData(null);
     }
   };
 
   const applyCurateMedia = (album: Album): MediaItem[] => {
     if (!Array.isArray(album.mediaItems) || album.mediaItems.length === 0) {
       setMediaItems([]);
+      setCurrentMediaPage(0);
       return [];
     }
 
@@ -205,6 +230,7 @@ const CreateAlbum: React.FC = () => {
     }));
 
     setMediaItems(normalizedMedia);
+    setCurrentMediaPage(0);
     toast.success('Media loaded from curate', toastStyle);
     return normalizedMedia;
   };
@@ -307,6 +333,57 @@ const CreateAlbum: React.FC = () => {
     toast.success('Image removed', toastStyle);
   };
 
+  const clearAllMedia = () => {
+    setMediaItems([]);
+    setCurrentMediaPage(0);
+    toast.success('All images cleared', toastStyle);
+  };
+
+  const ITEMS_PER_PAGE = 12;
+  const totalMediaPages = Math.ceil(mediaItems.length / ITEMS_PER_PAGE);
+  const paginatedMediaItems = mediaItems.slice(
+    currentMediaPage * ITEMS_PER_PAGE,
+    (currentMediaPage + 1) * ITEMS_PER_PAGE
+  );
+
+  const handleMediaPageChange = (direction: 'prev' | 'next') => {
+    if (direction === 'prev' && currentMediaPage > 0) {
+      setCurrentMediaPage(currentMediaPage - 1);
+    } else if (direction === 'next' && currentMediaPage < totalMediaPages - 1) {
+      setCurrentMediaPage(currentMediaPage + 1);
+    }
+  };
+
+  const handleDragStart = (item: MediaItem) => {
+    setDraggedItem(item);
+  };
+
+  const handleDragOver = (e: React.DragEvent, targetItem: MediaItem) => {
+    e.preventDefault();
+    if (!draggedItem || draggedItem.id === targetItem.id) return;
+
+    const draggedIndex = mediaItems.findIndex(item => item.id === draggedItem.id);
+    const targetIndex = mediaItems.findIndex(item => item.id === targetItem.id);
+
+    if (draggedIndex === -1 || targetIndex === -1) return;
+
+    const newMediaItems = [...mediaItems];
+    newMediaItems.splice(draggedIndex, 1);
+    newMediaItems.splice(targetIndex, 0, draggedItem);
+
+    // Update order property
+    const reordered = newMediaItems.map((item, index) => ({
+      ...item,
+      order: index + 1,
+    }));
+
+    setMediaItems(reordered);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedItem(null);
+  };
+
   const handleDiscard = () => {
     setSelectedAlbum('');
     setSelectedTemplate('');
@@ -314,6 +391,7 @@ const CreateAlbum: React.FC = () => {
     setAlbumSearch('');
     setTemplateSearch('');
     setMediaItems([]);
+    setCurrentMediaPage(0);
     setBookAlbumId(null);
     sessionStorage.removeItem('bookAlbumId');
   };
@@ -321,7 +399,7 @@ const CreateAlbum: React.FC = () => {
   const saveCurateDraft = async () => {
     if (!selectedAlbum || !selectedTemplate || mediaItems.length === 0) {
       toast.error('Please select album, template and add media', toastStyle);
-      return;
+      return false;
     }
 
     setIsSaving(true);
@@ -337,8 +415,7 @@ const CreateAlbum: React.FC = () => {
 
       if (response.status === 401) {
         handleAuthError(response);
-        setIsSaving(false);
-        return;
+        return false;
       }
 
       const result = await parseApiJson(response);
@@ -354,25 +431,23 @@ const CreateAlbum: React.FC = () => {
           setBookAlbumId(id);
           sessionStorage.setItem('bookAlbumId', id);
         }
+        return true;
       } else {
         throw new Error(result.message || 'Failed to save');
       }
-
-      setIsSaving(false);
     } catch (error) {
       console.error('Save error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to save', toastStyle);
+      return false;
+    } finally {
       setIsSaving(false);
     }
   };
 
-  const handleNext = () => {
-    const bookAlbumId = sessionStorage.getItem('bookAlbumId');
-    if (bookAlbumId) {
-      // Navigate to book editing page
-      window.location.href = `/photographer-admin/designer/edit/${bookAlbumId}`;
-    } else {
-      toast.error('Please save draft first', toastStyle);
+  const handleNext = async () => {
+    const saved = await saveCurateDraft();
+    if (saved) {
+      window.location.href = '/photographer-admin/clients';
     }
   };
 
@@ -394,69 +469,86 @@ const CreateAlbum: React.FC = () => {
 
       {/* Main Content */}
       <div className="flex-1 px-4 md:px-9 py-6 overflow-hidden">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full">
-           <div className="space-y-1 overflow-y-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-full">
+           <div className="lg:col-span-3 space-y-1 overflow-y-auto">
   
 <div
-  className="w-full max-w-xs p-5 rounded-xl shadow-sm bg-white space-y-5"
-  style={{ borderLeft: '4px solid #b10e6b' }}
+  className="w-full max-w-xs p-6 rounded-2xl shadow-lg bg-white space-y-6 border-l-4 border-[#b10e6b]"
 >
 
-   <h3 className="text-[10px] tracking-widest uppercase text-[#b10e6b] font-bold">
+   <h3 className="text-[11px] tracking-widest uppercase text-[#b10e6b] font-bold">
     SELECTION PANEL
   </h3>
 
   {/* ALBUM SELECT */}
   <div>
-    <label className="block text-[11px] font-bold uppercase mb-2 text-[#54474d]">
+    <label className="block text-[11px] font-bold uppercase mb-3 text-[#54474d] flex items-center gap-2">
+      <span className="w-2 h-2 rounded-full bg-[#b10e6b]"></span>
       SELECT ALBUM
     </label>
 
     <div className="relative">
       <input
         type="text"
-        placeholder="Search curate album..."
+        placeholder="Search by name, status (draft/saved)..."
         value={albumSearch}
         onChange={(e) => handleAlbumSearch(e.target.value)}
         onFocus={() => {
           if (albumSearch.trim()) handleAlbumSearch(albumSearch);
           else setAlbumSuggestions(albums);
         }}
-        className="w-full bg-[#fff0f4] border border-[#f3d6df] rounded-lg px-3 py-2.5 text-sm focus:ring-1 focus:ring-[#b10e6b]/40"
+        className="w-full bg-[#fff0f4] border-2 border-[#f3d6df] rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#b10e6b]/40 focus:border-[#b10e6b] transition-all"
       />
 
       {albumSuggestions.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-[#f3d6df] rounded-lg shadow-lg z-20 max-h-56 overflow-y-auto">
+        <div className="absolute top-full left-0 right-0 mt-2 bg-white border-2 border-[#f3d6df] rounded-xl shadow-2xl z-20 max-h-64 overflow-y-auto">
           {albumSuggestions.map((album) => (
             <button
               key={album._id}
               type="button"
               onClick={() => handleSelectAlbum(album)}
-              className="w-full text-left px-4 py-3 hover:bg-[#fff0f4] text-sm border-b border-[#f3d6df]/40 last:border-0"
+              className="w-full text-left px-4 py-3 hover:bg-[#fff0f4] text-sm border-b border-[#f3d6df]/40 last:border-0 transition-colors"
             >
-              <p className="font-semibold text-[#211A1B]">{album.albumName}</p>
-              <p className="text-[10px] text-[#54474d] mt-0.5">
-                {photographerLabel}
-                {Array.isArray(album.mediaItems) && album.mediaItems.length > 0
-                  ? ` · ${album.mediaItems.length} image${album.mediaItems.length !== 1 ? 's' : ''}`
-                  : ''}
-              </p>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-[#211A1B] truncate">{album.albumName}</p>
+                  <p className="text-[10px] text-[#54474d] mt-0.5">
+                    {photographerLabel}
+                    {Array.isArray(album.mediaItems) && album.mediaItems.length > 0
+                      ? ` · ${album.mediaItems.length} image${album.mediaItems.length !== 1 ? 's' : ''}`
+                      : ''}
+                  </p>
+                </div>
+                {album.status && (
+                  <span
+                    className={`shrink-0 px-2 py-1 text-[9px] font-bold uppercase tracking-wider rounded-full shadow-sm ${
+                      album.status === 'saved' || album.status === 'published'
+                        ? 'bg-green-100 text-green-700 border border-green-200'
+                        : 'bg-yellow-100 text-yellow-700 border border-yellow-200'
+                    }`}
+                  >
+                    {album.status === 'saved' || album.status === 'published' ? 'Saved' : 'Draft'}
+                  </span>
+                )}
+              </div>
             </button>
           ))}
         </div>
       )}
-    </div>
 
-    {selectedAlbum && (
-      <p className="mt-2 text-xs text-[#b10e6b]">
-        ✓ {albumSearch} · {photographerLabel}
-      </p>
-    )}
+      {albumSearch.trim() && albumSuggestions.length === 0 && (
+        <div className="absolute top-full left-0 right-0 mt-2 bg-white border-2 border-[#f3d6df] rounded-xl shadow-2xl z-20 px-4 py-4">
+          <p className="text-sm text-[#54474d] text-center font-medium">No curates found matching "{albumSearch}"</p>
+          <p className="text-[10px] text-[#54474d]/70 text-center mt-1">Try searching by name or status (draft/saved)</p>
+        </div>
+      )}
+    </div>
   </div>
 
   {/* TEMPLATE SELECT */}
   <div>
-    <label className="block text-[11px] font-bold uppercase mb-2 text-[#54474d]">
+    <label className="block text-[11px] font-bold uppercase mb-3 text-[#54474d] flex items-center gap-2">
+      <span className="w-2 h-2 rounded-full bg-[#b10e6b]"></span>
       SELECT TEMPLATE
     </label>
 
@@ -470,17 +562,17 @@ const CreateAlbum: React.FC = () => {
           if (templateSearch.trim()) handleTemplateSearch(templateSearch);
           else setTemplateSuggestions(templates);
         }}
-        className="w-full bg-[#fff0f4] border border-[#f3d6df] rounded-lg px-3 py-2.5 text-sm focus:ring-1 focus:ring-[#b10e6b]/40"
+        className="w-full bg-[#fff0f4] border-2 border-[#f3d6df] rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#b10e6b]/40 focus:border-[#b10e6b] transition-all"
       />
 
       {templateSuggestions.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-[#f3d6df] rounded-lg shadow-lg z-20 max-h-56 overflow-y-auto">
+        <div className="absolute top-full left-0 right-0 mt-2 bg-white border-2 border-[#f3d6df] rounded-xl shadow-2xl z-20 max-h-64 overflow-y-auto">
           {templateSuggestions.map((template) => (
             <button
               key={template._id}
               type="button"
               onClick={() => handleSelectTemplate(template)}
-              className="w-full text-left px-4 py-3 hover:bg-[#fff0f4] text-sm border-b border-[#f3d6df]/40 last:border-0"
+              className="w-full text-left px-4 py-3 hover:bg-[#fff0f4] text-sm border-b border-[#f3d6df]/40 last:border-0 transition-colors"
             >
               <p className="font-semibold text-[#211A1B]">{template.name}</p>
               {template.description && (
@@ -492,20 +584,21 @@ const CreateAlbum: React.FC = () => {
           ))}
         </div>
       )}
-    </div>
 
-    {selectedTemplate && (
-      <p className="mt-2 text-xs text-[#b10e6b]">
-        ✓ {templateSearch}
-      </p>
-    )}
+      {templateSearch.trim() && templateSuggestions.length === 0 && (
+        <div className="absolute top-full left-0 right-0 mt-2 bg-white border-2 border-[#f3d6df] rounded-xl shadow-2xl z-20 px-4 py-4">
+          <p className="text-sm text-[#54474d] text-center font-medium">No templates found matching "{templateSearch}"</p>
+          <p className="text-[10px] text-[#54474d]/70 text-center mt-1">Try a different search term</p>
+        </div>
+      )}
+    </div>
   </div>
 
 </div>
           </div>
 
         {/* RIGHT COLUMN - MEDIA UPLOAD & PREVIEW */}
-<div className="space-y-6 overflow-y-auto">
+<div className="lg:col-span-9 space-y-6 overflow-y-auto">
   {/* Narrative Flow - Media Upload */}
   <div className="bg-white min-h-[192px] rounded-xl shadow-sm overflow-hidden flex flex-col border border-[#b10e6b]/5" style={{ fontFamily: 'Manrope, "Segoe UI", sans-serif' }}>
     <div className="p-4 border-b flex justify-between items-center gap-3">
@@ -517,16 +610,27 @@ const CreateAlbum: React.FC = () => {
             : 'Select a curate album to load images'}
         </p>
       </div>
-      {selectedAlbum && (
-        <Link
-          href="/photographer-admin/curate"
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider border border-[#b10e6b] text-[#b10e6b] rounded-lg hover:bg-[#fff0f4] shrink-0"
-          title="Edit curate images"
-        >
-          <PenLine size={14} />
-          Edit
-        </Link>
-      )}
+      <div className="flex items-center gap-2">
+        {mediaItems.length > 0 && (
+          <button
+            onClick={clearAllMedia}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider border border-red-500 text-red-500 rounded-lg hover:bg-red-50 shrink-0"
+            title="Clear all images"
+          >
+            Clear All
+          </button>
+        )}
+        {selectedAlbum && (
+          <Link
+            href="/photographer-admin/curate"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider border border-[#b10e6b] text-[#b10e6b] rounded-lg hover:bg-[#fff0f4] shrink-0"
+            title="Edit curate images"
+          >
+            <PenLine size={14} />
+            Edit
+          </Link>
+        )}
+      </div>
     </div>
 
     <div
@@ -565,56 +669,102 @@ const CreateAlbum: React.FC = () => {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-4 gap-3 w-full">
-          {mediaItems.map((item) => (
-            <div
-              key={item.id}
-              className="relative group cursor-move"
-              draggable
-              onDragStart={(e) => {
-                e.dataTransfer!.effectAllowed = 'move';
-                e.dataTransfer!.setData('mediaItem', JSON.stringify(item));
-              }}
-            >
-              {item.mediaKind === 'image' && item.dataUrl ? (
-                <img src={item.dataUrl} alt={item.fileName} className="w-full h-16 object-cover rounded-lg" />
-              ) : (
-                <div className="w-full h-16 bg-gray-200 rounded-lg flex items-center justify-center">
-                  <span className="text-[10px] text-gray-500">Video</span>
+        <div className="w-full">
+          {/* Book-style page view */}
+          <div className="bg-gradient-to-br from-[#fff8f7] to-[#fef6f6] rounded-2xl p-6 border border-[#f0e2e6] shadow-inner">
+            <div className="grid grid-cols-4 gap-4 w-full min-h-[320px]">
+              {paginatedMediaItems.map((item) => (
+                <div
+                  key={item.id}
+                  className="relative group cursor-move bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:scale-105"
+                  draggable
+                  onDragStart={() => handleDragStart(item)}
+                  onDragOver={(e) => handleDragOver(e, item)}
+                  onDragEnd={handleDragEnd}
+                >
+                  {item.mediaKind === 'image' && item.dataUrl ? (
+                    <img src={item.dataUrl} alt={item.fileName} className="w-full h-24 object-cover" />
+                  ) : (
+                    <div className="w-full h-24 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                      <span className="text-[10px] text-gray-500 font-semibold">VIDEO</span>
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.open(item.dataUrl || '', '_blank');
+                      }}
+                      className="p-2 bg-white/90 rounded-full hover:bg-white shadow-lg transform hover:scale-110 transition-all"
+                      title="View"
+                    >
+                      <Eye size={14} className="text-[#211A1B]" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeMedia(item.id);
+                      }}
+                      className="p-2 bg-red-500/90 rounded-full hover:bg-red-600 shadow-lg transform hover:scale-110 transition-all"
+                      title="Remove"
+                    >
+                      <Trash2 size={14} className="text-white" />
+                    </button>
+                  </div>
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+                    <p className="text-[9px] text-white font-medium truncate">{item.fileName}</p>
+                  </div>
                 </div>
-              )}
-              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-1.5">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    window.open(item.dataUrl || '', '_blank');
-                  }}
-                  className="p-1.5 bg-white rounded-full hover:bg-gray-100"
-                  title="View"
-                >
-                  <Eye size={12} className="text-[#211A1B]" />
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    removeMedia(item.id);
-                  }}
-                  className="p-1.5 bg-red-500 rounded-full hover:bg-red-600"
-                  title="Remove"
-                >
-                  <Trash2 size={12} className="text-white" />
-                </button>
-              </div>
-              <p className="text-[10px] text-[#211A1B] mt-0.5 truncate">{item.fileName}</p>
+              ))}
             </div>
-          ))}
+          </div>
+
+          {/* Book-style pagination controls */}
+          {totalMediaPages > 1 && (
+            <div className="mt-6 flex items-center justify-center gap-4">
+              <button
+                onClick={() => handleMediaPageChange('prev')}
+                disabled={currentMediaPage === 0}
+                className="group flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border-2 border-[#e1bec4] text-[#7a6268] hover:border-[#b10e6b] hover:text-[#b10e6b] hover:shadow-md disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:border-[#e1bec4] disabled:hover:text-[#7a6268] transition-all"
+                title="Previous page"
+              >
+                <ChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
+                <span className="text-xs font-bold uppercase tracking-wider">Previous</span>
+              </button>
+              
+              <div className="flex items-center gap-3 px-6 py-3 rounded-xl bg-gradient-to-br from-[#fff0f4] to-[#fef6f6] border border-[#f0e2e6] shadow-sm">
+                <div className="text-center">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#8d7d81]">Page</p>
+                  <p className="text-xl font-bold text-[#b10e6b]">{currentMediaPage + 1}</p>
+                </div>
+                <div className="w-px h-10 bg-[#e1bec4]"></div>
+                <div className="text-center">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#8d7d81]">of {totalMediaPages}</p>
+                  <p className="text-xs text-[#54474d] font-semibold">{mediaItems.length} images</p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => handleMediaPageChange('next')}
+                disabled={currentMediaPage >= totalMediaPages - 1}
+                className="group flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border-2 border-[#e1bec4] text-[#7a6268] hover:border-[#b10e6b] hover:text-[#b10e6b] hover:shadow-md disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:border-[#e1bec4] disabled:hover:text-[#7a6268] transition-all"
+                title="Next page"
+              >
+                <span className="text-xs font-bold uppercase tracking-wider">Next</span>
+                <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
 
     {mediaItems.length > 0 && (
-      <div className="p-3 border-t bg-gray-50 text-xs text-[#211A1B]">
-        {mediaItems.length} item{mediaItems.length !== 1 ? 's' : ''} uploaded
+      <div className="p-3 border-t bg-[#fef6f6] text-xs text-[#211A1B] flex items-center justify-between">
+        <span className="font-semibold">{mediaItems.length} item{mediaItems.length !== 1 ? 's' : ''} total</span>
+        {totalMediaPages > 1 && (
+          <span className="text-[10px] text-[#54474d]">Showing page {currentMediaPage + 1} of {totalMediaPages}</span>
+        )}
       </div>
     )}
   </div>
@@ -668,10 +818,10 @@ const CreateAlbum: React.FC = () => {
       </div>
 
       {/* Action Buttons */}
-      <div className="px-4 md:px-12 py-4 flex flex-wrap gap-3 justify-end" style={{ fontFamily: 'Manrope, "Segoe UI", sans-serif' }}>
+      <div className="px-4 md:px-12 py-4 flex flex-wrap gap-3 justify-end border-t border-[#f3d6df] bg-white" style={{ fontFamily: 'Manrope, "Segoe UI", sans-serif' }}>
         <button
           onClick={handleDiscard}
-          className="px-6 py-3 text-xs font-bold uppercase tracking-wider text-gray-400 hover:text-gray-600"
+          className="px-6 py-3 text-xs font-bold uppercase tracking-wider text-[#54474d] hover:text-[#211A1B] hover:bg-gray-50 rounded-lg transition-colors"
         >
           Discard
         </button>
@@ -679,17 +829,27 @@ const CreateAlbum: React.FC = () => {
         <button
           onClick={saveCurateDraft}
           disabled={isSaving || !selectedAlbum || !selectedTemplate || mediaItems.length === 0}
-          className="px-6 py-3 text-xs font-bold uppercase tracking-wider bg-[#EADFE2] text-[#B10E6B] rounded-lg disabled:opacity-60"
+          className="px-6 py-3 text-xs font-bold uppercase tracking-wider bg-white border-2 border-[#b10e6b] text-[#b10e6b] rounded-lg hover:bg-[#fff0f4] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
         >
-          {isSaving ? 'Saving...' : 'Save Draft'}
+          {isSaving ? (
+            <span className="flex items-center gap-2">
+              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              Saving...
+            </span>
+          ) : (
+            'Save Draft'
+          )}
         </button>
 
         <button
           onClick={handleNext}
           disabled={isSaving || !selectedAlbum || !selectedTemplate || mediaItems.length === 0}
-          className="px-6 py-3 text-xs font-bold uppercase tracking-wider bg-[#b10e6b] text-white rounded-lg disabled:opacity-60"
+          className="px-8 py-3 text-xs font-bold uppercase tracking-wider bg-gradient-to-r from-[#b10e6b] to-[#d23284] text-white rounded-lg hover:shadow-lg hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 transition-all"
         >
-          Next
+          Next Step →
         </button>
       </div>
     </div>

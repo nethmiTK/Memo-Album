@@ -26,7 +26,7 @@ interface PersistedMediaItem {
 export default function NewCollectionPage() {
   const router = useRouter();
   const [formData, setFormData] = useState<FormData>({
-    albumName: ' ',
+    albumName: '',
     weddingDate: '',
     accessControl: 'public',
   });
@@ -90,52 +90,7 @@ export default function NewCollectionPage() {
       reader.readAsDataURL(file);
     });
 
-  useEffect(() => {
-    const loadExistingDraft = async () => {
-      try {
-        const response = await apiFetch('/curate/current');
-
-        if (response.status === 401) {
-          handleAuthError(response);
-          return;
-        }
-
-        const result = await parseApiJson(response);
-        const curate = result?.curate;
-
-        if (!response.ok || !result?.success || !curate) {
-          return;
-        }
-
-        setFormData({
-          albumName: curate.albumName || 'The Everly-Brooks Nuptials',
-          weddingDate: curate.weddingDate ? new Date(curate.weddingDate).toISOString().split('T')[0] : '',
-          accessControl: curate.accessControl === 'private' ? 'private' : 'public',
-        });
-
-        setCoverPreview(curate.coverPhoto || null);
-        setUploadProgress(Number.isFinite(Number(curate.progress)) ? Number(curate.progress) : 0);
-
-        if (Array.isArray(curate.mediaItems)) {
-          const normalized = curate.mediaItems.map((item: PersistedMediaItem, index: number) => ({
-            id: item.id || `persisted-${index + 1}`,
-            order: Number.isFinite(Number(item.order)) ? Number(item.order) : index + 1,
-            fileName: item.fileName || '',
-            fileType: item.fileType || '',
-            fileSize: Number(item.fileSize) || 0,
-            mediaKind: item.mediaKind || 'image',
-            dataUrl: item.dataUrl || '',
-          }));
-
-          setPersistedMediaItems(normalized);
-        }
-      } catch {
-        // Keep default empty state when no existing draft is found.
-      }
-    };
-
-    loadExistingDraft();
-  }, []);
+  // Removed auto-load of existing draft - start fresh each time
 
   useEffect(() => {
     if (files.length > 0) {
@@ -295,7 +250,7 @@ export default function NewCollectionPage() {
     const saved = await saveCurateDraft('saved');
     if (saved) {
       // toast.success('Saved to curate table', toastStyle);
-      router.push('/photographer-admin/curate/template');
+      router.push('/photographer-admin/designer');
     }
   };
 

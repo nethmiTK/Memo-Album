@@ -33,8 +33,7 @@ export default function PhotographerSidebar({ isMobileOpen, onClose }: Photograp
     { label: 'Designer', href: '/photographer-admin/designer', icon: <PenTool size={20} /> },
     { label: 'Clients', href: '/photographer-admin/clients', icon: <Users size={20} /> },
     { label: 'Settings', href: '/photographer-admin/settings', icon: <Settings size={20} /> },
-        { label: 'Templates', href: '/photographer-admin/curate/template', icon: <LayoutTemplate size={20} /> },
-
+ 
   ];
 
   
