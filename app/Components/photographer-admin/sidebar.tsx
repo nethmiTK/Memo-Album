@@ -9,7 +9,8 @@ import {
   Settings,
   Archive,
   HelpCircle,
-  LayoutTemplate 
+  LayoutTemplate,
+  PenTool
 } from 'lucide-react';
 
 interface MenuItem {
@@ -29,6 +30,7 @@ export default function PhotographerSidebar({ isMobileOpen, onClose }: Photograp
   const mainMenuItems: MenuItem[] = [
     { label: 'Gallery', href: '/photographer-admin/gallery', icon: <Image size={20} /> },
     { label: 'Curate', href: '/photographer-admin/curate', icon: <Sparkles size={20} /> },
+    { label: 'Designer', href: '/photographer-admin/designer', icon: <PenTool size={20} /> },
     { label: 'Clients', href: '/photographer-admin/clients', icon: <Users size={20} /> },
     { label: 'Settings', href: '/photographer-admin/settings', icon: <Settings size={20} /> },
         { label: 'Templates', href: '/photographer-admin/curate/template', icon: <LayoutTemplate size={20} /> },

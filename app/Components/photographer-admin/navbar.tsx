@@ -62,6 +62,7 @@ export default function PhotographerNavbar({ onMenuClick }: PhotographerNavbarPr
     if (pathname.includes('/gallery/new-collection')) return 'New Collection';
     if (pathname.includes('/gallery')) return 'My Albums';
     if (pathname.includes('/curate')) return 'Curate';
+    if (pathname.includes('/designer')) return 'Designer';
     if (pathname.includes('/clients')) return 'Clients';
     if (pathname.includes('/settings')) return 'Settings';
     if (pathname.includes('/archive')) return 'Archive';

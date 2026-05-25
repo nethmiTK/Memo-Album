@@ -8,12 +8,14 @@ import {
   Sparkles,
   Users,
   Settings,
+  PenTool,
   Plus,
 } from 'lucide-react';
 
 const navItems = [
   { href: '/photographer-admin/gallery', icon: <Image size={22} />, label: 'Gallery' },
   { href: '/photographer-admin/curate', icon: <Sparkles size={22} />, label: 'Curate' },
+  { href: '/photographer-admin/designer', icon: <PenTool size={22} />, label: 'Designer' },
   { href: '/photographer-admin/clients', icon: <Users size={22} />, label: 'Clients' },
   { href: '/photographer-admin/settings', icon: <Settings size={22} />, label: 'Tools' },
 ];
