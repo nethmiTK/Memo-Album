@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { apiFetch, handleAuthError } from '@/lib/api';
-import { Upload, X, Eye, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
+import { apiFetch, getUser, handleAuthError } from '@/lib/api';
+import { Upload, Eye, Trash2, PenLine } from 'lucide-react';
+import Link from 'next/link';
 import { toast } from 'react-toastify';
-import { BookViewInteractive } from '@/app/Components/photographer-admin/bookview-interactive';
+import { TemplateBookFlip } from '@/app/Components/photographer-admin/template-book-flip';
 
 interface Template {
   _id: string;
@@ -32,7 +33,41 @@ interface Template {
 interface Album {
   _id: string;
   albumName: string;
+  mediaItems?: MediaItem[];
+  status?: string;
 }
+
+/** Subsequence + substring fuzzy match (no extra deps). */
+const fuzzyMatch = (query: string, ...targets: (string | undefined)[]): boolean => {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+
+  return targets.some((raw) => {
+    const target = (raw || '').toLowerCase();
+    if (!target) return false;
+    if (target.includes(q)) return true;
+
+    let qi = 0;
+    for (let i = 0; i < target.length && qi < q.length; i += 1) {
+      if (target[i] === q[qi]) qi += 1;
+    }
+    return qi === q.length;
+  });
+};
+
+const parseApiJson = async (response: Response) => {
+  const rawText = await response.text();
+  try {
+    return rawText ? JSON.parse(rawText) : {};
+  } catch {
+    const htmlResponse = rawText.trim().startsWith('<!DOCTYPE') || rawText.trim().startsWith('<html');
+    throw new Error(
+      htmlResponse
+        ? 'Server returned HTML instead of JSON. Check API URL/backend server and login session.'
+        : 'Invalid API response format.'
+    );
+  }
+};
 
 interface MediaItem {
   id: string;
@@ -57,8 +92,12 @@ const CreateAlbum: React.FC = () => {
   const [templateSuggestions, setTemplateSuggestions] = useState<Template[]>([]);
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [isDragging, setIsDragging] = useState(false);
-  const [showFullPreview, setShowFullPreview] = useState(false);
+  const [bookAlbumId, setBookAlbumId] = useState<string | null>(null);
+  const [isSyncingBook, setIsSyncingBook] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const loggedInPhotographer = getUser();
+  const photographerLabel =
+    loggedInPhotographer?.name || loggedInPhotographer?.email || 'Photographer';
 
   const toastStyle = {
     style: {
@@ -75,28 +114,36 @@ const CreateAlbum: React.FC = () => {
           handleAuthError(response);
           return;
         }
-        const result = await response.json();
+        const result = await parseApiJson(response);
+        if (!response.ok) {
+          throw new Error(result.message || 'Failed to load curates');
+        }
         if (result.success && Array.isArray(result.curates)) {
           setAlbums(result.curates);
         }
       } catch (error) {
         console.error('Failed to fetch albums:', error);
+        toast.error(error instanceof Error ? error.message : 'Failed to load albums', toastStyle);
       }
     };
 
     const fetchTemplates = async () => {
       try {
-        const response = await apiFetch('/curate/template');
+        const response = await apiFetch('/curate/templates');
         if (response.status === 401) {
           handleAuthError(response);
           return;
         }
-        const result = await response.json();
+        const result = await parseApiJson(response);
+        if (!response.ok) {
+          throw new Error(result.message || 'Failed to load templates');
+        }
         if (result.success && Array.isArray(result.templates)) {
           setTemplates(result.templates);
         }
       } catch (error) {
         console.error('Failed to fetch templates:', error);
+        toast.error(error instanceof Error ? error.message : 'Failed to load templates', toastStyle);
       }
     };
 
@@ -106,9 +153,10 @@ const CreateAlbum: React.FC = () => {
 
   const handleAlbumSearch = (value: string) => {
     setAlbumSearch(value);
+    setSelectedAlbum('');
     if (value.trim()) {
-      const filtered = albums.filter(album =>
-        album.albumName.toLowerCase().includes(value.toLowerCase())
+      const filtered = albums.filter((album) =>
+        fuzzyMatch(value, album.albumName, album.status, photographerLabel)
       );
       setAlbumSuggestions(filtered);
     } else {
@@ -118,9 +166,21 @@ const CreateAlbum: React.FC = () => {
 
   const handleTemplateSearch = (value: string) => {
     setTemplateSearch(value);
+    setSelectedTemplate('');
+    setSelectedTemplateData(null);
     if (value.trim()) {
-      const filtered = templates.filter(template =>
-        template.name.toLowerCase().includes(value.toLowerCase())
+      const filtered = templates.filter((template) =>
+        fuzzyMatch(
+          value,
+          template.name,
+          template.description,
+          template.accent,
+          template._id,
+          ...(template.pages || []).flatMap((page) => [
+            page.pageLabel,
+            ...(page.slots || []).map((slot) => slot.label),
+          ])
+        )
       );
       setTemplateSuggestions(filtered);
     } else {
@@ -128,12 +188,67 @@ const CreateAlbum: React.FC = () => {
     }
   };
 
+  const applyCurateMedia = (album: Album): MediaItem[] => {
+    if (!Array.isArray(album.mediaItems) || album.mediaItems.length === 0) {
+      setMediaItems([]);
+      return [];
+    }
+
+    const normalizedMedia = album.mediaItems.map((item, index) => ({
+      id: item.id || `media-${index + 1}`,
+      fileName: item.fileName || '',
+      fileType: item.fileType || '',
+      fileSize: item.fileSize || 0,
+      mediaKind: item.mediaKind || 'image',
+      dataUrl: item.dataUrl || '',
+      order: item.order ?? index + 1,
+    }));
+
+    setMediaItems(normalizedMedia);
+    toast.success('Media loaded from curate', toastStyle);
+    return normalizedMedia;
+  };
+
+  const syncBookAlbum = async (curateId: string, templateId: string) => {
+    if (!curateId || !templateId || mediaItems.length === 0) return;
+
+    setIsSyncingBook(true);
+    try {
+      const response = await apiFetch('/book-albums', {
+        method: 'POST',
+        body: JSON.stringify({ curateId, templateId }),
+      });
+
+      if (response.status === 401) {
+        handleAuthError(response);
+        return;
+      }
+
+      const result = await parseApiJson(response);
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || 'Failed to save book album');
+      }
+
+      const id = result.bookAlbum?._id;
+      if (id) {
+        setBookAlbumId(id);
+        sessionStorage.setItem('bookAlbumId', id);
+      }
+    } catch (error) {
+      console.error('Book album sync error:', error);
+    } finally {
+      setIsSyncingBook(false);
+    }
+  };
+
   const handleSelectAlbum = (album: Album) => {
     setSelectedAlbum(album._id);
     setAlbumSearch(album.albumName);
     setAlbumSuggestions([]);
-    // Fetch media from this album
-    fetchCurateMedia(album._id);
+    const loaded = applyCurateMedia(album);
+    if (selectedTemplate && loaded.length > 0) {
+      void syncBookAlbum(album._id, selectedTemplate);
+    }
   };
 
   const handleSelectTemplate = (template: Template) => {
@@ -141,6 +256,9 @@ const CreateAlbum: React.FC = () => {
     setTemplateSearch(template.name);
     setTemplateSuggestions([]);
     setSelectedTemplateData(template);
+    if (selectedAlbum && mediaItems.length > 0) {
+      void syncBookAlbum(selectedAlbum, template._id);
+    }
   };
 
   const handleDrag = (e: React.DragEvent) => {
@@ -184,35 +302,6 @@ const CreateAlbum: React.FC = () => {
     toast.success('Images added', toastStyle);
   };
 
-  const fetchCurateMedia = async (curateId: string) => {
-    try {
-      const response = await apiFetch(`/curate`);
-      if (response.status === 401) {
-        handleAuthError(response);
-        return;
-      }
-      const result = await response.json();
-      if (result.success && Array.isArray(result.curates)) {
-        const album = result.curates.find((c: any) => c._id === curateId);
-        if (album && album.mediaItems) {
-          const normalizedMedia = album.mediaItems.map((item: any, index: number) => ({
-            id: item.id || `media-${index + 1}`,
-            fileName: item.fileName || '',
-            fileType: item.fileType || '',
-            fileSize: item.fileSize || 0,
-            mediaKind: item.mediaKind || 'image',
-            dataUrl: item.dataUrl || '',
-          }));
-          setMediaItems(normalizedMedia);
-          toast.success('Media loaded from album', toastStyle);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch curate media:', error);
-      toast.error('Failed to load media', toastStyle);
-    }
-  };
-
   const removeMedia = (mediaId: string) => {
     setMediaItems((prev) => prev.filter((item) => item.id !== mediaId));
     toast.success('Image removed', toastStyle);
@@ -225,7 +314,8 @@ const CreateAlbum: React.FC = () => {
     setAlbumSearch('');
     setTemplateSearch('');
     setMediaItems([]);
-    setShowFullPreview(false);
+    setBookAlbumId(null);
+    sessionStorage.removeItem('bookAlbumId');
   };
 
   const saveCurateDraft = async () => {
@@ -251,17 +341,19 @@ const CreateAlbum: React.FC = () => {
         return;
       }
 
+      const result = await parseApiJson(response);
+
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to save');
+        throw new Error(result.message || 'Failed to save');
       }
 
-      const result = await response.json();
-
       if (result.success) {
-        toast.success('Design saved successfully!', toastStyle);
-        // Store the bookAlbumId for later use
-        sessionStorage.setItem('bookAlbumId', result.bookAlbum._id);
+        toast.success('Album book saved with your curate images!', toastStyle);
+        const id = result.bookAlbum?._id;
+        if (id) {
+          setBookAlbumId(id);
+          sessionStorage.setItem('bookAlbumId', id);
+        }
       } else {
         throw new Error(result.message || 'Failed to save');
       }
@@ -323,9 +415,13 @@ const CreateAlbum: React.FC = () => {
     <div className="relative">
       <input
         type="text"
-        placeholder="Search album..."
+        placeholder="Search curate album..."
         value={albumSearch}
         onChange={(e) => handleAlbumSearch(e.target.value)}
+        onFocus={() => {
+          if (albumSearch.trim()) handleAlbumSearch(albumSearch);
+          else setAlbumSuggestions(albums);
+        }}
         className="w-full bg-[#fff0f4] border border-[#f3d6df] rounded-lg px-3 py-2.5 text-sm focus:ring-1 focus:ring-[#b10e6b]/40"
       />
 
@@ -334,10 +430,17 @@ const CreateAlbum: React.FC = () => {
           {albumSuggestions.map((album) => (
             <button
               key={album._id}
+              type="button"
               onClick={() => handleSelectAlbum(album)}
-              className="w-full text-left px-4 py-3 hover:bg-[#fff0f4] text-sm"
+              className="w-full text-left px-4 py-3 hover:bg-[#fff0f4] text-sm border-b border-[#f3d6df]/40 last:border-0"
             >
-              📁 {album.albumName}
+              <p className="font-semibold text-[#211A1B]">{album.albumName}</p>
+              <p className="text-[10px] text-[#54474d] mt-0.5">
+                {photographerLabel}
+                {Array.isArray(album.mediaItems) && album.mediaItems.length > 0
+                  ? ` · ${album.mediaItems.length} image${album.mediaItems.length !== 1 ? 's' : ''}`
+                  : ''}
+              </p>
             </button>
           ))}
         </div>
@@ -346,7 +449,7 @@ const CreateAlbum: React.FC = () => {
 
     {selectedAlbum && (
       <p className="mt-2 text-xs text-[#b10e6b]">
-        ✓ {albumSearch}
+        ✓ {albumSearch} · {photographerLabel}
       </p>
     )}
   </div>
@@ -360,9 +463,13 @@ const CreateAlbum: React.FC = () => {
     <div className="relative">
       <input
         type="text"
-        placeholder="Search template..."
+        placeholder="Search all templates..."
         value={templateSearch}
         onChange={(e) => handleTemplateSearch(e.target.value)}
+        onFocus={() => {
+          if (templateSearch.trim()) handleTemplateSearch(templateSearch);
+          else setTemplateSuggestions(templates);
+        }}
         className="w-full bg-[#fff0f4] border border-[#f3d6df] rounded-lg px-3 py-2.5 text-sm focus:ring-1 focus:ring-[#b10e6b]/40"
       />
 
@@ -371,12 +478,13 @@ const CreateAlbum: React.FC = () => {
           {templateSuggestions.map((template) => (
             <button
               key={template._id}
+              type="button"
               onClick={() => handleSelectTemplate(template)}
-              className="w-full text-left px-4 py-3 hover:bg-[#fff0f4] text-sm"
+              className="w-full text-left px-4 py-3 hover:bg-[#fff0f4] text-sm border-b border-[#f3d6df]/40 last:border-0"
             >
-              🎨 {template.name}
+              <p className="font-semibold text-[#211A1B]">{template.name}</p>
               {template.description && (
-                <p className="text-xs text-gray-400">
+                <p className="text-[10px] text-gray-400 mt-0.5 line-clamp-2">
                   {template.description}
                 </p>
               )}
@@ -400,11 +508,25 @@ const CreateAlbum: React.FC = () => {
 <div className="space-y-6 overflow-y-auto">
   {/* Narrative Flow - Media Upload */}
   <div className="bg-white min-h-[192px] rounded-xl shadow-sm overflow-hidden flex flex-col border border-[#b10e6b]/5" style={{ fontFamily: 'Manrope, "Segoe UI", sans-serif' }}>
-    <div className="p-4 border-b flex justify-between items-center">
+    <div className="p-4 border-b flex justify-between items-center gap-3">
       <div>
         <h3 className="label-sm tracking-widest uppercase text-[10px] text-[#211A1B] font-bold">NARRATIVE FLOW</h3>
-        <p className="text-xs text-[#211A1B] mt-0.5">Upload images to fill your template</p>
+        <p className="text-xs text-[#211A1B] mt-0.5">
+          {selectedAlbum
+            ? `Images from "${albumSearch}" — edit in Curate`
+            : 'Select a curate album to load images'}
+        </p>
       </div>
+      {selectedAlbum && (
+        <Link
+          href="/photographer-admin/curate"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider border border-[#b10e6b] text-[#b10e6b] rounded-lg hover:bg-[#fff0f4] shrink-0"
+          title="Edit curate images"
+        >
+          <PenLine size={14} />
+          Edit
+        </Link>
+      )}
     </div>
 
     <div
@@ -422,10 +544,25 @@ const CreateAlbum: React.FC = () => {
           <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto" style={{ backgroundColor: '#f7ecef' }}>
             <Upload size={24} style={{ color: '#b10e6b' }} />
           </div>
-          <p className="text-sm text-[#211A1B] font-medium" style={{ fontFamily: 'Manrope, "Segoe UI", sans-serif' }}>Drag your memories here</p>
-          <p className="text-xs text-[#211A1B]/70" style={{ fontFamily: 'Manrope, "Segoe UI", sans-serif' }}>
-            or <span className="text-[#b10e6b] underline font-semibold">browse files</span>
-          </p>
+          {selectedAlbum ? (
+            <>
+              <p className="text-sm text-[#211A1B] font-medium">No images in this curate yet</p>
+              <Link
+                href="/photographer-admin/curate"
+                className="inline-flex items-center gap-1 text-xs text-[#b10e6b] underline font-semibold"
+              >
+                <PenLine size={12} />
+                Add images in Curate
+              </Link>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-[#211A1B] font-medium">Select a curate album first</p>
+              <p className="text-xs text-[#211A1B]/70">
+                Images from your curate table will appear here
+              </p>
+            </>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-4 gap-3 w-full">
@@ -482,110 +619,53 @@ const CreateAlbum: React.FC = () => {
     )}
   </div>
 
-  {/* Template Preview Section */}
-  {selectedTemplateData && (
+  {/* Template Book Preview (flip book with curate images in slots) */}
+  {selectedTemplateData ? (
     <div className="bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col border border-gray-100">
-      <div className="p-6 border-b border-gray-200">
-        <h3 className="text-sm font-bold uppercase tracking-widest text-[#211A1B] mb-2">TEMPLATE PREVIEW</h3>
-        <p className="text-xs text-[#211A1B]/70">{selectedTemplateData.description || 'Template book preview'}</p>
-      </div>
-
-      <div className="p-6 space-y-4">
-        {/* Template Cover */}
-        {selectedTemplateData.coverImage || selectedTemplateData.coverUrl ? (
-          <div className="overflow-hidden rounded-xl border border-gray-200">
-            <img 
-              src={selectedTemplateData.coverImage || selectedTemplateData.coverUrl} 
-              alt={selectedTemplateData.name}
-              className="w-full h-32 object-cover"
-            />
-          </div>
-        ) : null}
-
-        {/* Template Info */}
-        <div className="space-y-3">
-          <div>
-            <p className="text-[10px] font-bold uppercase text-[#211A1B]/70 mb-1">Name</p>
-            <p className="text-sm font-semibold text-[#211A1B]">{selectedTemplateData.name}</p>
-          </div>
-
-          {/* Pages & Slots Info */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-gradient-to-br from-blue-50 to-blue-50 p-3 rounded-lg border border-blue-100">
-              <p className="text-[10px] font-bold uppercase text-blue-600 mb-1">Pages</p>
-              <p className="text-lg font-bold text-blue-700">
-                {selectedTemplateData.pages?.length || 1}
-              </p>
-            </div>
-            <div className="bg-gradient-to-br from-purple-50 to-purple-50 p-3 rounded-lg border border-purple-100">
-              <p className="text-[10px] font-bold uppercase text-purple-600 mb-1">Slots</p>
-              <p className="text-lg font-bold text-purple-700">
-                {(selectedTemplateData.pages?.reduce((sum, p) => sum + (p.slots?.length || 0), 0) || 0) + (selectedTemplateData.slots?.length || 0)}
-              </p>
-            </div>
-          </div>
-
-          {/* Template Slots Preview */}
-          {selectedTemplateData.pages && selectedTemplateData.pages.length > 0 && (
-            <div>
-              <p className="text-[10px] font-bold uppercase text-[#211A1B]/70 mb-2">Slots Preview</p>
-              <div className="grid grid-cols-3 gap-2">
-                {selectedTemplateData.pages[0]?.slots?.slice(0, 6).map((slot) => (
-                  <div
-                    key={slot.id}
-                    className="aspect-square rounded-lg border border-gray-300 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-2"
-                  >
-                    <p className="text-[9px] font-semibold text-[#211A1B] text-center truncate">{slot.label}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+      <div className="p-4 border-b border-gray-200 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h3 className="text-sm font-bold uppercase tracking-widest text-[#211A1B]">TEMPLATE BOOK</h3>
+          <p className="text-xs text-[#211A1B]/70 mt-0.5">
+            {selectedTemplateData.name}
+            {isSyncingBook ? ' · Saving to album book…' : bookAlbumId ? ' · Saved' : ''}
+          </p>
         </div>
-
-        {/* Open in Full View Button */}
         <a
-          href={`/photographer-admin/designer/book/${selectedTemplateData._id}`}
+          href={`/photographer-admin/designer/book/${selectedTemplateData._id}${selectedAlbum ? `?curateId=${selectedAlbum}` : ''}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="block w-full text-center px-4 py-2 text-xs font-bold uppercase tracking-wider border border-[#b10e6b] text-[#b10e6b] rounded-lg hover:bg-[#fff0f4] transition"
+          className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider border border-[#b10e6b] text-[#b10e6b] rounded-lg hover:bg-[#fff0f4] transition"
         >
-          Open Full Preview
+          Fullscreen Book
         </a>
       </div>
+
+      <div className="p-4 bg-[#fff8f7]">
+        {mediaItems.length > 0 ? (
+          <TemplateBookFlip
+            template={selectedTemplateData}
+            mediaItems={mediaItems}
+            variant="inline"
+          />
+        ) : (
+          <div className="py-8 text-center text-sm text-[#594045]">
+            <p>Select a curate with images to fill this template book.</p>
+            <Link href="/photographer-admin/curate" className="mt-2 inline-block text-[#b10e6b] underline text-xs font-semibold">
+              Go to Curate
+            </Link>
+          </div>
+        )}
+      </div>
+    </div>
+  ) : (
+    <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-8 text-center">
+      <p className="text-sm font-medium text-gray-500">Select a template to open the book view</p>
+      <p className="text-xs text-gray-400 mt-1">Curate images will map into template slots from the database</p>
     </div>
   )}
 </div>
         </div>
       </div>
-
-	  {/* Always Visible Book View */}
-<div className="px-4 md:px-12 pb-6">
-  <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100 p-6">
-    <h3 className="text-sm font-bold uppercase tracking-widest text-[#211A1B] mb-4">
-      INTERACTIVE TEMPLATE PREVIEW
-    </h3>
-
-    {selectedTemplateData ? (
-      <BookViewInteractive 
-        template={selectedTemplateData} 
-        mediaItems={mediaItems}
-        isEditable={true}
-      />
-    ) : (
-      <div className="h-[400px] flex items-center justify-center border-2 border-dashed border-gray-200 rounded-xl">
-        <div className="text-center">
-          <p className="text-lg font-medium text-gray-500">
-            Select a Template
-          </p>
-          <p className="text-sm text-gray-400 mt-2">
-            Book preview will appear here
-          </p>
-        </div>
-      </div>
-    )}
-  </div>
-</div>
 
       {/* Action Buttons */}
       <div className="px-4 md:px-12 py-4 flex flex-wrap gap-3 justify-end" style={{ fontFamily: 'Manrope, "Segoe UI", sans-serif' }}>
