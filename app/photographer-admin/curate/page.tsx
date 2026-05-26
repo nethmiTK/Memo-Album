@@ -1,5 +1,4 @@
 'use client';
-
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Upload, X } from 'lucide-react';
@@ -90,8 +89,7 @@ export default function NewCollectionPage() {
       reader.readAsDataURL(file);
     });
 
-  // Removed auto-load of existing draft - start fresh each time
-
+ 
   useEffect(() => {
     if (files.length > 0) {
       setUploadProgress(0);
