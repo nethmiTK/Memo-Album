@@ -6,6 +6,7 @@ import { Eye, Trash2, PenLine, ChevronLeft, ChevronRight, Maximize2, X } from 'l
 import Link from 'next/link';
 import { toast } from 'react-toastify';
 import { TemplateBookFlip } from '@/app/Components/photographer-admin/template-book-flip';
+import { FullscreenBook } from '@/app/Components/photographer-admin/FullscreenBook';
 
 interface Template {
   _id: string;
@@ -940,13 +941,15 @@ const CreateAlbum: React.FC = () => {
 
       <div className="p-4 bg-[#fff8f7]">
         {mediaItems.length > 0 || selectedAlbumData?.coverPhoto ? (
-          <TemplateBookFlip
-            template={selectedTemplateData}
-            mediaItems={mediaItems}
-            coverPhoto={selectedAlbumData?.coverPhoto}
-            coverPhotoName={selectedAlbumData?.coverPhotoName}
-            variant="inline"
-          />
+          <div className="w-full">
+            <TemplateBookFlip
+              template={selectedTemplateData}
+              mediaItems={mediaItems}
+              coverPhoto={selectedAlbumData?.coverPhoto}
+              coverPhotoName={selectedAlbumData?.coverPhotoName}
+              variant="inline"
+            />
+          </div>
         ) : (
           <div className="py-8 text-center text-sm text-[#594045]">
             <p>Select a curate with images to fill this template book.</p>
@@ -965,27 +968,13 @@ const CreateAlbum: React.FC = () => {
   )}
 
   {isBookModalOpen && selectedTemplateData && (
-    <div className="fixed inset-0 z-100 overflow-hidden bg-[#FFF1F3]">
-      <button
-        type="button"
-        onClick={() => setIsBookModalOpen(false)}
-        className="absolute right-4 top-4 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#e1bec4] bg-white/90 text-[#7a6268] shadow-sm transition hover:border-[#b10e6b] hover:text-[#b10e6b]"
-        aria-label="Close fullscreen book"
-      >
-        <X className="h-4 w-4" />
-      </button>
-
-      <div className="flex h-full w-full items-center justify-center overflow-hidden p-0">
-        <TemplateBookFlip
-          template={selectedTemplateData}
-          mediaItems={mediaItems}
-          coverPhoto={selectedAlbumData?.coverPhoto}
-          coverPhotoName={selectedAlbumData?.coverPhotoName}
-          variant="fullscreen"
-          className="h-full w-full"
-        />
-      </div>
-    </div>
+    <FullscreenBook
+      template={selectedTemplateData}
+      mediaItems={mediaItems}
+      coverPhoto={selectedAlbumData?.coverPhoto}
+      coverPhotoName={selectedAlbumData?.coverPhotoName}
+      onClose={() => setIsBookModalOpen(false)}
+    />
   )}
 
   {previewMedia && (

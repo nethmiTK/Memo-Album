@@ -221,7 +221,7 @@ export function TemplateBookFlip({
   useEffect(() => {
     const computeSize = () => {
       if (variant === 'inline') {
-        setBookSize({ width: 300, height: 400 });
+        setBookSize({ width: 450, height: 600 });
         return;
       }
 
