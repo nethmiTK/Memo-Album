@@ -14,8 +14,7 @@ import {
   CurateMediaInput,
 } from '@/lib/template-book-media';
 
-// Use 'any' type for react-pageflip since its props are complex and not fully typed
-const FlipBook = HTMLFlipBook as any;
+const FlipBook = HTMLFlipBook as unknown as React.ComponentType<Record<string, unknown>>;
 
 type TemplateBookFlipProps = {
   template: TemplateRecord;
@@ -188,7 +187,7 @@ export function TemplateBookFlip({
   variant = 'inline',
   className = '',
 }: TemplateBookFlipProps) {
-  const bookRef = useRef<any>(null);
+  const bookRef = useRef<{ pageFlip?: () => { flipNext?: () => void; flipPrev?: () => void } } | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [bookSize, setBookSize] = useState(
     variant === 'fullscreen' ? { width: 560, height: 760 } : { width: 300, height: 400 }
