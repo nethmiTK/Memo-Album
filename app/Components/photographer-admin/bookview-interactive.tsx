@@ -330,25 +330,27 @@ export function BookViewInteractive({
           ...layout,
           slotAssignments: layout.slotAssignments.map((slot) => {
             if (slot.slotId === slotId) {
-              return media
-                ? {
-                    ...slot,
-                    mediaId: media.id,
-                    fileName: media.fileName,
-                    fileType: media.fileType,
-                    fileSize: media.fileSize,
-                    dataUrl: media.dataUrl,
-                    mediaKind: media.mediaKind,
-                  }
-                : {
-                    ...slot,
-                    mediaId: null,
-                    fileName: '',
-                    fileType: '',
-                    fileSize: 0,
-                    dataUrl: '',
-                    mediaKind: 'image',
-                  };
+              if (media) {
+                return {
+                  ...slot,
+                  mediaId: media.id,
+                  fileName: media.fileName,
+                  fileType: media.fileType,
+                  fileSize: media.fileSize,
+                  dataUrl: media.dataUrl || '',
+                  mediaKind: media.mediaKind,
+                } as SlotAssignment;
+              } else {
+                return {
+                  ...slot,
+                  mediaId: null,
+                  fileName: '',
+                  fileType: '',
+                  fileSize: 0,
+                  dataUrl: '',
+                  mediaKind: 'image',
+                } as SlotAssignment;
+              }
             }
             return slot;
           }),
@@ -357,7 +359,7 @@ export function BookViewInteractive({
       return layout;
     });
 
-    setPageLayouts(updatedLayouts);
+    setPageLayouts(updatedLayouts as PageLayout[]);
     onMediaUpdate?.(pageNumber, slotId, media || null);
 
     // Update backend if bookAlbumId exists
