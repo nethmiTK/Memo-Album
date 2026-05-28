@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { logoutPhotographer } from '@/app/photographer-admin/auth';
+import { apiFetch } from '@/lib/api';
 
 interface PhotographerNavbarProps {
   onMenuClick?: () => void;
@@ -17,7 +18,7 @@ export default function PhotographerNavbar({ onMenuClick }: PhotographerNavbarPr
   const [profileOpen, setProfileOpen] = useState(false);
 
   useEffect(() => {
-    const resolveAvatar = () => {
+    const resolveAvatar = async () => {
       const userRaw = localStorage.getItem('user');
       const userDataRaw = localStorage.getItem('userData');
       let user: any = {};
@@ -29,6 +30,22 @@ export default function PhotographerNavbar({ onMenuClick }: PhotographerNavbarPr
         user = {};
         userData = {};
       }
+
+      // Try to fetch from backend
+      try {
+        const response = await apiFetch('/photographer/profile');
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.photographer?.profileImage) {
+            setProfileImage(result.photographer.profileImage);
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch profile image:', error);
+      }
+
+      // Fallback to localStorage
       const value = user.profileImage || user.profilePic || userData.profileImage || userData.profilePic || '';
 
       if (!value) {
@@ -41,7 +58,6 @@ export default function PhotographerNavbar({ onMenuClick }: PhotographerNavbarPr
         return;
       }
 
-      // Use the value directly if it's a local path
       setProfileImage(value);
     };
 

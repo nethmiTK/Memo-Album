@@ -64,7 +64,7 @@ export default function PhotographerSidebar({ isMobileOpen, onClose }: Photograp
       </div>
 
       {/* Main Navigation */}
-      <nav className="flex-1 min-h-0 px-3 py-4 pr-2 space-y-1 overflow-y-auto sidebar-scrollbar">
+      <nav className="flex-1 min-h-0 px-3 py-4 pr-2 space-y-1 overflow-y-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         {mainMenuItems.map((item) => {
           const active = isActive(item.href);
           return (

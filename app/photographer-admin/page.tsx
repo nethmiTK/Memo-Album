@@ -53,7 +53,7 @@ export default function PhotographerAdminDashboard() {
 
             <div className="mx-auto mt-6 h-2 w-full max-w-md overflow-hidden rounded-full bg-[#eadde3]">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-[#920857] to-[#c54792] transition-all duration-300"
+                className="h-full rounded-full bg-linear-to-r from-[#920857] to-[#c54792] transition-all duration-300"
                 style={{ width: `${progress}%` }}
               />
             </div>

@@ -113,7 +113,7 @@ function BookPage({
                     <img src={media.src} alt={media.label} className="absolute inset-0 h-full w-full object-cover" />
                   )
                 ) : (
-                  <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200" />
+                  <div className="absolute inset-0 bg-linear-to-br from-gray-100 to-gray-200" />
                 )}
               </div>
             );
@@ -296,7 +296,7 @@ export function FullscreenBook({ template, mediaItems, coverPhoto, coverPhotoNam
               >
                 -
               </button>
-              <span className="text-xs font-bold text-[#8d7d81] min-w-[45px] text-center">{bookScale}%</span>
+              <span className="min-w-11.25 text-center text-xs font-bold text-[#8d7d81]">{bookScale}%</span>
               <button
                 onClick={() => setBookScale(prev => Math.min(150, prev + 10))}
                 className="px-2 py-1 text-xs hover:bg-[#fff0f4] rounded transition-colors text-[#9b0044]"
@@ -388,7 +388,7 @@ export function FullscreenBook({ template, mediaItems, coverPhoto, coverPhotoNam
       {/* Media Popup */}
       {selectedMedia && (
         <div 
-          className="fixed inset-0 z-[60] bg-black/90 flex items-center justify-center p-8"
+          className="fixed inset-0 z-60 flex items-center justify-center bg-black/90 p-8"
           onClick={() => {
             setSelectedMedia(null);
             setMediaZoom(100);
@@ -416,7 +416,7 @@ export function FullscreenBook({ template, mediaItems, coverPhoto, coverPhotoNam
             >
               -
             </button>
-            <span className="text-sm font-bold text-white min-w-[50px] text-center">{mediaZoom}%</span>
+            <span className="min-w-12.5 text-center text-sm font-bold text-white">{mediaZoom}%</span>
             <button
               onClick={(e) => {
                 e.stopPropagation();

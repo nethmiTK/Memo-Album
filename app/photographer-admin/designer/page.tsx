@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { apiFetch, getUser, handleAuthError } from '@/lib/api';
-import { Eye, Trash2, PenLine, ChevronLeft, ChevronRight, Maximize2, X } from 'lucide-react';
+import { Eye, Trash2, Upload, ChevronLeft, ChevronRight, Maximize2, X } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'react-toastify';
 import { TemplateBookFlip } from '@/app/Components/photographer-admin/template-book-flip';
@@ -703,11 +703,22 @@ const CreateAlbum: React.FC = () => {
         <h3 className="label-sm tracking-widest uppercase text-[10px] text-[#211A1B] font-bold">NARRATIVE FLOW</h3>
         <p className="text-xs text-[#211A1B] mt-0.5">
           {selectedAlbum
-            ? `Images and videos from "${albumSearch}" — edit in Curate`
+            ? `Images and videos from "${albumSearch}"`
             : 'Select a curate album to load images'}
         </p>
       </div>
       <div className="flex items-center gap-2">
+        <label className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider border border-[#b10e6b] text-[#b10e6b] rounded-lg hover:bg-[#fff0f4] shrink-0 cursor-pointer">
+          <Upload size={14} />
+          Upload Media
+          <input
+            type="file"
+            multiple
+            accept="image/*,video/*"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+        </label>
         {mediaItems.length > 0 && (
           <button
             onClick={clearAllMedia}
@@ -716,16 +727,6 @@ const CreateAlbum: React.FC = () => {
           >
             Clear All
           </button>
-        )}
-        {selectedAlbum && (
-          <Link
-            href="/photographer-admin/curate"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider border border-[#b10e6b] text-[#b10e6b] rounded-lg hover:bg-[#fff0f4] shrink-0"
-            title="Edit curate images"
-          >
-            <PenLine size={14} />
-            Edit
-          </Link>
         )}
       </div>
     </div>
@@ -736,20 +737,35 @@ const CreateAlbum: React.FC = () => {
           {selectedAlbum ? (
             <>
               <p className="text-sm text-[#211A1B] font-medium">No images or videos in this curate yet</p>
-              <Link
-                href="/photographer-admin/curate"
-                className="inline-flex items-center gap-1 text-xs text-[#b10e6b] underline font-semibold"
-              >
-                <PenLine size={12} />
-                Add media in Curate
-              </Link>
+              <label className="inline-flex items-center gap-1 text-xs text-[#b10e6b] underline font-semibold cursor-pointer">
+                <Upload size={12} />
+                Upload media here
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*,video/*"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+              </label>
             </>
           ) : (
             <>
               <p className="text-sm text-[#211A1B] font-medium">Select a curate album first</p>
-              <p className="text-xs text-[#211A1B]/70">
+              <p className="text-xs text-[#211A1B]/70 mb-2">
                 Images and videos from your curate table will appear here
               </p>
+              <label className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold uppercase tracking-wider border-2 border-dashed border-[#b10e6b] text-[#b10e6b] rounded-lg hover:bg-[#fff0f4] cursor-pointer transition-all">
+                <Upload size={14} />
+                Or Upload Media Directly
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*,video/*"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+              </label>
             </>
           )}
         </div>
@@ -1010,7 +1026,7 @@ const CreateAlbum: React.FC = () => {
       </div>
 
       {/* Action Buttons */}
-      <div className="px-4 md:px-12 py-4 flex flex-wrap gap-3 justify-end border-t border-[#f3d6df] bg-white" style={{ fontFamily: 'Manrope, "Segoe UI", sans-serif' }}>
+      <div className="px-4 md:px-12 py-4 flex flex-wrap gap-3 justify-end border-t border-[#f3d6df] #f3d6df" style={{ fontFamily: 'Manrope, "Segoe UI", sans-serif' }}>
         <button
           onClick={handleDiscard}
           className="px-6 py-3 text-xs font-bold uppercase tracking-wider text-[#54474d] hover:text-[#211A1B] hover:bg-gray-50 rounded-lg transition-colors"

@@ -33,6 +33,7 @@ export default function NewCollectionPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [persistedMediaItems, setPersistedMediaItems] = useState<PersistedMediaItem[]>([]);
+  const [curateId, setCurateId] = useState('');
   const [uploadProgress, setUploadProgress] = useState(0);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -88,6 +89,44 @@ export default function NewCollectionPage() {
       reader.onerror = () => reject(new Error(`Failed to read file: ${file.name}`));
       reader.readAsDataURL(file);
     });
+
+  useEffect(() => {
+    const loadCurrentDraft = async () => {
+      try {
+        const response = await apiFetch('/curate/current');
+
+        if (response.status === 401) {
+          handleAuthError(response);
+          return;
+        }
+
+        if (!response.ok) {
+          return;
+        }
+
+        const result = await parseApiJson(response);
+
+        if (!result.success || !result.curate) {
+          return;
+        }
+
+        const curate = result.curate;
+        setCurateId(curate._id || '');
+        setFormData({
+          albumName: curate.albumName || '',
+          weddingDate: curate.weddingDate ? String(curate.weddingDate).slice(0, 10) : '',
+          accessControl: curate.accessControl === 'private' ? 'private' : 'public',
+        });
+        setPersistedMediaItems(Array.isArray(curate.mediaItems) ? curate.mediaItems : []);
+        setUploadProgress(Number.isFinite(Number(curate.progress)) ? Number(curate.progress) : 0);
+        setCoverPreview(curate.coverPhoto || null);
+      } catch {
+        // Keep the empty draft state if loading fails.
+      }
+    };
+
+    loadCurrentDraft();
+  }, []);
 
  
   useEffect(() => {
@@ -200,6 +239,7 @@ export default function NewCollectionPage() {
         : persistedMediaItems;
 
       const payload = {
+        curateId,
         albumName: formData.albumName,
         weddingDate: formData.weddingDate,
         accessControl: formData.accessControl,
@@ -229,6 +269,9 @@ export default function NewCollectionPage() {
       if (result.curate?.mediaItems && Array.isArray(result.curate.mediaItems)) {
         setPersistedMediaItems(result.curate.mediaItems);
       }
+      if (result.curate?._id) {
+        setCurateId(result.curate._id);
+      }
 
       setFiles([]);
 
@@ -253,19 +296,34 @@ export default function NewCollectionPage() {
   };
 
   const handleDiscard = async () => {
+    setFormData({
+      albumName: '',
+      weddingDate: '',
+      accessControl: 'public',
+    });
+    setFiles([]);
+    setPersistedMediaItems([]);
+    setCurateId('');
+    setUploadProgress(0);
+    setCoverPreview(null);
+    setCoverFile(null);
+    setSaveMessage(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    if (coverInputRef.current) {
+      coverInputRef.current.value = '';
+    }
+
     try {
       const response = await apiFetch('/curate/current', { method: 'DELETE' });
       if (response.status === 401) {
         handleAuthError(response);
         return;
       }
-      if (!response.ok) {
+      if (response.status !== 404 && !response.ok) {
         throw new Error('Failed to discard draft');
       }
-      setFiles([]);
-      setPersistedMediaItems([]);
-      setCoverPreview(null);
-      setCoverFile(null);
       toast.success('Draft discarded', toastStyle);
       router.push('/photographer-admin/curate');
     } catch (error) {
