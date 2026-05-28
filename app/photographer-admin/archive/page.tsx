@@ -43,6 +43,7 @@ type FullscreenBookData = {
   albumName: string;
   coverPhoto?: string;
   coverPhotoName?: string;
+  coverWeddingDate?: string;
   template: {
     _id?: string;
     name?: string;
@@ -54,6 +55,30 @@ type FullscreenBookData = {
   };
   mediaItems: any[];
 };
+
+const ARCHIVE_PAGE_CACHE_KEY = 'memo.archive.page.v1';
+const ARCHIVE_BOOKS_CACHE_PREFIX = 'memo.archive.books.v1:';
+const ARCHIVE_BOOK_PREVIEW_CACHE_PREFIX = 'memo.archive.preview.v1:';
+
+function readSessionCache<T>(key: string): T | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.sessionStorage.getItem(key);
+    if (!raw) return null;
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
+  }
+}
+
+function writeSessionCache(key: string, value: unknown) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // ignore cache write errors
+  }
+}
 
 function Toast({ message }: { message: string }) {
   if (!message) return null;
@@ -79,6 +104,12 @@ export default function ArchivePage() {
   );
 
   const loadData = async () => {
+    const cached = readSessionCache<{ albums: CurateAlbum[]; archives: ArchiveItem[] }>(ARCHIVE_PAGE_CACHE_KEY);
+    if (cached) {
+      setAlbums(Array.isArray(cached.albums) ? cached.albums : []);
+      setArchives(Array.isArray(cached.archives) ? cached.archives : []);
+    }
+
     try {
       const [albumResponse, archiveResponse] = await Promise.all([apiFetch('/curate'), apiFetch('/archive')]);
       if (albumResponse.status === 401 || archiveResponse.status === 401) {
@@ -87,13 +118,22 @@ export default function ArchivePage() {
       }
 
       const [albumResult, archiveResult] = await Promise.all([albumResponse.json(), archiveResponse.json()]);
+      let nextAlbums: CurateAlbum[] = [];
+      let nextArchives: ArchiveItem[] = [];
+
       if (albumResponse.ok && albumResult.success) {
-        const nextAlbums = Array.isArray(albumResult.curates) ? albumResult.curates : [];
+        nextAlbums = Array.isArray(albumResult.curates) ? albumResult.curates : [];
         setAlbums(nextAlbums);
       }
       if (archiveResponse.ok && archiveResult.success) {
-        setArchives(Array.isArray(archiveResult.archives) ? archiveResult.archives : []);
+        nextArchives = Array.isArray(archiveResult.archives) ? archiveResult.archives : [];
+        setArchives(nextArchives);
       }
+
+      writeSessionCache(ARCHIVE_PAGE_CACHE_KEY, {
+        albums: nextAlbums,
+        archives: nextArchives,
+      });
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Failed to load archive data');
     }
@@ -132,6 +172,12 @@ export default function ArchivePage() {
             : selectedArchive.albumId._id
           : '';
 
+        const booksCacheKey = `${ARCHIVE_BOOKS_CACHE_PREFIX}${archiveAlbumId}`;
+        const cachedBooks = readSessionCache<BookAlbum[]>(booksCacheKey);
+        if (cachedBooks && cachedBooks.length > 0) {
+          setArchiveBooks(cachedBooks);
+        }
+
         const response = await apiFetch('/book-albums');
         if (response.status === 401) {
           handleAuthError(response);
@@ -146,6 +192,7 @@ export default function ArchivePage() {
             return bookCurateId === archiveAlbumId;
           });
           setArchiveBooks(matchedBooks);
+          writeSessionCache(booksCacheKey, matchedBooks);
         } else {
           setArchiveBooks([]);
         }
@@ -161,6 +208,13 @@ export default function ArchivePage() {
   }, [expandedArchiveId, archives]);
 
   const openFullscreenBook = async (bookId: string) => {
+    const previewCacheKey = `${ARCHIVE_BOOK_PREVIEW_CACHE_PREFIX}${bookId}`;
+    const cachedPreview = readSessionCache<FullscreenBookData>(previewCacheKey);
+    if (cachedPreview) {
+      setSelectedFullscreenBook(cachedPreview);
+      return;
+    }
+
     try {
       const response = await apiFetch(`/book-albums/${bookId}`);
       if (response.status === 401) {
@@ -177,11 +231,12 @@ export default function ArchivePage() {
       const templateSource = bookAlbum.templateId && typeof bookAlbum.templateId === 'object' ? bookAlbum.templateId : {};
       const curateSource = bookAlbum.curateId && typeof bookAlbum.curateId === 'object' ? bookAlbum.curateId : {};
 
-      setSelectedFullscreenBook({
+      const previewData: FullscreenBookData = {
         _id: bookAlbum._id,
         albumName: bookAlbum.albumName || curateSource.albumName || 'Album Book',
         coverPhoto: curateSource.coverPhoto || '',
         coverPhotoName: curateSource.coverPhotoName || curateSource.albumName || bookAlbum.albumName || '',
+        coverWeddingDate: curateSource.weddingDate || '',
         template: {
           _id: templateSource._id || '',
           name: templateSource.name || bookAlbum.templateName || bookAlbum.albumName || 'Album Book',
@@ -192,7 +247,10 @@ export default function ArchivePage() {
           slots: templateSource.slots || [],
         },
         mediaItems: Array.isArray(curateSource.mediaItems) ? curateSource.mediaItems : [],
-      });
+      };
+
+      setSelectedFullscreenBook(previewData);
+      writeSessionCache(previewCacheKey, previewData);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Failed to open book preview');
     }
@@ -436,6 +494,7 @@ export default function ArchivePage() {
           mediaItems={selectedFullscreenBook.mediaItems}
           coverPhoto={selectedFullscreenBook.coverPhoto}
           coverPhotoName={selectedFullscreenBook.coverPhotoName}
+          coverWeddingDate={selectedFullscreenBook.coverWeddingDate}
           onClose={() => setSelectedFullscreenBook(null)}
         />
       ) : null}

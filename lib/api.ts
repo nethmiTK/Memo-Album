@@ -37,8 +37,10 @@ export const apiFetch = async (
   path: string,
   options: RequestInit = {}
 ): Promise<Response> => {
+  const method = String(options.method || 'GET').toUpperCase();
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
+    cache: method === 'GET' ? 'no-store' : options.cache,
     headers: {
       ...authHeaders(),
       ...(options.headers as Record<string, string> || {}),

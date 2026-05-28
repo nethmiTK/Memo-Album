@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import HTMLFlipBook from 'react-pageflip';
-import { ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   buildSlotMediaMap,
   getTemplatePages,
@@ -21,62 +21,39 @@ type TemplateBookFlipProps = {
   mediaItems?: CurateMediaInput[];
   coverPhoto?: string;
   coverPhotoName?: string;
+  coverWeddingDate?: string | Date;
   /** inline = designer panel, fullscreen = dedicated book route */
   variant?: 'inline' | 'fullscreen';
   className?: string;
 };
 
-function CoverPage({ template, accent, coverPhoto, variant }: { template: TemplateRecord; accent: string; coverPhoto?: string; variant: 'inline' | 'fullscreen' }) {
-  const coverTitle = template.name || 'Template Book';
+function CoverPage({ template, accent, coverPhoto, coverPhotoName, coverWeddingDate, variant }: { template: TemplateRecord; accent: string; coverPhoto?: string; coverPhotoName?: string; coverWeddingDate?: string | Date; variant: 'inline' | 'fullscreen' }) {
   const coverImage = coverPhoto || template.coverImage || template.coverUrl;
-  const previewSlots = (template.pages?.[0]?.slots || template.slots || []).slice(0, 4);
-  const showChrome = variant !== 'fullscreen';
+  const coverTitle = coverPhotoName || template.name || 'Template Book';
+  const weddingDate = coverWeddingDate ? new Date(coverWeddingDate).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : '';
 
   return (
-    <div className={`h-full w-full ${variant === 'fullscreen' ? 'bg-[#FFF8F7]' : 'bg-[#FEF6F6] p-3 md:p-4'}`}>
-      <div className={`flex h-full flex-col overflow-hidden ${showChrome ? 'rounded-[1.2rem] border border-[#e9d8dd] bg-white shadow-[0_12px_40px_rgba(0,0,0,0.08)]' : 'rounded-[1.1rem] border border-[#ead5dc] bg-white shadow-[0_12px_32px_rgba(0,0,0,0.06)]'}`}>
-        {showChrome ? (
-          <div className="flex items-center justify-between border-b border-[#f0e2e6] px-3 py-2">
-            <p className="text-[8px] font-bold uppercase tracking-[0.28em] text-[#8d7d81]">Cover</p>
-            <p className="text-[8px] font-bold uppercase tracking-[0.22em] text-[#8d7d81]">{template.pages?.length || 1} pages</p>
+    <div className={`h-full w-full ${variant === 'fullscreen' ? 'bg-[#FFF6F5] p-2' : 'bg-[#FEF6F6] p-2 md:p-3'}`}>
+      <div className="relative h-full w-full overflow-hidden rounded-[1.15rem] border border-[#ead7dc] bg-white shadow-[0_16px_38px_rgba(0,0,0,0.08)]">
+        {coverImage ? (
+          <>
+            <img src={coverImage} alt={coverTitle} className="h-full w-full object-cover" />
+            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(15,10,12,0.08),rgba(15,10,12,0.58))]" />
+            <div className="absolute inset-x-0 bottom-0 p-4 md:p-6 text-center text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.45)]">
+              <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-white/40 bg-black/20 px-3 py-1 text-[8px] font-semibold uppercase tracking-[0.24em] text-white/90 motion-safe:animate-pulse">
+                Cover Story
+              </div>
+              <div className="mx-auto mt-3 w-fit rounded-[0.9rem] border border-white/45 bg-black/25 px-4 py-3 backdrop-blur-sm">
+                <h1 className="font-['Libre_Caslon_Text'] text-[clamp(1.7rem,4.8vw,4.2rem)] leading-[0.95] tracking-[0.02em] text-white">{coverTitle}</h1>
+                {weddingDate ? <p className="mt-2 text-[9px] font-semibold uppercase tracking-[0.3em] text-white/90">{weddingDate}</p> : null}
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-[#fff4f7] text-[10px] font-bold uppercase tracking-[0.28em] text-[#8f7b81]">
+            Cover Photo
           </div>
-        ) : null}
-
-        <div className={`relative flex flex-1 flex-col overflow-hidden ${showChrome ? 'justify-center bg-[#fff8f7] p-4' : 'justify-center bg-white p-0'}`}>
-          {showChrome ? (
-            <>
-              <h1 className="font-['Libre_Caslon_Text'] text-xl leading-tight text-[#1a1c1d] md:text-2xl">{coverTitle}</h1>
-              {template.description ? (
-                <p className="mt-2 text-[11px] leading-5 text-[#6b5d60] line-clamp-3">{template.description}</p>
-              ) : null}
-            </>
-          ) : null}
-
-          {coverImage ? (
-            <div className={`${showChrome ? 'mt-3' : 'h-full w-full'} overflow-hidden ${showChrome ? 'rounded-xl border border-[#ead5dc] bg-white shadow-[0_10px_24px_rgba(0,0,0,0.06)]' : ''}`}>
-              <img src={coverImage} alt={coverTitle} className="h-full w-full object-cover" />
-            </div>
-          ) : (
-            <div className={`grid h-full w-full grid-cols-2 gap-2 ${showChrome ? 'mt-3' : ''}`}>
-              {previewSlots.map((slot, index) => (
-                <div
-                  key={`${slot.id}-${index}`}
-                  className="rounded-lg border border-[#ead5dc] bg-white p-2"
-                  style={{ borderColor: `${accent}28` }}
-                >
-                  <div className="h-10 rounded-md bg-[linear-gradient(145deg,rgba(255,255,255,0.96),rgba(155,0,68,0.03))]" />
-                </div>
-              ))}
-            </div>
-          )}
-
-          {showChrome ? (
-            <div className="mt-3 flex items-center gap-1.5 text-[8px] font-bold uppercase tracking-[0.2em] text-[#8d7d81]">
-              <Sparkles className="h-3.5 w-3.5 text-[#9b0044]" />
-              Open like a book
-            </div>
-          ) : null}
-        </div>
+        )}
       </div>
     </div>
   );
@@ -98,15 +75,21 @@ function BookPage({
   setOverrideMediaMap: (fn: (prev: Record<string, TemplateMediaAsset>) => Record<string, TemplateMediaAsset>) => void;
 }) {
   const showChrome = variant !== 'fullscreen';
+  const usesAbsoluteLayout = page.slots.some((slot) => Number.isFinite(Number(slot.x)) || Number.isFinite(Number(slot.y)));
 
   return (
     <div className={`h-full w-full ${variant === 'fullscreen' ? 'bg-[#FFF8F7]' : 'bg-[#FFF8F7] p-1'}`}>
       <div className={`flex h-full flex-col overflow-hidden ${showChrome ? 'rounded-2xl border border-[#ede5e8] bg-white p-2 shadow-[0_10px_28px_rgba(0,0,0,0.06)]' : 'rounded-[1.1rem] border border-[#ede5e8] bg-white p-0 shadow-[0_10px_28px_rgba(0,0,0,0.06)]'}`}>
-        <div className={`grid flex-1 gap-0 ${variant === 'fullscreen' ? 'auto-rows-[minmax(80px,1fr)] grid-cols-2' : 'mt-2 auto-rows-[minmax(64px,1fr)] grid-cols-2 gap-2 md:grid-cols-3'}`}>
+        <div className={`relative flex-1 ${usesAbsoluteLayout ? 'mt-2 overflow-hidden' : `grid gap-0 ${variant === 'fullscreen' ? 'auto-rows-[minmax(80px,1fr)] grid-cols-2' : 'auto-rows-[minmax(64px,1fr)] grid-cols-2 gap-2 md:grid-cols-3'}`}`}>
           {page.slots.map((slot) => {
             const colSpan = Math.max(1, Math.min(3, slot.width || 1));
             const rowSpan = Math.max(1, Math.min(3, slot.height || 1));
             const media = overrideMediaMap[slot.id] || mediaMap[slot.id];
+            const isAbsolute = usesAbsoluteLayout;
+            const left = Number.isFinite(Number(slot.x)) ? Number(slot.x) : 0;
+            const top = Number.isFinite(Number(slot.y)) ? Number(slot.y) : 0;
+            const width = Math.max(1, Number.isFinite(Number(slot.width)) ? Number(slot.width) : 1);
+            const height = Math.max(1, Number.isFinite(Number(slot.height)) ? Number(slot.height) : 1);
 
             const handleDragOver = (e: React.DragEvent) => {
               e.preventDefault();
@@ -154,11 +137,15 @@ function BookPage({
                 key={`${page.pageNumber}-${slot.id}`}
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
-                className={`relative overflow-hidden border bg-[#faf8f9] ${variant === 'fullscreen' ? 'min-h-0 rounded-none border-[#f3d6df]' : 'min-h-16 rounded-xl border-[#f3d6df]'}`}
+                className={`overflow-hidden border bg-[#faf8f9] ${isAbsolute ? 'absolute min-h-0 rounded-xl border-[#f3d6df]' : variant === 'fullscreen' ? 'min-h-0 rounded-none border-[#f3d6df]' : 'relative min-h-16 rounded-xl border-[#f3d6df]'}`}
                 style={{
                   borderColor: `${accent || '#9b0044'}33`,
-                  gridColumn: `span ${colSpan}`,
-                  gridRow: `span ${rowSpan}`,
+                  gridColumn: isAbsolute ? undefined : `span ${colSpan}`,
+                  gridRow: isAbsolute ? undefined : `span ${rowSpan}`,
+                  left: isAbsolute ? `${left}%` : undefined,
+                  top: isAbsolute ? `${top}%` : undefined,
+                  width: isAbsolute ? `${width}%` : undefined,
+                  height: isAbsolute ? `${height}%` : undefined,
                 }}
               >
                 {media ? (
@@ -184,13 +171,14 @@ export function TemplateBookFlip({
   mediaItems = [],
   coverPhoto,
   coverPhotoName,
+  coverWeddingDate,
   variant = 'inline',
   className = '',
 }: TemplateBookFlipProps) {
   const bookRef = useRef<{ pageFlip?: () => { flipNext?: () => void; flipPrev?: () => void } } | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [bookSize, setBookSize] = useState(
-    variant === 'fullscreen' ? { width: 560, height: 760 } : { width: 300, height: 400 }
+    variant === 'fullscreen' ? { width: 560, height: 760 } : { width: 260, height: 360 }
   );
 
   const pages = useMemo(() => getTemplatePages(template), [template]);
@@ -205,23 +193,13 @@ export function TemplateBookFlip({
   // Allow local override of slot -> media mapping when user drops an image
   const [overrideMediaMap, setOverrideMediaMap] = useState<Record<string, TemplateMediaAsset>>({});
 
-  // For fullscreen variant show two-page spreads (pairs)
-  const spreads = useMemo(() => {
-    if (variant !== 'fullscreen') return pages.map((p) => [p]);
-    const out: TemplatePage[][] = [];
-    for (let i = 0; i < pages.length; i += 2) {
-      out.push([pages[i], pages[i + 1]].filter(Boolean) as TemplatePage[]);
-    }
-    return out;
-  }, [pages, variant]);
-
   const accent = template.accent || '#b10e6b';
-  const totalFlipPages = (variant === 'fullscreen' ? spreads.length : pages.length) + 1;
+  const totalFlipPages = pages.length + 1;
 
   useEffect(() => {
     const computeSize = () => {
       if (variant === 'inline') {
-        setBookSize({ width: 450, height: 600 });
+        setBookSize({ width: 400, height: 540 });
         return;
       }
 
@@ -277,39 +255,21 @@ export function TemplateBookFlip({
             onFlip={(event: { data: number }) => setCurrentPage(event.data)}
           >
             <div>
-              <CoverPage template={template} accent={accent} coverPhoto={coverPhoto} variant={variant} />
+              <CoverPage template={template} accent={accent} coverPhoto={coverPhoto} coverPhotoName={coverPhotoName} coverWeddingDate={coverWeddingDate} variant={variant} />
             </div>
 
-            {variant === 'fullscreen'
-              ? spreads.map((pair, idx) => (
-                  <div key={`spread-${idx}`} className="flex h-full w-full">
-                    {pair.map((page) => (
-                      <div key={`${page.pageNumber}-${page.pageLabel || 'page'}`} className="w-1/2 h-full p-2">
-                        <BookPage
-                          page={page}
-                          accent={accent}
-                          variant={variant}
-                          mediaMap={mediaMap}
-                          overrideMediaMap={overrideMediaMap}
-                          setOverrideMediaMap={setOverrideMediaMap}
-                        />
-                      </div>
-                    ))}
-                    {pair.length === 1 ? <div className="w-1/2 h-full p-2" /> : null}
-                  </div>
-                ))
-              : pages.map((page) => (
-                    <div key={`${page.pageNumber}-${page.pageLabel || 'page'}`}>
-                    <BookPage
-                      page={page}
-                      accent={accent}
-                      variant={variant}
-                      mediaMap={mediaMap}
-                      overrideMediaMap={overrideMediaMap}
-                      setOverrideMediaMap={setOverrideMediaMap}
-                    />
-                  </div>
-                ))}
+            {pages.map((page) => (
+              <div key={`${page.pageNumber}-${page.pageLabel || 'page'}`} className="h-full w-full">
+                <BookPage
+                  page={page}
+                  accent={accent}
+                  variant={variant}
+                  mediaMap={mediaMap}
+                  overrideMediaMap={overrideMediaMap}
+                  setOverrideMediaMap={setOverrideMediaMap}
+                />
+              </div>
+            ))}
           </FlipBook>
         </div>
       </div>

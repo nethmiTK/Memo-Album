@@ -1,10 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { X, Download, Sparkles } from 'lucide-react';
+import { X } from 'lucide-react';
 import { TemplateRecord, TemplatePage, TemplateMediaAsset, getTemplatePages, buildSlotMediaMap, toTemplateMedia, CurateMediaInput } from '@/lib/template-book-media';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 import HTMLFlipBook from 'react-pageflip';
 
 const FlipBook = HTMLFlipBook as any;
@@ -14,56 +12,37 @@ interface FullscreenBookProps {
   mediaItems: CurateMediaInput[];
   coverPhoto?: string;
   coverPhotoName?: string;
+  coverWeddingDate?: string | Date;
   onClose: () => void;
 }
 
-function CoverPage({ template, accent, coverPhoto, coverPhotoName }: { template: TemplateRecord; accent: string; coverPhoto?: string; coverPhotoName?: string }) {
-  const coverTitle = coverPhotoName || template.name || 'Album Book';
+function CoverPage({ template, accent, coverPhoto, coverPhotoName, coverWeddingDate }: { template: TemplateRecord; accent: string; coverPhoto?: string; coverPhotoName?: string; coverWeddingDate?: string | Date }) {
   const coverImage = coverPhoto || template.coverImage;
+  const coverTitle = coverPhotoName || template.name || 'Album Book';
+  const weddingDate = coverWeddingDate ? new Date(coverWeddingDate).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : '';
 
   return (
-    <div className="h-full w-full bg-[#FEF6F6] p-6">
-      <div className="flex h-full flex-col overflow-hidden rounded-[1.4rem] border border-[#e9d8dd] bg-white shadow-[0_18px_55px_rgba(0,0,0,0.08)]">
-        <div className="flex items-center justify-between border-b border-[#f0e2e6] px-5 py-3">
-          <p className="text-[9px] font-bold uppercase tracking-[0.28em] text-[#8d7d81]">Cover</p>
-        </div>
-
-        <div className="relative flex flex-1 flex-col justify-between overflow-hidden bg-[#fff8f7] p-6">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(155,0,68,0.06),transparent_45%),linear-gradient(145deg,rgba(255,255,255,0.85),rgba(255,255,255,0.4))]" />
-
-          <div className="relative z-10 flex items-center justify-between text-[9px] font-bold uppercase tracking-[0.22em] text-[#8d7d81]">
-            <span>MemoAlbum</span>
-            <span>Fullscreen Book Preview</span>
-          </div>
-
-          <div className="relative z-10 mx-auto flex w-full max-w-none flex-1 items-center justify-center py-4">
-            <div className="relative overflow-hidden rounded-[1.2rem] border border-[#ead5dc] bg-[#fbf6f7] p-6 shadow-[0_16px_32px_rgba(0,0,0,0.06)] w-full">
-              <div className="absolute inset-0 bg-[linear-gradient(145deg,rgba(255,255,255,0.85),rgba(0,0,0,0.02))]" />
-              <div className="relative z-10 flex h-full flex-col justify-between">
-                <div>
-                  <p className="text-[9px] font-bold uppercase tracking-[0.24em] text-[#8d7d81]">Cover Photo</p>
-                  <h1 className="mt-3 font-['Libre_Caslon_Text'] text-[36px] leading-[1.05] text-[#1a1c1d]">{coverTitle}</h1>
-                </div>
-
-                {coverImage && (
-                  <div className="mt-4 overflow-hidden rounded-2xl border border-[#ead5dc] bg-white shadow-[0_12px_28px_rgba(0,0,0,0.08)]">
-                    <img src={coverImage} alt={coverTitle} className="h-96 w-full object-cover" />
-                  </div>
-                )}
-
-                <div className="mt-4 flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.2em] text-[#8d7d81]">
-                  <Sparkles className="h-4 w-4 text-[#9b0044]" />
-                  First page cover
-                </div>
+    <div className="h-full w-full bg-[#FFF6F5] p-2">
+      <div className="relative h-full w-full overflow-hidden rounded-[1.15rem] border border-[#ead7dc] bg-white shadow-[0_16px_38px_rgba(0,0,0,0.08)]">
+        {coverImage ? (
+          <>
+            <img src={coverImage} alt={coverTitle} className="h-full w-full object-cover" />
+            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(15,10,12,0.08),rgba(15,10,12,0.58))]" />
+            <div className="absolute inset-x-0 bottom-0 p-6 md:p-8 text-center text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.45)]">
+              <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-white/40 bg-black/20 px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.26em] text-white/90 motion-safe:animate-pulse">
+                Cover Story
+              </div>
+              <div className="mx-auto mt-4 w-fit rounded-[0.9rem] border border-white/45 bg-black/25 px-5 py-4 backdrop-blur-sm">
+                <h1 className="font-['Libre_Caslon_Text'] text-[clamp(2.4rem,5.6vw,5rem)] leading-[0.94] tracking-[0.02em] text-white">{coverTitle}</h1>
+                {weddingDate ? <p className="mt-3 text-[10px] font-semibold uppercase tracking-[0.34em] text-white/90">{weddingDate}</p> : null}
               </div>
             </div>
+          </>
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-[#fff4f7] text-[10px] font-bold uppercase tracking-[0.28em] text-[#8f7b81]">
+            Cover Photo
           </div>
-
-          <div className="relative z-10 flex items-center justify-between border-t border-[#f0e2e6] pt-3 text-[9px] font-bold uppercase tracking-[0.22em] text-[#8d7d81]">
-            <span>Open like a book</span>
-            <span>Auto-flip enabled</span>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
@@ -73,36 +52,49 @@ function BookPage({
   page,
   accent,
   pageLabel,
+  variant,
   mediaMap,
   onMediaClick,
 }: {
   page: TemplatePage;
   accent: string;
   pageLabel: string;
+  variant: 'inline' | 'fullscreen';
   mediaMap: Record<string, TemplateMediaAsset>;
   onMediaClick: (media: TemplateMediaAsset) => void;
 }) {
+  const usesAbsoluteLayout = page.slots.some((slot) => Number.isFinite(Number(slot.x)) || Number.isFinite(Number(slot.y)));
+
   return (
     <div className="h-full w-full bg-[#FFF8F7] p-2">
       <div className="flex h-full flex-col overflow-hidden rounded-[1.1rem] border border-[#ede5e8] bg-white p-4 shadow-[0_14px_35px_rgba(0,0,0,0.06)]">
-        <div className="flex items-center justify-between border-b border-[#f2e8ec] pb-2">
+        <div className={`flex items-center justify-between border-b border-[#f2e8ec] pb-2 ${variant === 'fullscreen' ? 'hidden' : ''}`}>
           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#8d7d81]">{pageLabel}</p>
         </div>
 
-        <div className="mt-3 grid flex-1 auto-rows-[minmax(120px,1fr)] grid-cols-2 gap-3">
+        <div className={`relative mt-3 flex-1 ${usesAbsoluteLayout ? 'overflow-hidden' : 'grid auto-rows-[minmax(120px,1fr)] grid-cols-2 gap-3'}`}>
           {page.slots.map((slot) => {
             const colSpan = Math.max(1, Math.min(2, slot.width || 1));
             const rowSpan = Math.max(1, Math.min(3, slot.height || 1));
             const media = mediaMap[slot.id];
+            const isAbsolute = usesAbsoluteLayout;
+            const left = Number.isFinite(Number(slot.x)) ? Number(slot.x) : 0;
+            const top = Number.isFinite(Number(slot.y)) ? Number(slot.y) : 0;
+            const width = Math.max(1, Number.isFinite(Number(slot.width)) ? Number(slot.width) : 1);
+            const height = Math.max(1, Number.isFinite(Number(slot.height)) ? Number(slot.height) : 1);
 
             return (
               <div
                 key={`${page.pageNumber}-${slot.id}`}
-                className="relative overflow-hidden rounded-2xl border bg-[#faf8f9] cursor-pointer hover:border-[#b10e6b] transition-colors"
+                className={`overflow-hidden rounded-2xl border bg-[#faf8f9] cursor-pointer hover:border-[#b10e6b] transition-colors ${isAbsolute ? 'absolute' : 'relative'}`}
                 style={{
                   borderColor: `${accent || '#9b0044'}33`,
-                  gridColumn: `span ${colSpan}`,
-                  gridRow: `span ${rowSpan}`,
+                  gridColumn: isAbsolute ? undefined : `span ${colSpan}`,
+                  gridRow: isAbsolute ? undefined : `span ${rowSpan}`,
+                  left: isAbsolute ? `${left}%` : undefined,
+                  top: isAbsolute ? `${top}%` : undefined,
+                  width: isAbsolute ? `${width}%` : undefined,
+                  height: isAbsolute ? `${height}%` : undefined,
                 }}
                 onClick={() => media && onMediaClick(media)}
               >
@@ -124,21 +116,21 @@ function BookPage({
   );
 }
 
-export function FullscreenBook({ template, mediaItems, coverPhoto, coverPhotoName, onClose }: FullscreenBookProps) {
+export function FullscreenBook({ template, mediaItems, coverPhoto, coverPhotoName, coverWeddingDate, onClose }: FullscreenBookProps) {
   const bookRef = useRef<any>(null);
   const bookHoverRef = useRef(false);
   const autoFlipTimerRef = useRef<number | null>(null);
+  const [isHeaderVisible, setIsHeaderVisible] = useState(false);
+  const [isFooterVisible, setIsFooterVisible] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
-  const [isExporting, setIsExporting] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<TemplateMediaAsset | null>(null);
   const [mediaZoom, setMediaZoom] = useState(100);
   const [bookSize, setBookSize] = useState({ width: 600, height: 800 });
-  const [bookScale, setBookScale] = useState(100);
+  const [bookScale, setBookScale] = useState(80);
 
   const pages = useMemo(() => getTemplatePages(template), [template]);
   const draftedMedia = useMemo(() => toTemplateMedia(mediaItems, coverPhoto, coverPhotoName), [mediaItems, coverPhoto, coverPhotoName]);
   const mediaMap = useMemo(() => buildSlotMediaMap(pages, draftedMedia), [pages, draftedMedia]);
-
   const accent = template.accent || '#b10e6b';
 
   const playFlipSound = () => {
@@ -172,7 +164,7 @@ export function FullscreenBook({ template, mediaItems, coverPhoto, coverPhotoNam
       autoFlipTimerRef.current = null;
     }
   };
-
+  
   const startAutoFlip = () => {
     if (autoFlipTimerRef.current || pages.length <= 1) return;
 
@@ -187,50 +179,6 @@ export function FullscreenBook({ template, mediaItems, coverPhoto, coverPhotoNam
 
       bookRef.current?.pageFlip?.().flipNext?.();
     }, 2600);
-  };
-
-  const exportToPDF = async () => {
-    if (!bookRef.current) return;
-    
-    setIsExporting(true);
-    stopAutoFlip();
-    try {
-      const pdf = new jsPDF({
-        orientation: 'landscape',
-        unit: 'mm',
-        format: 'a4',
-      });
-
-      const totalPages = pages.length + 1;
-      for (let i = 0; i < totalPages; i++) {
-        bookRef.current?.pageFlip?.().flip?.(i);
-        await new Promise(resolve => setTimeout(resolve, 800));
-
-        const flipBookElement = bookRef.current?.getElement?.();
-        const pageElement = flipBookElement?.querySelector('.stf__item.--active');
-        
-        if (pageElement) {
-          const canvas = await html2canvas(pageElement as HTMLElement, {
-            scale: 2,
-            useCORS: true,
-            logging: false,
-            allowTaint: true,
-          });
-
-          const imgData = canvas.toDataURL('image/jpeg', 0.95);
-          
-          if (i > 0) pdf.addPage();
-          pdf.addImage(imgData, 'JPEG', 0, 0, 297, 210);
-        }
-      }
-
-      pdf.save(`${template.name || 'book'}.pdf`);
-    } catch (error) {
-      console.error('PDF export error:', error);
-    } finally {
-      setIsExporting(false);
-      startAutoFlip();
-    }
   };
 
   useEffect(() => {
@@ -277,10 +225,30 @@ export function FullscreenBook({ template, mediaItems, coverPhoto, coverPhotoNam
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
+  const handlePointerMove = (event: React.MouseEvent<HTMLDivElement>) => {
+    const topTriggerHeight = 72;
+    const bottomTriggerHeight = 72;
+    const isTopZone = event.clientY <= topTriggerHeight;
+    const isBottomZone = event.clientY >= window.innerHeight - bottomTriggerHeight;
+    const isCenterZone = !isTopZone && !isBottomZone;
+
+    setIsHeaderVisible(isTopZone);
+    setIsFooterVisible(isBottomZone);
+    bookHoverRef.current = isCenterZone;
+  };
+
   return (
-    <div className="fixed inset-0 z-50 bg-[#FFF1F3] flex flex-col">
+    <div
+      className="fixed inset-0 z-50 bg-[#FFF1F3] overflow-hidden"
+      onMouseMove={handlePointerMove}
+      onMouseLeave={() => {
+        setIsHeaderVisible(false);
+        setIsFooterVisible(false);
+        bookHoverRef.current = false;
+      }}
+    >
       {/* Header */}
-      <header className="border-b border-[#ead5dc] bg-[#FFF1F3]/95 px-6 py-3 backdrop-blur">
+      <header className={`absolute inset-x-0 top-0 z-20 border-b border-[#ead5dc] bg-[#FFF1F3]/95 px-6 py-3 backdrop-blur transition-all duration-200 ${isHeaderVisible ? 'translate-y-0 opacity-100' : '-translate-y-full pointer-events-none opacity-0'}`}>
         <div className="flex items-center justify-between">
           <div>
             <h1 className="font-['Libre_Caslon_Text'] text-[26px] leading-none text-[#9b0044]">{template.name}</h1>
@@ -311,15 +279,6 @@ export function FullscreenBook({ template, mediaItems, coverPhoto, coverPhotoNam
               </button>
             </div>
 
-            <button 
-              onClick={exportToPDF}
-              disabled={isExporting}
-              className="px-4 py-2 bg-[#b10e6b] text-white rounded-lg hover:bg-[#9b0044] transition-colors flex items-center gap-2 disabled:opacity-50 text-sm"
-            >
-              <Download size={16} />
-              {isExporting ? 'EXPORTING...' : 'EXPORT PDF'}
-            </button>
-            
             <button
               onClick={onClose}
               className="p-2 rounded-full hover:bg-[#fff0f4] transition-colors"
@@ -332,16 +291,10 @@ export function FullscreenBook({ template, mediaItems, coverPhoto, coverPhotoNam
       </header>
 
       {/* Book View */}
-      <main className="flex-1 flex items-center justify-center overflow-hidden">
+      <main className="absolute inset-0 flex items-center justify-center overflow-hidden">
         <div 
           className="flex h-full w-full items-center justify-center"
           style={{ transform: `scale(${bookScale / 100})`, transition: 'transform 0.3s ease' }}
-          onMouseEnter={() => {
-            bookHoverRef.current = true;
-          }}
-          onMouseLeave={() => {
-            bookHoverRef.current = false;
-          }}
         >
           <div style={{ width: '100%', maxWidth: '100%', height: '100%' }} className="mx-auto flex items-center justify-center">
             <FlipBook
@@ -362,14 +315,16 @@ export function FullscreenBook({ template, mediaItems, coverPhoto, coverPhotoNam
               }}
             >
               <div>
-                <CoverPage template={template} accent={accent} coverPhoto={coverPhoto} coverPhotoName={coverPhotoName} />
+                <CoverPage template={template} accent={accent} coverPhoto={coverPhoto} coverPhotoName={coverPhotoName} coverWeddingDate={coverWeddingDate} />
               </div>
+
               {pages.map((page) => (
                 <div key={`${page.pageNumber}-${page.pageLabel || 'page'}`}>
                   <BookPage 
                     page={page} 
                     accent={accent} 
                     pageLabel={page.pageLabel || `Page ${page.pageNumber}`}
+                    variant="fullscreen"
                     mediaMap={mediaMap}
                     onMediaClick={setSelectedMedia}
                   />
@@ -381,8 +336,8 @@ export function FullscreenBook({ template, mediaItems, coverPhoto, coverPhotoNam
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-[#ead5dc] bg-[#FFF1F3] px-6 py-2 text-center text-[9px] font-bold uppercase tracking-[0.2em] text-[#8d7d81]">
-        Page {Math.min(currentPage + 1, pages.length + 1)} of {pages.length + 1}
+      <footer className={`absolute inset-x-0 bottom-0 z-20 border-t border-[#ead5dc] bg-[#FFF1F3] px-6 py-2 text-center text-[9px] font-bold uppercase tracking-[0.2em] text-[#8d7d81] transition-all duration-200 ${isFooterVisible ? 'translate-y-0 opacity-100' : 'translate-y-full pointer-events-none opacity-0'}`}>
+        Hover to show controls
       </footer>
 
       {/* Media Popup */}

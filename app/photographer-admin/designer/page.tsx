@@ -34,6 +34,7 @@ interface Template {
 interface Album {
   _id: string;
   albumName: string;
+  weddingDate?: string | Date;
   mediaItems?: MediaItem[];
   status?: string;
   coverPhoto?: string;
@@ -591,11 +592,11 @@ const CreateAlbum: React.FC = () => {
 
       {/* Main Content */}
       <div className="flex-1 px-4 md:px-9 py-6 overflow-hidden">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-full">
-           <div className="lg:col-span-3 space-y-1 overflow-y-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(420px,5fr)_minmax(0,7fr)] gap-8 h-full">
+           <div className="space-y-1 overflow-y-auto lg:pr-2">
   
 <div
-  className="w-full max-w-xs p-6 rounded-2xl shadow-lg bg-white space-y-6 border-l-4 border-[#b10e6b]"
+  className="w-full max-w-xl p-6 rounded-2xl shadow-lg bg-white space-y-6 border-l-4 border-[#b10e6b]"
 >
 
    <h3 className="text-[11px] tracking-widest uppercase text-[#b10e6b] font-bold">
@@ -695,7 +696,7 @@ const CreateAlbum: React.FC = () => {
           </div>
 
         {/* RIGHT COLUMN - MEDIA UPLOAD & PREVIEW */}
-<div className="lg:col-span-9 space-y-6 overflow-y-auto">
+<div className="space-y-6 overflow-y-auto lg:min-w-0">
   {/* Narrative Flow - Media Upload */}
   <div className="bg-white min-h-48 rounded-xl shadow-sm overflow-hidden flex flex-col border border-[#b10e6b]/5" style={{ fontFamily: 'Manrope, "Segoe UI", sans-serif' }}>
     <div className="p-4 border-b flex justify-between items-center gap-3">
@@ -936,7 +937,7 @@ const CreateAlbum: React.FC = () => {
 
   {/* Template Book Preview (flip book with curate images in slots) */}
   {selectedTemplateData ? (
-    <div className="bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col border border-gray-100">
+    <div className="bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col border border-gray-100 min-h-88">
       <div className="p-4 border-b border-gray-200 flex flex-wrap items-center justify-between gap-2">
         <div>
           <h3 className="text-sm font-bold uppercase tracking-widest text-[#211A1B]">TEMPLATE BOOK</h3>
@@ -955,19 +956,20 @@ const CreateAlbum: React.FC = () => {
         </button>
       </div>
 
-      <div className="p-4 bg-[#fff8f7]">
+      <div className="p-3 bg-[#fff8f7]">
         {mediaItems.length > 0 || selectedAlbumData?.coverPhoto ? (
-          <div className="w-full">
+          <div className="w-full max-h-92 overflow-hidden rounded-xl">
             <TemplateBookFlip
               template={selectedTemplateData}
               mediaItems={mediaItems}
               coverPhoto={selectedAlbumData?.coverPhoto}
-              coverPhotoName={selectedAlbumData?.coverPhotoName}
+              coverPhotoName={selectedAlbumData?.albumName}
+              coverWeddingDate={selectedAlbumData?.weddingDate}
               variant="inline"
             />
           </div>
         ) : (
-          <div className="py-8 text-center text-sm text-[#594045]">
+          <div className="min-h-32 py-4 px-4 text-left text-sm text-[#594045] flex flex-col items-start justify-center">
             <p>Select a curate with images to fill this template book.</p>
             <Link href="/photographer-admin/curate" className="mt-2 inline-block text-[#b10e6b] underline text-xs font-semibold">
               Go to Curate
@@ -977,7 +979,7 @@ const CreateAlbum: React.FC = () => {
       </div>
     </div>
   ) : (
-    <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-8 text-center">
+    <div className="bg-white rounded-2xl border border-dashed border-gray-200 px-6 py-5 min-h-32 flex flex-col items-start justify-center text-left">
       <p className="text-sm font-medium text-gray-500">Select a template to open the book view</p>
       <p className="text-xs text-gray-400 mt-1">Curate images will map into template slots from the database</p>
     </div>
@@ -988,7 +990,8 @@ const CreateAlbum: React.FC = () => {
       template={selectedTemplateData}
       mediaItems={mediaItems}
       coverPhoto={selectedAlbumData?.coverPhoto}
-      coverPhotoName={selectedAlbumData?.coverPhotoName}
+      coverPhotoName={selectedAlbumData?.albumName}
+      coverWeddingDate={selectedAlbumData?.weddingDate}
       onClose={() => setIsBookModalOpen(false)}
     />
   )}

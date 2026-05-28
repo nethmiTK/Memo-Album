@@ -2,6 +2,9 @@ export type TemplateSlot = {
   id: string;
   label: string;
   kind: string;
+  shape?: 'square' | 'circle' | 'triangle' | 'text';
+  x?: number;
+  y?: number;
   width?: number;
   height?: number;
   emphasis?: string;
