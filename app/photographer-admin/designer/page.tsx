@@ -4,6 +4,7 @@ import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { apiFetch, getUser, handleAuthError } from '@/lib/api';
 import { Eye, Trash2, Upload, ChevronLeft, ChevronRight, Maximize2, X } from 'lucide-react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { toast } from 'react-toastify';
 import { TemplateBookFlip } from '@/app/Components/photographer-admin/template-book-flip';
 import { FullscreenBook } from '@/app/Components/photographer-admin/FullscreenBook';
@@ -82,12 +83,20 @@ interface MediaItem {
   order?: number;
 }
 
+const albumTypeOptions = ['Wedding', 'Engagement'] as const;
+
 const CreateAlbum: React.FC = () => {
+  const searchParams = useSearchParams();
+  const requestedCurateId = searchParams.get('curateId') || '';
+  const requestedTemplateId = searchParams.get('templateId') || '';
+  const shouldOpenFullscreenBook = searchParams.get('openBook') === '1';
+
   const [isSaving, setIsSaving] = useState(false);
   const [selectedAlbum, setSelectedAlbum] = useState('');
   const [selectedAlbumData, setSelectedAlbumData] = useState<Album | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [selectedTemplateData, setSelectedTemplateData] = useState<Template | null>(null);
+  const [albumType, setAlbumType] = useState<(typeof albumTypeOptions)[number]>('Wedding');
   const [albumSearch, setAlbumSearch] = useState('');
   const [templateSearch, setTemplateSearch] = useState('');
   const [albums, setAlbums] = useState<Album[]>([]);
@@ -120,6 +129,7 @@ const CreateAlbum: React.FC = () => {
   const [previewMedia, setPreviewMedia] = useState<MediaItem | null>(null);
   const lastAlbumNoMatchToastRef = useRef('');
   const lastTemplateNoMatchToastRef = useRef('');
+  const routeSelectionAppliedRef = useRef('');
   const loggedInPhotographer = getUser();
   const photographerLabel =
     loggedInPhotographer?.name || loggedInPhotographer?.email || 'Photographer';
@@ -175,6 +185,45 @@ const CreateAlbum: React.FC = () => {
     fetchAlbums();
     fetchTemplates();
   }, []);
+
+  useEffect(() => {
+    if (!requestedCurateId && !requestedTemplateId) {
+      routeSelectionAppliedRef.current = '';
+      return;
+    }
+
+    if (!albums.length && !templates.length) {
+      return;
+    }
+
+    const routeKey = `${requestedCurateId}:${requestedTemplateId}`;
+    if (routeSelectionAppliedRef.current === routeKey) {
+      return;
+    }
+
+    const nextAlbum = requestedCurateId ? albums.find((album) => album._id === requestedCurateId) : null;
+    const nextTemplate = requestedTemplateId ? templates.find((template) => template._id === requestedTemplateId) : null;
+
+    if (nextAlbum) {
+      handleSelectAlbum(nextAlbum);
+    }
+
+    if (nextTemplate) {
+      handleSelectTemplate(nextTemplate);
+    }
+
+    if (nextAlbum || nextTemplate) {
+      routeSelectionAppliedRef.current = routeKey;
+    }
+  }, [albums, templates, requestedCurateId, requestedTemplateId]);
+
+  useEffect(() => {
+    if (!shouldOpenFullscreenBook || !selectedTemplateData || !selectedAlbum) {
+      return;
+    }
+
+    setIsBookModalOpen(true);
+  }, [shouldOpenFullscreenBook, selectedTemplateData, selectedAlbum]);
 
   const handleAlbumSearch = (value: string) => {
     setAlbumSearch(value);
@@ -505,6 +554,7 @@ const CreateAlbum: React.FC = () => {
     setSelectedAlbumData(null);
     setSelectedTemplate('');
     setSelectedTemplateData(null);
+    setAlbumType('Wedding');
     setAlbumSearch('');
     setTemplateSearch('');
     setMediaItems([]);
@@ -519,7 +569,7 @@ const CreateAlbum: React.FC = () => {
     sessionStorage.removeItem('bookAlbumId');
   };
 
-  const saveCurateDraft = async () => {
+  const saveCurateDraft = async (showOnMainSite = false) => {
     if (!selectedAlbum || !selectedTemplate || mediaItems.length === 0) {
       toast.error('Please select album, template and add media', toastStyle);
       return false;
@@ -533,6 +583,8 @@ const CreateAlbum: React.FC = () => {
         body: JSON.stringify({
           curateId: selectedAlbum,
           templateId: selectedTemplate,
+          albumType,
+          mainSiteShowStatus: showOnMainSite,
         }),
       });
 
@@ -568,7 +620,7 @@ const CreateAlbum: React.FC = () => {
   };
 
   const handleNext = async () => {
-    const saved = await saveCurateDraft();
+    const saved = await saveCurateDraft(true);
     if (saved) {
       window.location.href = '/photographer-admin/clients';
     }
@@ -690,6 +742,34 @@ const CreateAlbum: React.FC = () => {
         </ul>
       )}
     </div>
+  </div>
+
+  <div>
+    <label className="block text-[11px] font-bold uppercase mb-3 text-[#54474d]">
+      ALBUM TYPE
+    </label>
+    <div className="grid grid-cols-2 gap-2">
+      {albumTypeOptions.map((type) => {
+        const isActive = albumType === type;
+        return (
+          <button
+            key={type}
+            type="button"
+            onClick={() => setAlbumType(type)}
+            className={`rounded-xl border px-4 py-3 text-sm font-semibold transition-all ${
+              isActive
+                ? 'border-[#b10e6b] bg-[#fff0f4] text-[#b10e6b] shadow-sm'
+                : 'border-[#f3d6df] bg-white text-[#54474d] hover:border-[#e0a7c0] hover:bg-[#fff8fb]'
+            }`}
+          >
+            {type}
+          </button>
+        );
+      })}
+    </div>
+    <p className="mt-2 text-[11px] text-[#7a6268]">
+      Choose the album story style before saving.
+    </p>
   </div>
 
 </div>
@@ -1038,7 +1118,7 @@ const CreateAlbum: React.FC = () => {
         </button>
 
         <button
-          onClick={saveCurateDraft}
+          onClick={() => saveCurateDraft(false)}
           disabled={isSaving || !selectedAlbum || !selectedTemplate || mediaItems.length === 0}
           className="px-6 py-3 text-xs font-bold uppercase tracking-wider bg-white border-2 border-[#b10e6b] text-[#b10e6b] rounded-lg hover:bg-[#fff0f4] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
         >

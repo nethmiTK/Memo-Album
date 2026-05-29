@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState, useRef } from 'react';
-import { ArchiveRestore, Plus, ChevronDown, Folder, FileText, BookOpen } from 'lucide-react';
+import { Plus, ChevronDown, Folder, FileText, BookOpen, Trash2, Edit2 } from 'lucide-react';
 import { apiFetch, handleAuthError } from '@/lib/api';
 import { FullscreenBook } from '@/app/Components/photographer-admin/FullscreenBook';
 
@@ -56,14 +56,15 @@ type FullscreenBookData = {
   mediaItems: any[];
 };
 
-const ARCHIVE_PAGE_CACHE_KEY = 'memo.archive.page.v1';
+const ARCHIVE_PAGE_CACHE_KEY = 'memo.archive.page.v3';
 const ARCHIVE_BOOKS_CACHE_PREFIX = 'memo.archive.books.v1:';
 const ARCHIVE_BOOK_PREVIEW_CACHE_PREFIX = 'memo.archive.preview.v1:';
+const fallbackCover = 'https://images.unsplash.com/photo-1522673607200-164d1b6ce8d2?w=1200&q=80';
 
 function readSessionCache<T>(key: string): T | null {
   if (typeof window === 'undefined') return null;
   try {
-    const raw = window.sessionStorage.getItem(key);
+    const raw = window.localStorage.getItem(key) || window.sessionStorage.getItem(key);
     if (!raw) return null;
     return JSON.parse(raw) as T;
   } catch {
@@ -74,6 +75,7 @@ function readSessionCache<T>(key: string): T | null {
 function writeSessionCache(key: string, value: unknown) {
   if (typeof window === 'undefined') return;
   try {
+    window.localStorage.setItem(key, JSON.stringify(value));
     window.sessionStorage.setItem(key, JSON.stringify(value));
   } catch {
     // ignore cache write errors
@@ -96,6 +98,8 @@ export default function ArchivePage() {
   const [archiveBooks, setArchiveBooks] = useState<BookAlbum[]>([]);
   const [selectedFullscreenBook, setSelectedFullscreenBook] = useState<FullscreenBookData | null>(null);
   const [isLoadingArchiveBooks, setIsLoadingArchiveBooks] = useState(false);
+  const [addAlbumId, setAddAlbumId] = useState('');
+  const [editingFolderName, setEditingFolderName] = useState('');
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
   const selectedAlbums = useMemo(
@@ -103,13 +107,40 @@ export default function ArchivePage() {
     [albums, selectedAlbumIds]
   );
 
-  const loadData = async () => {
-    const cached = readSessionCache<{ albums: CurateAlbum[]; archives: ArchiveItem[] }>(ARCHIVE_PAGE_CACHE_KEY);
-    if (cached) {
-      setAlbums(Array.isArray(cached.albums) ? cached.albums : []);
-      setArchives(Array.isArray(cached.archives) ? cached.archives : []);
-    }
+  const groupedArchives = useMemo(() => {
+    const groups = new Map<string, ArchiveItem[]>();
+    archives.forEach((archive) => {
+      const key = archive.archiveFolderName || 'Untitled Folder';
+      const next = groups.get(key) || [];
+      next.push(archive);
+      groups.set(key, next);
+    });
 
+    return Array.from(groups.entries())
+      .map(([folderName, folderArchives]) => ({
+        folderName,
+        folderArchives,
+        latestAt: folderArchives.reduce((latest, archive) => {
+          const time = archive.archivedAt ? new Date(archive.archivedAt).getTime() : 0;
+          return Math.max(latest, time);
+        }, 0),
+      }))
+      .sort((a, b) => b.latestAt - a.latestAt);
+  }, [archives]);
+
+  const persistArchiveCache = (nextAlbums: CurateAlbum[], nextArchives: ArchiveItem[]) => {
+    writeSessionCache(ARCHIVE_PAGE_CACHE_KEY, {
+      albums: nextAlbums,
+      archives: nextArchives,
+    });
+  };
+
+  const archiveCover = (archive: ArchiveItem) => {
+    if (typeof archive.albumId === 'string') return archive.albumCoverPhoto || fallbackCover;
+    return archive.albumCoverPhoto || archive.albumId.coverPhoto || fallbackCover;
+  };
+
+  const loadData = async () => {
     try {
       const [albumResponse, archiveResponse] = await Promise.all([apiFetch('/curate'), apiFetch('/archive')]);
       if (albumResponse.status === 401 || archiveResponse.status === 401) {
@@ -130,17 +161,20 @@ export default function ArchivePage() {
         setArchives(nextArchives);
       }
 
-      writeSessionCache(ARCHIVE_PAGE_CACHE_KEY, {
-        albums: nextAlbums,
-        archives: nextArchives,
-      });
+      persistArchiveCache(nextAlbums, nextArchives);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Failed to load archive data');
     }
   };
 
   useEffect(() => {
-    loadData();
+    const cached = readSessionCache<{ albums: CurateAlbum[]; archives: ArchiveItem[] }>(ARCHIVE_PAGE_CACHE_KEY);
+    if (cached) {
+      if (Array.isArray(cached.albums)) setAlbums(cached.albums);
+      if (Array.isArray(cached.archives)) setArchives(cached.archives);
+    }
+
+    void loadData();
   }, []);
 
   // Close dropdown when clicking outside
@@ -159,24 +193,32 @@ export default function ArchivePage() {
       if (!expandedArchiveId) {
         setArchiveBooks([]);
         setSelectedFullscreenBook(null);
+        setAddAlbumId('');
         setIsLoadingArchiveBooks(false);
         return;
       }
 
       setIsLoadingArchiveBooks(true);
       try {
-        const selectedArchive = archives.find((archive) => archive._id === expandedArchiveId);
-        const archiveAlbumId = selectedArchive
-          ? typeof selectedArchive.albumId === 'string'
-            ? selectedArchive.albumId
-            : selectedArchive.albumId._id
-          : '';
+        const folderArchives = archives.filter((archive) => archive.archiveFolderName === expandedArchiveId);
+        const folderAlbumIds = folderArchives
+          .map((archive) => (typeof archive.albumId === 'string' ? archive.albumId : archive.albumId._id))
+          .filter(Boolean);
 
-        const booksCacheKey = `${ARCHIVE_BOOKS_CACHE_PREFIX}${archiveAlbumId}`;
+        const booksCacheKey = `${ARCHIVE_BOOKS_CACHE_PREFIX}${expandedArchiveId}`;
         const cachedBooks = readSessionCache<BookAlbum[]>(booksCacheKey);
         if (cachedBooks && cachedBooks.length > 0) {
           setArchiveBooks(cachedBooks);
         }
+
+        const candidateAlbumId = albums.find((album) => {
+          const alreadyArchived = archives.some((archive) => {
+            const archiveAlbumId = typeof archive.albumId === 'string' ? archive.albumId : archive.albumId._id;
+            return archiveAlbumId === album._id;
+          });
+          return !alreadyArchived;
+        })?._id || '';
+        setAddAlbumId((current) => current || candidateAlbumId);
 
         const response = await apiFetch('/book-albums');
         if (response.status === 401) {
@@ -189,7 +231,7 @@ export default function ArchivePage() {
           const nextBooks = Array.isArray(result.bookAlbums) ? result.bookAlbums : [];
           const matchedBooks = nextBooks.filter((book: BookAlbum) => {
             const bookCurateId = typeof book.curateId === 'string' ? book.curateId : book.curateId?._id;
-            return bookCurateId === archiveAlbumId;
+            return folderAlbumIds.includes(bookCurateId || '');
           });
           setArchiveBooks(matchedBooks);
           writeSessionCache(booksCacheKey, matchedBooks);
@@ -256,6 +298,37 @@ export default function ArchivePage() {
     }
   };
 
+  const handleAddAlbumToFolder = async (folderName: string) => {
+    if (!addAlbumId) {
+      setMessage('Choose an album to add to this folder.');
+      return;
+    }
+
+    try {
+      const response = await apiFetch('/archive', {
+        method: 'POST',
+        body: JSON.stringify({ albumId: addAlbumId, archiveFolderName: folderName }),
+      });
+
+      if (response.status === 401) {
+        handleAuthError(response);
+        return;
+      }
+
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || 'Failed to add album to folder');
+      }
+
+      setMessage('Album added to folder successfully');
+      setAddAlbumId('');
+      await loadData();
+      setExpandedArchiveId((current) => current);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Failed to add album to folder');
+    }
+  };
+
   const handleCreateArchive = async () => {
     if (selectedAlbumIds.length === 0 || !archiveFolderName.trim()) {
       setMessage('Select at least one album and enter an archive folder name.');
@@ -289,6 +362,81 @@ export default function ArchivePage() {
       await loadData();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Failed to archive albums');
+    }
+  };
+
+  const handleDeleteArchive = async (archiveId: string) => {
+    try {
+      const response = await apiFetch(`/archive/${archiveId}`, { method: 'DELETE' });
+      if (response.status === 401) {
+        handleAuthError(response);
+        return;
+      }
+
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || 'Failed to delete archive');
+      }
+
+      const nextArchives = archives.filter((archive) => archive._id !== archiveId);
+      setArchives(nextArchives);
+      persistArchiveCache(albums, nextArchives);
+      setExpandedArchiveId((current) => (current === archiveId ? null : current));
+      setSelectedFullscreenBook((current) => (current && current._id === archiveId ? null : current));
+      setMessage('Archive removed successfully');
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Failed to delete archive');
+    }
+  };
+
+  const handleRenameFolder = async (oldFolderName: string) => {
+    if (!editingFolderName.trim()) {
+      setMessage('Enter a new folder name.');
+      return;
+    }
+
+    try {
+      const response = await apiFetch(`/archive/folder/${encodeURIComponent(oldFolderName)}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ archiveFolderName: editingFolderName.trim() }),
+      });
+
+      if (response.status === 401) {
+        handleAuthError(response);
+        return;
+      }
+
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || 'Failed to rename folder');
+      }
+
+      setEditingFolderName('');
+      await loadData();
+      setMessage('Folder renamed successfully');
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Failed to rename folder');
+    }
+  };
+
+  const handleDeleteFolder = async (folderName: string) => {
+    try {
+      const response = await apiFetch(`/archive/folder/${encodeURIComponent(folderName)}`, { method: 'DELETE' });
+      if (response.status === 401) {
+        handleAuthError(response);
+        return;
+      }
+
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || 'Failed to delete folder');
+      }
+
+      setExpandedArchiveId((current) => (current === folderName ? null : current));
+      await loadData();
+      setMessage('Folder deleted successfully');
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Failed to delete folder');
     }
   };
 
@@ -398,40 +546,135 @@ export default function ArchivePage() {
           <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#b10e6b]">{archives.length} Records</span>
         </div>
 
-        <div className="mt-6 space-y-4">
-          {archives.map((archive) => {
-            const isExpanded = expandedArchiveId === archive._id;
-            const archiveName = archive.albumTitle || (typeof archive.albumId === 'string' ? archive.albumId : archive.albumId.albumName);
+        <div className="mt-6 space-y-5">
+          {groupedArchives.map((group) => {
+            const isExpanded = expandedArchiveId === group.folderName;
+            const representativeArchive = group.folderArchives[0];
 
             return (
-              <article key={archive._id} className="overflow-hidden rounded-2xl border border-[#e9dddd] bg-[#fffaf9] shadow-sm transition-shadow hover:shadow-md">
+              <article key={group.folderName} className="overflow-hidden rounded-3xl border border-[#e9dddd] bg-white shadow-sm transition-shadow hover:shadow-md">
                 <button
                   type="button"
                   onClick={() => {
-                    setExpandedArchiveId(isExpanded ? null : archive._id);
+                    setExpandedArchiveId(isExpanded ? null : group.folderName);
                     setSelectedFullscreenBook(null);
+                    setEditingFolderName('');
                   }}
                   className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
                 >
                   <div className="flex items-center gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#f7e3ec] text-[#9b0044]">
-                      <Folder size={22} />
+                    <div className="relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-[#f7e3ec] text-[#9b0044]">
+                      <img src={archiveCover(representativeArchive)} alt={group.folderName} className="absolute inset-0 h-full w-full object-cover" />
+                      <div className="absolute inset-0 bg-black/15" />
+                      <Folder size={22} className="relative z-10" />
                     </div>
                     <div>
-                      <h3 className="text-lg text-black" style={{ fontFamily: "'Newsreader', serif" }}>
-                        {archive.archiveFolderName}
-                      </h3>
-                      <p className="text-xs text-[#6b5d60]">{archiveName}</p>
+                      <div className="flex items-center gap-3">
+                        <h3 className="text-lg text-black" style={{ fontFamily: "'Newsreader', serif" }}>
+                          {group.folderName}
+                        </h3>
+                        <span className="rounded-full bg-[#f7ecef] px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.18em] text-[#b10e6b]">
+                          {group.folderArchives.length} albums
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#6b5d60]">File folder · {new Date(group.latestAt || Date.now()).toLocaleDateString()}</p>
                     </div>
                   </div>
-                  <ChevronDown size={18} className={`text-[#9b0044] transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setEditingFolderName(group.folderName);
+                        setExpandedArchiveId(group.folderName);
+                      }}
+                      className="inline-flex items-center gap-1 rounded-full border border-[#edd6df] bg-[#fff5f8] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#b10e6b] transition-colors hover:bg-[#ffe7ef]"
+                    >
+                      <Edit2 size={12} />
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        void handleDeleteFolder(group.folderName);
+                      }}
+                      className="inline-flex items-center gap-1 rounded-full border border-[#edd6df] bg-[#fff5f8] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#b10e6b] transition-colors hover:bg-[#ffe7ef]"
+                    >
+                      <Trash2 size={12} />
+                      Remove
+                    </button>
+                    <ChevronDown size={18} className={`text-[#9b0044] transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                  </div>
                 </button>
 
                 {isExpanded ? (
-                  <div className="border-t border-[#efe7e4] bg-white px-5 py-5">
+                  <div className="border-t border-[#efe7e4] bg-[#fcfbfb] px-5 py-5">
                     <div className="mb-4 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[#b10e6b]">
                       <FileText size={14} />
                       Books in Folder
+                    </div>
+
+                    {editingFolderName === group.folderName ? (
+                      <div className="mb-5 rounded-2xl border border-[#f0e2e6] bg-white p-4 shadow-sm">
+                        <label className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-[#6b5d60]">Rename folder</label>
+                        <div className="flex flex-col gap-3 md:flex-row">
+                          <input
+                            value={editingFolderName}
+                            onChange={(event) => setEditingFolderName(event.target.value)}
+                            className="flex-1 rounded-[0.85rem] border border-[#e9dddd] bg-[#fff8f7] px-4 py-3 text-sm text-[#211a1b] outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => void handleRenameFolder(group.folderName)}
+                            className="rounded-[0.85rem] bg-[#b10e6b] px-4 py-3 text-sm font-bold uppercase tracking-[0.14em] text-white transition-colors hover:bg-[#951254]"
+                          >
+                            Save
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingFolderName('')}
+                            className="rounded-[0.85rem] border border-[#e9dddd] bg-white px-4 py-3 text-sm font-bold uppercase tracking-[0.14em] text-[#6b5d60] transition-colors hover:bg-[#faf6f7]"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    <div className="mb-5 rounded-2xl border border-[#f0e2e6] bg-[#fff8f7] p-4">
+                      <div className="flex flex-col gap-3 md:flex-row md:items-end">
+                        <div className="flex-1">
+                          <label className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-[#6b5d60]">Add album to this folder</label>
+                          <select
+                            value={addAlbumId}
+                            onChange={(event) => setAddAlbumId(event.target.value)}
+                            className="w-full rounded-[0.85rem] border border-[#e9dddd] bg-white px-4 py-3 text-sm text-[#211a1b] outline-none"
+                          >
+                            <option value="">Choose an album</option>
+                            {albums
+                              .filter((album) => {
+                                const alreadyArchived = archives.some((archive) => {
+                                  const archiveAlbumId = typeof archive.albumId === 'string' ? archive.albumId : archive.albumId._id;
+                                  return archiveAlbumId === album._id;
+                                });
+                                return !alreadyArchived;
+                              })
+                              .map((album) => (
+                                <option key={album._id} value={album._id}>
+                                  {album.albumName}
+                                </option>
+                              ))}
+                          </select>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => void handleAddAlbumToFolder(group.folderName)}
+                          className="rounded-[0.85rem] bg-[#b10e6b] px-4 py-3 text-sm font-bold uppercase tracking-[0.14em] text-white transition-colors hover:bg-[#951254]"
+                        >
+                          Add Album
+                        </button>
+                      </div>
                     </div>
 
                     {isLoadingArchiveBooks ? (
@@ -439,28 +682,60 @@ export default function ArchivePage() {
                         Loading books...
                       </div>
                     ) : archiveBooks.length > 0 ? (
-                      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                         {archiveBooks.map((book) => {
                           const bookTemplateName = typeof book.templateId === 'string' ? book.templateName || 'Book' : book.templateId?.name || book.templateName || 'Book';
+                          const matchedArchive = group.folderArchives.find((archive) => {
+                            const archiveAlbumId = typeof archive.albumId === 'string' ? archive.albumId : archive.albumId._id;
+                            const bookCurateId = typeof book.curateId === 'string' ? book.curateId : book.curateId?._id;
+                            return archiveAlbumId === bookCurateId;
+                          }) || representativeArchive;
 
                           return (
-                            <button
+                            <article
                               key={book._id}
-                              type="button"
-                              onClick={() => void openFullscreenBook(book._id)}
-                              className="group rounded-2xl border border-[#e1bec4] bg-[#fffdfd] p-4 text-left transition-all hover:border-[#b10e6b] hover:shadow-md"
+                              className="group overflow-hidden rounded-[1.1rem] border border-[#e1bec4] bg-white text-left transition-all hover:border-[#b10e6b] hover:shadow-md"
                             >
-                              <div className="mb-3 flex items-center gap-3">
-                                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#fff0f4] text-[#b10e6b] group-hover:bg-[#fde5ee]">
-                                  <BookOpen size={18} />
+                              <button
+                                type="button"
+                                onClick={() => void openFullscreenBook(book._id)}
+                                className="block w-full text-left"
+                              >
+                                <div className="relative overflow-hidden bg-[#f7ecef]">
+                                  <img
+                                    src={archiveCover(matchedArchive)}
+                                    alt={group.folderName}
+                                    className="h-32 w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                  />
+                                  <div className="absolute left-3 top-3 rounded-full bg-black/55 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.18em] text-white backdrop-blur">
+                                    {bookTemplateName}
+                                  </div>
                                 </div>
-                                <div className="min-w-0">
-                                  <p className="truncate text-sm font-semibold text-[#211a1b]">{book.albumName}</p>
-                                  <p className="truncate text-[9px] uppercase tracking-[0.18em] text-[#6b5d60]">{bookTemplateName}</p>
+                                <div className="p-4">
+                                  <div className="mb-3 flex items-center gap-3">
+                                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#fff0f4] text-[#b10e6b] group-hover:bg-[#fde5ee]">
+                                      <BookOpen size={18} />
+                                    </div>
+                                    <div className="min-w-0">
+                                      <p className="truncate text-sm font-semibold text-[#211a1b]">{book.albumName}</p>
+                                      <p className="truncate text-[9px] uppercase tracking-[0.18em] text-[#6b5d60]">{bookTemplateName}</p>
+                                    </div>
+                                  </div>
+                                  <p className="text-[10px] text-[#6b5d60]">Click to open fullscreen view</p>
                                 </div>
+                              </button>
+                              <div className="flex items-center justify-between border-t border-[#f0e8e6] px-4 py-3">
+                                <span className="text-[10px] font-medium text-[#6b5d60]">{matchedArchive.archiveFolderName}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => void handleDeleteArchive(matchedArchive._id)}
+                                  className="inline-flex items-center gap-1 rounded-full border border-[#edd6df] bg-[#fff5f8] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#b10e6b] transition-colors hover:bg-[#ffe7ef]"
+                                >
+                                  <Trash2 size={12} />
+                                  Remove
+                                </button>
                               </div>
-                              <div className="text-[10px] text-[#6b5d60]">Click to open fullscreen view</div>
-                            </button>
+                            </article>
                           );
                         })}
                       </div>

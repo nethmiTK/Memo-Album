@@ -1,8 +1,18 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { ArchiveRestore, Edit, Image as ImageIcon, MoreHorizontal, Plus, Share2 } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  BookOpen,
+  ChevronDown,
+  Edit2,
+  Eye,
+  Folder,
+  Plus,
+  Search,
+} from 'lucide-react';
 import { apiFetch, handleAuthError } from '@/lib/api';
+import { useRouter } from 'next/navigation';
+import { FullscreenBook } from '@/app/Components/photographer-admin/FullscreenBook';
 
 type CurateAlbum = {
   _id: string;
@@ -11,6 +21,15 @@ type CurateAlbum = {
   status?: string;
   coverPhoto?: string;
   selectedTemplate?: string;
+};
+
+type BookAlbum = {
+  _id: string;
+  albumName: string;
+  curateId?: CurateAlbum | string;
+  templateId?: { _id: string; name?: string } | string;
+  templateName?: string;
+  status?: string;
 };
 
 type ArchiveItem = {
@@ -22,7 +41,64 @@ type ArchiveItem = {
   albumCoverPhoto?: string;
 };
 
+type FullscreenBookData = {
+  _id: string;
+  albumName: string;
+  coverPhoto?: string;
+  coverPhotoName?: string;
+  coverWeddingDate?: string;
+  template: {
+    _id?: string;
+    name?: string;
+    description?: string;
+    accent?: string;
+    coverImage?: string;
+    pages?: any[];
+    slots?: any[];
+  };
+  mediaItems: any[];
+};
+
 const fallbackCover = 'https://images.unsplash.com/photo-1522673607200-164d1b6ce8d2?w=1200&q=80';
+const GALLERY_PAGE_CACHE_KEY = 'memo.gallery.page.v3';
+
+function readSessionCache<T>(key: string): T | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(key) || window.sessionStorage.getItem(key);
+    if (!raw) return null;
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
+  }
+}
+
+function writeSessionCache(key: string, value: unknown) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+    window.sessionStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // ignore cache write errors
+  }
+}
+
+const fuzzyMatch = (query: string, ...targets: (string | undefined)[]): boolean => {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+
+  return targets.some((raw) => {
+    const target = (raw || '').toLowerCase();
+    if (!target) return false;
+    if (target.includes(q)) return true;
+
+    let qi = 0;
+    for (let i = 0; i < target.length && qi < q.length; i += 1) {
+      if (target[i] === q[qi]) qi += 1;
+    }
+    return qi === q.length;
+  });
+};
 
 function formatDate(value?: string) {
   if (!value) return 'Recently';
@@ -40,30 +116,171 @@ function Toast({ message }: { message: string }) {
 }
 
 export default function GalleryPage() {
+  const router = useRouter();
   const [albums, setAlbums] = useState<CurateAlbum[]>([]);
   const [archives, setArchives] = useState<ArchiveItem[]>([]);
+  const [bookAlbums, setBookAlbums] = useState<BookAlbum[]>([]);
+  const [albumSearch, setAlbumSearch] = useState('');
+  const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedFullscreenBook, setSelectedFullscreenBook] = useState<FullscreenBookData | null>(null);
+  const searchRef = useRef<HTMLDivElement | null>(null);
+
+  const bookByCurateId = useMemo(() => {
+    const map = new Map<string, BookAlbum>();
+    bookAlbums.forEach((bookAlbum) => {
+      const curateId = typeof bookAlbum.curateId === 'string' ? bookAlbum.curateId : bookAlbum.curateId?._id;
+      if (curateId) {
+        map.set(curateId, bookAlbum);
+      }
+    });
+    return map;
+  }, [bookAlbums]);
+
+  const openBookView = async (album: CurateAlbum) => {
+    const bookAlbum = bookByCurateId.get(album._id);
+    if (!bookAlbum) {
+      setMessage('No album book found for this album yet.');
+      return;
+    }
+
+    try {
+      const response = await apiFetch(`/book-albums/${bookAlbum._id}`);
+      if (response.status === 401) {
+        handleAuthError(response);
+        return;
+      }
+
+      const result = await response.json();
+      if (!response.ok || !result.success || !result.bookAlbum) {
+        throw new Error(result.message || 'Failed to load book preview');
+      }
+
+      const book = result.bookAlbum;
+      const templateSource = book.templateId && typeof book.templateId === 'object' ? book.templateId : {};
+      const curateSource = book.curateId && typeof book.curateId === 'object' ? book.curateId : {};
+
+      setSelectedFullscreenBook({
+        _id: book._id,
+        albumName: book.albumName || curateSource.albumName || album.albumName,
+        coverPhoto: curateSource.coverPhoto || album.coverPhoto || '',
+        coverPhotoName: curateSource.coverPhotoName || curateSource.albumName || album.albumName || '',
+        coverWeddingDate: curateSource.weddingDate || album.weddingDate || '',
+        template: {
+          _id: templateSource._id || '',
+          name: templateSource.name || book.templateName || book.albumName || 'Album Book',
+          description: templateSource.description || '',
+          accent: templateSource.accent || '#b10e6b',
+          coverImage: templateSource.coverImage || '',
+          pages: templateSource.pages || [],
+          slots: templateSource.slots || [],
+        },
+        mediaItems: Array.isArray(curateSource.mediaItems) ? curateSource.mediaItems : [],
+      });
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Failed to open book preview');
+    }
+  };
+
+  const openDesignerView = (album: CurateAlbum) => {
+    const linkedBook = bookByCurateId.get(album._id);
+    const templateId = typeof linkedBook?.templateId === 'string' ? linkedBook.templateId : linkedBook?.templateId?._id || '';
+
+    if (!templateId) {
+      setMessage('No template linked to this album yet.');
+      return;
+    }
+
+    router.push(`/photographer-admin/designer?curateId=${encodeURIComponent(album._id)}&templateId=${encodeURIComponent(templateId)}&openBook=1`);
+  };
+
+  const albumOptions = useMemo(() => {
+    const query = albumSearch.trim();
+    return albums
+      .map((album) => {
+        const bookAlbum = bookByCurateId.get(album._id);
+        const templateName =
+          typeof bookAlbum?.templateId === 'string'
+            ? bookAlbum.templateName || bookAlbum.templateId
+            : bookAlbum?.templateId?.name || bookAlbum?.templateName || album.selectedTemplate || 'template-1';
+
+        return { album, bookAlbum, templateName };
+      })
+      .filter(({ album, bookAlbum, templateName }) => {
+        if (!query) return true;
+        return fuzzyMatch(query, album.albumName, album.status, bookAlbum?.templateName, templateName);
+      })
+      .slice(0, 8);
+  }, [albumSearch, albums, bookByCurateId]);
+
+  const filteredAlbums = useMemo(() => {
+    const query = albumSearch.trim();
+    if (!query) return albums;
+    return albums.filter((album) => {
+      const bookAlbum = bookByCurateId.get(album._id);
+      const templateName =
+        typeof bookAlbum?.templateId === 'string'
+          ? bookAlbum.templateName || bookAlbum.templateId
+          : bookAlbum?.templateId?.name || bookAlbum?.templateName || album.selectedTemplate || 'template-1';
+      return fuzzyMatch(query, album.albumName, album.status, templateName);
+    });
+  }, [albumSearch, albums, bookByCurateId]);
+
+  useEffect(() => {
+    const handler = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setIsSearchDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   const loadGallery = async () => {
     setIsLoading(true);
     try {
-      const [albumResponse, archiveResponse] = await Promise.all([apiFetch('/curate'), apiFetch('/archive')]);
+      const [albumResponse, archiveResponse, bookAlbumResponse] = await Promise.all([
+        apiFetch('/curate'),
+        apiFetch('/archive'),
+        apiFetch('/book-albums'),
+      ]);
 
-      if (albumResponse.status === 401 || archiveResponse.status === 401) {
-        handleAuthError(albumResponse.status === 401 ? albumResponse : archiveResponse);
+      if (albumResponse.status === 401 || archiveResponse.status === 401 || bookAlbumResponse.status === 401) {
+        handleAuthError(albumResponse.status === 401 ? albumResponse : archiveResponse.status === 401 ? archiveResponse : bookAlbumResponse);
         return;
       }
 
-      const [albumResult, archiveResult] = await Promise.all([albumResponse.json(), archiveResponse.json()]);
+      const [albumResult, archiveResult, bookAlbumResult] = await Promise.all([
+        albumResponse.json(),
+        archiveResponse.json(),
+        bookAlbumResponse.json(),
+      ]);
+
+      let nextAlbums: CurateAlbum[] = [];
+      let nextArchives: ArchiveItem[] = [];
+      let nextBookAlbums: BookAlbum[] = [];
 
       if (albumResponse.ok && albumResult.success) {
-        setAlbums(Array.isArray(albumResult.curates) ? albumResult.curates : []);
+        nextAlbums = Array.isArray(albumResult.curates) ? albumResult.curates : [];
+        setAlbums(nextAlbums);
       }
 
       if (archiveResponse.ok && archiveResult.success) {
-        setArchives(Array.isArray(archiveResult.archives) ? archiveResult.archives : []);
+        nextArchives = Array.isArray(archiveResult.archives) ? archiveResult.archives : [];
+        setArchives(nextArchives);
       }
+
+      if (bookAlbumResponse.ok && bookAlbumResult.success) {
+        nextBookAlbums = Array.isArray(bookAlbumResult.bookAlbums) ? bookAlbumResult.bookAlbums : [];
+        setBookAlbums(nextBookAlbums);
+      }
+
+      writeSessionCache(GALLERY_PAGE_CACHE_KEY, {
+        albums: nextAlbums,
+        archives: nextArchives,
+        bookAlbums: nextBookAlbums,
+      });
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Failed to load gallery');
     } finally {
@@ -72,12 +289,19 @@ export default function GalleryPage() {
   };
 
   useEffect(() => {
-    loadGallery();
+    const cachedGallery = readSessionCache<{ albums: CurateAlbum[]; archives: ArchiveItem[]; bookAlbums: BookAlbum[] }>(GALLERY_PAGE_CACHE_KEY);
+
+    if (cachedGallery) {
+      if (Array.isArray(cachedGallery.albums)) setAlbums(cachedGallery.albums);
+      if (Array.isArray(cachedGallery.archives)) setArchives(cachedGallery.archives);
+      if (Array.isArray(cachedGallery.bookAlbums)) setBookAlbums(cachedGallery.bookAlbums);
+    }
+
+    void loadGallery();
   }, []);
 
-  const featuredAlbum = albums[0] || null;
-  const sideAlbums = albums.slice(1, 3);
-  const remainingAlbums = albums.slice(3);
+  const featuredAlbum = filteredAlbums[0] || null;
+  const visibleAlbums = filteredAlbums;
 
   const archivedCount = archives.length;
 
@@ -117,128 +341,133 @@ export default function GalleryPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-            <article className="group relative overflow-hidden rounded-xl bg-white shadow-sm transition-shadow hover:shadow-md lg:col-span-8">
-              <div className="relative aspect-video overflow-hidden bg-[#efe7e5]">
-                <img
-                  className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                  src={featuredCover}
-                  alt={featuredAlbum?.albumName || 'Featured album'}
-                />
-                <div className="absolute left-6 top-6 flex space-x-2">
-                  <span className="rounded-full bg-[#e8def8] px-3 py-1 text-[10px] font-bold uppercase tracking-tighter text-[#1f1a24]">
-                    {featuredAlbum?.status || 'saved'}
-                  </span>
-                </div>
-              </div>
-              <div className="flex flex-col gap-6 p-8 md:flex-row md:items-center md:justify-between">
-                <div>
-                  <p className="text-[10px] uppercase tracking-widest text-[#4f4539]">
-                    {featuredAlbum ? formatDate(featuredAlbum.weddingDate) : 'No album loaded'}
-                  </p>
-                  <h4 className="mt-2 text-3xl text-black" style={{ fontFamily: "'Newsreader', serif" }}>
-                    {featuredAlbum?.albumName || 'No Albums Yet'}
-                  </h4>
-                </div>
-                <div className="flex items-center gap-3 self-end md:self-center">
-                  <button className="flex h-14 w-14 items-center justify-center rounded-full bg-[#f3e7eb] text-[#b10e6b] transition-colors hover:bg-[#edd6df]" title="Edit">
-                    <Edit size={20} />
-                  </button>
-                  <button className="flex h-14 w-14 items-center justify-center rounded-full bg-[#f3e7eb] text-[#b10e6b] transition-colors hover:bg-[#edd6df]" title="Share">
-                    <Share2 size={20} />
-                  </button>
-                  <button className="flex h-14 w-14 items-center justify-center rounded-full bg-[#f3e7eb] text-[#b10e6b] transition-colors hover:bg-[#edd6df]" title="Archive">
-                    <ArchiveRestore size={20} />
-                  </button>
-                </div>
-              </div>
-            </article>
-
-            <div className="flex flex-col gap-8 lg:col-span-4">
-              {sideAlbums.map((album) => (
-                <article key={album._id} className="group overflow-hidden rounded-xl bg-white shadow-sm">
-                  <div className="relative h-40 overflow-hidden bg-[#efe7e5]">
-                    <img
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                      src={album.coverPhoto || fallbackCover}
-                      alt={album.albumName}
-                    />
-                    <div className="absolute inset-0 flex items-center justify-center gap-2 p-2 opacity-0 transition-opacity group-hover:opacity-100">
-                      <button className="flex h-7 w-7 items-center justify-center rounded-full border border-[#b10e6b] bg-white text-[#b10e6b] transition-all hover:bg-[#b10e6b] hover:text-white">
-                        <Edit size={14} />
-                      </button>
-                      <button className="flex h-7 w-7 items-center justify-center rounded-full border border-[#b10e6b] bg-white text-[#b10e6b] transition-all hover:bg-[#b10e6b] hover:text-white">
-                        <Share2 size={14} />
-                      </button>
-                      <button className="flex h-7 w-7 items-center justify-center rounded-full border border-[#b10e6b] bg-white text-[#b10e6b] transition-all hover:bg-[#b10e6b] hover:text-white">
-                        <MoreHorizontal size={14} />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="p-6">
-                    <div className="flex items-start justify-between">
-                      <span className="rounded bg-[#f6f3f0] px-2 py-0.5 text-[9px] font-bold uppercase tracking-tighter text-[#b10e6b]">
-                        {album.status || 'saved'}
-                      </span>
-                      <span className="text-[10px] font-medium text-[#4f4539]">{formatDate(album.weddingDate)}</span>
-                    </div>
-                    <h4 className="mt-3 text-xl text-black" style={{ fontFamily: "'Newsreader', serif" }}>
-                      {album.albumName}
-                    </h4>
-                    <div className="mt-6 flex items-center justify-between">
-                      <div className="flex items-center text-xs text-[#4f4539]">
-                        <ImageIcon size={12} className="mr-1" /> Cover photo
-                      </div>
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#b10e6b]">Template: {album.selectedTemplate || 'template-1'}</span>
-                    </div>
-                  </div>
-                </article>
-              ))}
+          <div className="relative" ref={searchRef}>
+            <div className="flex items-center gap-3 rounded-2xl border border-[#e8dede] bg-white px-4 py-3 shadow-sm focus-within:border-[#b10e6b]">
+              <Search className="h-4 w-4 text-[#b10e6b]" />
+              <input
+                value={albumSearch}
+                onChange={(event) => {
+                  setAlbumSearch(event.target.value);
+                  setIsSearchDropdownOpen(true);
+                }}
+                onFocus={() => setIsSearchDropdownOpen(true)}
+                placeholder="Search album or album book names"
+                className="w-full bg-transparent text-sm text-black outline-none placeholder:text-[#907f77]"
+              />
+              <ChevronDown className={`h-4 w-4 text-[#8a7670] transition-transform ${isSearchDropdownOpen ? 'rotate-180' : ''}`} />
             </div>
-          </div>
-        </div>
-      </div>
 
-      <div className="px-6 py-16 md:px-12">
-        <div className="mx-auto max-w-7xl">
-          <div className="mb-8 border-b border-[#eae3d9] pb-4">
-            <h5 className="text-3xl text-black" style={{ fontFamily: "'Newsreader', serif" }}>Past Collections</h5>
+            {isSearchDropdownOpen ? (
+              <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-2xl border border-[#e8dede] bg-white shadow-xl">
+                <div className="border-b border-[#f1e6e1] px-4 py-3 text-[10px] font-bold uppercase tracking-[0.2em] text-[#9f8d89]">
+                  Suggested Albums
+                </div>
+                <div className="max-h-72 overflow-y-auto">
+                  {albumOptions.length > 0 ? (
+                    albumOptions.map(({ album, bookAlbum, templateName }) => (
+                      <button
+                        key={album._id}
+                        type="button"
+                        onClick={() => {
+                          setAlbumSearch(album.albumName);
+                          setIsSearchDropdownOpen(false);
+                        }}
+                        className="flex w-full items-center gap-3 border-b border-[#faf2ef] px-4 py-3 text-left transition-colors hover:bg-[#fff5f8] last:border-b-0"
+                      >
+                        <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-[#f5e8ed] text-[#b10e6b]">
+                          {album.coverPhoto ? (
+                            <img src={album.coverPhoto} alt={album.albumName} className="h-full w-full object-cover" />
+                          ) : (
+                            <Folder size={18} />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold text-black">{album.albumName}</p>
+                          <p className="truncate text-[10px] uppercase tracking-[0.18em] text-[#8a7670]">{bookAlbum?.templateName || templateName}</p>
+                        </div>
+                        <BookOpen size={14} className="text-[#b10e6b]" />
+                      </button>
+                    ))
+                  ) : (
+                    <div className="px-4 py-6 text-center text-sm text-[#7e6d67]">No matching albums found.</div>
+                  )}
+                </div>
+              </div>
+            ) : null}
           </div>
+
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3">
-            {archives.map((archive) => (
-              <article key={archive._id} className="group overflow-hidden rounded-xl bg-white shadow-sm">
-                <div className="relative aspect-square overflow-hidden bg-[#f6f3f0]">
+            {visibleAlbums.map((album) => (
+              <article key={album._id} className="group relative overflow-hidden rounded-xl bg-white shadow-sm transition-shadow hover:shadow-md">
+                <div className="relative aspect-4/3 overflow-hidden bg-[#efe7e5]">
                   <img
-                    className="h-full w-full object-cover grayscale transition-transform duration-500 group-hover:scale-105"
-                    src={archiveCover(archive)}
-                    alt={typeof archive.albumId === 'string' ? archive.albumTitle || archive.albumId : archive.albumId.albumName}
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    src={album.coverPhoto || fallbackCover}
+                    alt={album.albumName}
                   />
+                  <div className="absolute left-4 top-4 rounded-full bg-[#e8def8] px-3 py-1 text-[10px] font-bold uppercase tracking-tighter text-[#1f1a24]">
+                    {album.status || 'saved'}
+                  </div>
+                  <div className="absolute right-4 top-4 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void openBookView(album)}
+                      className="relative z-20 inline-flex items-center gap-1 rounded-full bg-white/95 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[#211a1b] shadow-sm transition-colors hover:bg-white"
+                    >
+                      <Eye size={12} />
+                      View
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openDesignerView(album)}
+                      className="relative z-20 inline-flex items-center gap-1 rounded-full bg-[#b10e6b] px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white shadow-sm transition-colors hover:bg-[#951254]"
+                    >
+                      <Edit2 size={12} />
+                      Edit
+                    </button>
+                  </div>
                 </div>
                 <div className="p-6">
-                  <div className="mb-2 flex items-start justify-between">
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-[#4f4539]/60">{formatDate(archive.archivedAt)}</span>
-                    <span className="rounded bg-[#eaddff] px-2 py-0.5 text-[9px] font-bold uppercase text-[#201b24]">Archived</span>
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-widest text-[#4f4539]">
+                        {formatDate(album.weddingDate)}
+                      </p>
+                      <h4 className="mt-2 text-xl text-black" style={{ fontFamily: "'Newsreader', serif" }}>
+                        {album.albumName}
+                      </h4>
+                    </div>
                   </div>
-                  <h4 className="text-2xl text-black" style={{ fontFamily: "'Newsreader', serif" }}>
-                    {archive.albumTitle || (typeof archive.albumId === 'string' ? archive.albumId : archive.albumId.albumName)}
-                  </h4>
-                  <p className="mt-2 text-xs text-[#4f4539]">Folder: {archive.archiveFolderName}</p>
+                  <div className="mt-5 flex items-center justify-between border-t border-[#f0e7e3] pt-4">
+                    <span className="text-xs text-[#4f4539]">Click album to open fullscreen book</span>
+                    <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-[#b10e6b]">
+                      <span className="inline-flex items-center gap-1"><BookOpen size={12} /> Book</span>
+                      <span className="inline-flex items-center gap-1"><Edit2 size={12} /> Designer</span>
+                    </div>
+                  </div>
                 </div>
               </article>
             ))}
 
-            {!isLoading && archives.length === 0 ? (
-              <button className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#cfc4b8] bg-transparent p-6 text-[#4f4539]/40 transition-all hover:border-[#b10e6b] hover:text-[#b10e6b]">
-                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-current transition-transform group-hover:scale-110">
-                  <span className="text-3xl">+</span>
-                </div>
-                <span className="text-sm font-medium uppercase tracking-widest">No archives yet</span>
-                <span className="mt-2 text-[10px] opacity-60">Create an archive from the archive page</span>
-              </button>
+            {filteredAlbums.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-[#d7ccc4] bg-white px-6 py-10 text-center text-sm text-[#6b5d60] shadow-sm md:col-span-2 xl:col-span-3">
+                No albums match your search.
+              </div>
             ) : null}
           </div>
         </div>
       </div>
+
+      {selectedFullscreenBook ? (
+        <FullscreenBook
+          template={selectedFullscreenBook.template as any}
+          mediaItems={selectedFullscreenBook.mediaItems}
+          coverPhoto={selectedFullscreenBook.coverPhoto}
+          coverPhotoName={selectedFullscreenBook.coverPhotoName}
+          coverWeddingDate={selectedFullscreenBook.coverWeddingDate}
+          onClose={() => setSelectedFullscreenBook(null)}
+        />
+      ) : null}
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from '../Components/website/navbar';
 import Footer from '../Components/website/Footer';
+import API_URL from '@/lib/api';
 
 interface Album {
   _id: string;
@@ -44,6 +45,23 @@ interface Video {
   title: string;
   description?: string;
   availability: boolean;
+}
+
+interface PublicBookAlbum {
+  _id: string;
+  albumName?: string;
+  albumType?: string;
+  mainSiteShowStatus?: boolean;
+  status?: string;
+  curateId?: {
+    albumName?: string;
+    coverPhoto?: string;
+    coverPhotoName?: string;
+    weddingDate?: string | Date;
+  };
+  templateId?: {
+    name?: string;
+  };
 }
 
 const MOCK_ALBUMS: Album[] = [
@@ -759,6 +777,8 @@ function VideoCard({ video, onClick }: { video: Video; onClick: () => void }) {
 export default function AlbumPage() {
   const [albums, setAlbums] = useState<Album[]>([]);
   const [videos, setVideos] = useState<Video[]>([]);
+  const [collectionAlbums, setCollectionAlbums] = useState<PublicBookAlbum[]>([]);
+  const [collectionLoading, setCollectionLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [selectedAlbum, setSelectedAlbum] = useState<Album | null>(null);
   const [viewMode, setViewMode] = useState<'browse' | 'book'>('browse');
@@ -776,6 +796,28 @@ export default function AlbumPage() {
     setAlbums(MOCK_ALBUMS);
     setVideos(MOCK_VIDEOS);
     setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    const loadCollections = async () => {
+      setCollectionLoading(true);
+      try {
+        const response = await fetch(`${API_URL}/book-albums/public`, { cache: 'no-store' });
+        const result = await response.json();
+
+        if (response.ok && result.success && Array.isArray(result.bookAlbums)) {
+          setCollectionAlbums(result.bookAlbums);
+        } else {
+          setCollectionAlbums([]);
+        }
+      } catch {
+        setCollectionAlbums([]);
+      } finally {
+        setCollectionLoading(false);
+      }
+    };
+
+    loadCollections();
   }, []);
 
   const categories = ['All', 'Wedding', 'Engagement'];
@@ -972,27 +1014,26 @@ export default function AlbumPage() {
                   </p>
                 </motion.div>
 
-                {loading ? (
+                {collectionLoading ? (
                   <div className="flex justify-center py-20">
                     <div className="animate-spin rounded-full h-10 w-10 border-4 border-[#920857] border-t-transparent" />
                   </div>
                 ) : (
                   <div>
                     <div className="grid gap-5 md:grid-cols-2">
-                      {filteredAlbums.length > 0 ? (
-                        filteredAlbums.slice(0, 8).map((album, idx) => (
+                      {collectionAlbums.length > 0 ? (
+                        collectionAlbums.slice(0, 8).map((album, idx) => (
                           <motion.div
                             key={album._id}
                             initial={{ opacity: 0, scale: 0.9 }}
                             whileInView={{ opacity: 1, scale: 1 }}
                             transition={{ delay: idx * 0.05 }}
                             viewport={{ once: true }}
-                            className="relative overflow-hidden group cursor-pointer bg-[#fdf8fa] shadow-[0_24px_44px_rgba(33,26,27,0.12)] transition-all duration-500 rounded-2xl h-[280px] md:h-[320px]"
-                            onClick={() => handleAlbumClick(album)}
+                            className="relative overflow-hidden group bg-[#fdf8fa] shadow-[0_24px_44px_rgba(33,26,27,0.12)] transition-all duration-500 rounded-2xl h-[280px] md:h-[320px]"
                           >
                             <img
-                              src={album.cover_image ? getImageUrl(album.cover_image) : (getImageArray(album.images)[0] ? getImageUrl(getImageArray(album.images)[0]) : '/images/placeholder-album.jpg')}
-                              alt={album.album_title}
+                              src={album.curateId?.coverPhoto ? getImageUrl(album.curateId.coverPhoto) : '/images/placeholder-album.jpg'}
+                              alt={album.albumName || album.curateId?.albumName || 'Album book'}
                               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                               onError={(e) => { e.currentTarget.src = '/images/placeholder-album.jpg'; }}
                             />
@@ -1001,9 +1042,11 @@ export default function AlbumPage() {
                                 Collection {String(idx + 1).padStart(2, '0')}
                               </span>
                               <h3 className="text-sm md:text-lg font-serif font-bold text-white leading-tight">
-                                {album.album_title}
+                                {album.albumName || album.curateId?.albumName || album.templateId?.name || 'Album Book'}
                               </h3>
-                              <p className="mt-1 text-[10px] md:text-xs text-white/80">{album.category}</p>
+                              <p className="mt-1 text-[10px] md:text-xs text-white/80">
+                                {album.albumType || album.templateId?.name || 'Book'}
+                              </p>
                               <div className="mt-3 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-all">
                                 <span className="text-[10px] font-bold tracking-widest uppercase text-white">View</span>
                                 <div className="w-6 h-6 rounded-full bg-white text-black flex items-center justify-center text-xs">→</div>
@@ -1012,7 +1055,7 @@ export default function AlbumPage() {
                           </motion.div>
                         ))
                       ) : (
-                        <div className="col-span-full py-20 text-center text-gray-500 font-serif italic">No albums found in this category.</div>
+                        <div className="col-span-full py-20 text-center text-gray-500 font-serif italic">No published book albums found yet.</div>
                       )}
                     </div>
                   </div>
