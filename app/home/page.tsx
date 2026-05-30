@@ -3,8 +3,11 @@
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Newsreader, Plus_Jakarta_Sans } from 'next/font/google';
+import { useEffect, useState } from 'react';
+import API_URL from '@/lib/api';
 import Navbar from '../Components/website/navbar';
 import Footer from '../Components/website/Footer';
+import { FullscreenBook } from '@/app/Components/photographer-admin/FullscreenBook';
 
 const newsreader = Newsreader({
   subsets: ['latin'],
@@ -18,24 +21,38 @@ const plusJakarta = Plus_Jakarta_Sans({
   variable: '--font-plus-jakarta',
 });
 
-const featuredPhotographers = [
+const DEFAULT_FEATURED = [
   {
     name: 'Julianne V',
     role: 'Editorial Fine Arts',
     image:
       'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=900&q=80',
+    social: {
+      instagram: 'https://instagram.com',
+      facebook: 'https://facebook.com',
+      youtube: 'https://youtube.com',
+      website: 'https://example.com',
+    },
   },
   {
     name: 'Ava Claire',
     role: 'Portrait Narratives',
     image:
       'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=900&q=80',
+    social: {
+      instagram: 'https://instagram.com',
+      website: 'https://example.com',
+    },
   },
   {
     name: 'Elina K',
     role: 'Cinematic Elopements',
     image:
       'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=900&q=80',
+    social: {
+      instagram: 'https://instagram.com',
+      youtube: 'https://youtube.com',
+    },
   },
 ];
 
@@ -91,6 +108,172 @@ const journalEntries = [
 ];
 
 export default function HomePage() {
+  const [featuredPhotographers, setFeaturedPhotographers] = useState(DEFAULT_FEATURED);
+  const [activePhotographerCount, setActivePhotographerCount] = useState<number | null>(null);
+  const [publicBookAlbums, setPublicBookAlbums] = useState<any[]>([]);
+  const [selectedPublicBook, setSelectedPublicBook] = useState<any | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadFeatured = async () => {
+      try {
+        const res = await fetch(`${API_URL}/photographer/public-users`, { cache: 'no-store' });
+        const data = await res.json();
+        if (!res.ok || !data || !Array.isArray(data.users)) return;
+
+        const mapped = data.users
+          .map((u: any) => ({
+            name: u.name || 'Photographer',
+            role: u.role || u.roleName || (u.roleId?.roleName || 'photographer'),
+            image: u.profileImage || u.image || u.profilePic || '/images/album.png',
+            social: {
+              instagram: u.instagram || '',
+              facebook: u.facebook || '',
+              tiktok: u.tiktok || '',
+              youtube: u.youtube || '',
+              website: u.website || '',
+            },
+          }))
+          .slice(0, 10);
+
+        if (mounted && mapped.length > 0) setFeaturedPhotographers(mapped);
+
+        // active photographer count
+        try {
+          const activeCount = Array.isArray(data.users) ? data.users.filter((u: any) => u.isActive || u.status === 'active').length : 0;
+          if (mounted) setActivePhotographerCount(activeCount);
+        } catch (e) {
+          // ignore
+        }
+      } catch (err) {
+        // silent fallback to default
+        console.error('Failed to load featured photographers', err);
+      }
+    };
+
+    loadFeatured();
+
+    // load public book albums for Recent Journals
+    const loadPublicBooks = async () => {
+      try {
+        const r = await fetch(`${API_URL}/book-albums/public`, { cache: 'no-store' });
+        const j = await r.json();
+        if (r.ok && j && Array.isArray(j.bookAlbums)) {
+          if (mounted) setPublicBookAlbums(j.bookAlbums.slice(0, 10));
+        }
+      } catch (e) {
+        console.error('Failed to load public book albums', e);
+      }
+    };
+
+    loadPublicBooks();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+  const openPublicBookFullscreen = (book: any) => {
+    // Build template and mediaItems for FullscreenBook
+    const template = book.templateId || { pages: [], slots: [] };
+
+    let mediaItems: any[] = [];
+    if (book.curateId && Array.isArray(book.curateId.mediaItems) && book.curateId.mediaItems.length > 0) {
+      mediaItems = book.curateId.mediaItems.map((m: any, idx: number) => ({
+        id: m.id || `m-${idx}`,
+        order: m.order || idx + 1,
+        fileName: m.fileName || '',
+        fileType: m.fileType || '',
+        fileSize: m.fileSize || 0,
+        dataUrl: m.dataUrl || m.src || '',
+        mediaKind: m.mediaKind || 'image',
+      }));
+    } else if (Array.isArray(book.pageLayouts)) {
+      const collected: any[] = [];
+      book.pageLayouts.forEach((p: any) => {
+        (p.slotAssignments || []).forEach((s: any, idx: number) => {
+          if (s && (s.dataUrl || s.fileName)) {
+            collected.push({
+              id: s.mediaId || `pl-${p.pageNumber}-${idx}`,
+              order: s.mediaOrder || collected.length + 1,
+              fileName: s.fileName || '',
+              fileType: '',
+              fileSize: 0,
+              dataUrl: s.dataUrl || '',
+              mediaKind: s.mediaKind || 'image',
+            });
+          }
+        });
+      });
+      mediaItems = collected;
+    }
+
+    setSelectedPublicBook({ template, mediaItems, coverPhoto: book.curateId?.coverPhoto || '', coverPhotoName: book.curateId?.coverPhotoName || book.albumName || '' });
+  };
+
+  const closePublicBook = () => setSelectedPublicBook(null);
+  const journalCards =
+    publicBookAlbums.length > 0
+      ? publicBookAlbums.map((book) => ({
+          title: book.albumName || book.curateId?.albumName || 'Album',
+          image: book.curateId?.coverPhoto || book.curateId?.coverPhotoName || '/images/album.png',
+          raw: book,
+        }))
+      : journalEntries;
+
+  const socialLinks = (social: Record<string, string | undefined> = {}) => [
+    {
+      key: 'instagram',
+      href: social.instagram,
+      label: 'Instagram',
+      icon: (
+        <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-current" aria-hidden="true">
+          <path d="M7.8 2h8.4A5.8 5.8 0 0 1 22 7.8v8.4a5.8 5.8 0 0 1-5.8 5.8H7.8A5.8 5.8 0 0 1 2 16.2V7.8A5.8 5.8 0 0 1 7.8 2zm0 1.9A3.9 3.9 0 0 0 3.9 7.8v8.4a3.9 3.9 0 0 0 3.9 3.9h8.4a3.9 3.9 0 0 0 3.9-3.9V7.8a3.9 3.9 0 0 0-3.9-3.9H7.8zm8.9 1.6a1.2 1.2 0 1 1 0 2.4 1.2 1.2 0 0 1 0-2.4zM12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm0 1.9A3.1 3.1 0 1 0 12 15a3.1 3.1 0 0 0 0-6.2z" />
+        </svg>
+      ),
+    },
+    {
+      key: 'facebook',
+      href: social.facebook,
+      label: 'Facebook',
+      icon: (
+        <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-current" aria-hidden="true">
+          <path d="M13.5 22v-8h2.7l.4-3h-3.1V9.1c0-.9.3-1.5 1.6-1.5H16.8V4.9c-.3 0-1.2-.1-2.3-.1-2.2 0-3.8 1.3-3.8 3.9V11H8v3h2.7v8h2.8z" />
+        </svg>
+      ),
+    },
+    {
+      key: 'tiktok',
+      href: social.tiktok,
+      label: 'TikTok',
+      icon: (
+        <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-current" aria-hidden="true">
+          <path d="M16.6 2c.4 1.9 1.5 3.5 3.4 4.1v2.6c-1.2 0-2.4-.3-3.4-.8v6.2c0 3.4-2.8 6.1-6.2 6.1S4.6 17.5 4.6 14.1c0-3.4 2.8-6.1 6.2-6.1.3 0 .6 0 .9.1v2.9c-.3-.1-.6-.2-.9-.2-1.8 0-3.2 1.4-3.2 3.2s1.4 3.2 3.2 3.2 3.2-1.4 3.2-3.2V2h2.6z" />
+        </svg>
+      ),
+    },
+    {
+      key: 'youtube',
+      href: social.youtube,
+      label: 'YouTube',
+      icon: (
+        <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-current" aria-hidden="true">
+          <path d="M23 12s0-3.2-.4-4.7a3 3 0 0 0-2.1-2.1C19 4.8 12 4.8 12 4.8s-7 0-8.5.4a3 3 0 0 0-2.1 2.1C1 8.8 1 12 1 12s0 3.2.4 4.7a3 3 0 0 0 2.1 2.1C5 19.2 12 19.2 12 19.2s7 0 8.5-.4a3 3 0 0 0 2.1-2.1c.4-1.5.4-4.7.4-4.7zM10 15.5V8.5l6 3.5-6 3.5z" />
+        </svg>
+      ),
+    },
+    {
+      key: 'website',
+      href: social.website,
+      label: 'Website',
+      icon: (
+        <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-current" aria-hidden="true">
+          <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm7.9 9h-3.1a15.5 15.5 0 0 0-1.2-5A8.1 8.1 0 0 1 19.9 11zM12 4.1c.9 1.2 2.1 3.6 2.7 6.9H9.3C9.9 7.7 11.1 5.3 12 4.1zM8.4 6a15.5 15.5 0 0 0-1.2 5H4.1A8.1 8.1 0 0 1 8.4 6zM4.1 13h3.1a15.5 15.5 0 0 0 1.2 5A8.1 8.1 0 0 1 4.1 13zM12 19.9c-.9-1.2-2.1-3.6-2.7-6.9h5.4c-.6 3.3-1.8 5.7-2.7 6.9zM15.6 18a15.5 15.5 0 0 0 1.2-5h3.1a8.1 8.1 0 0 1-4.3 5z" />
+        </svg>
+      ),
+    },
+  ].filter((item) => item.href);
+
   return (
     <main
       className={`${newsreader.variable} ${plusJakarta.variable} bg-[#fff8f8] text-[#211a1b]`}
@@ -194,7 +377,8 @@ export default function HomePage() {
                   alt={featuredPhotographers[0].name}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
-                <div className="absolute inset-0 bg-linear-to-t from-black/40 via-black/10 to-transparent flex flex-col justify-end p-4 sm:p-6">
+                <div className="absolute inset-0 bg-black/10 backdrop-blur-0 group-hover:backdrop-blur-[2px] transition-all duration-300" />
+                <div className="absolute inset-0 bg-linear-to-t from-black/55 via-black/20 to-transparent flex flex-col justify-end p-4 sm:p-6">
                   <h3
                     className="text-lg sm:text-2xl md:text-3xl text-white leading-tight"
                     style={{ fontFamily: 'var(--font-newsreader)' }}
@@ -204,6 +388,20 @@ export default function HomePage() {
                   <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-white/80 uppercase tracking-[0.14em] sm:tracking-[0.18em] font-semibold">
                     {featuredPhotographers[0].role}
                   </p>
+                  <div className="mt-4 flex flex-wrap gap-2 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                    {socialLinks(featuredPhotographers[0].social).map((item) => (
+                      <a
+                        key={item.key}
+                        href={item.href}
+                        target="_blank"
+                        rel="noreferrer"
+                        aria-label={item.label}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-md transition hover:bg-white hover:text-[#C92D7D]"
+                      >
+                        {item.icon}
+                      </a>
+                    ))}
+                  </div>
                 </div>
               </div>
             </motion.article>
@@ -226,7 +424,8 @@ export default function HomePage() {
                     alt={item.name}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
-                  <div className="absolute inset-0 bg-linear-to-t from-black/50 via-black/20 to-transparent flex flex-col justify-end p-3 sm:p-4 md:p-5">
+                  <div className="absolute inset-0 bg-black/10 backdrop-blur-0 group-hover:backdrop-blur-[2px] transition-all duration-300" />
+                  <div className="absolute inset-0 bg-linear-to-t from-black/60 via-black/25 to-transparent flex flex-col justify-end p-3 sm:p-4 md:p-5">
                     <h3
                       className="text-base sm:text-lg md:text-2xl text-white leading-tight"
                       style={{ fontFamily: 'var(--font-newsreader)' }}
@@ -236,10 +435,34 @@ export default function HomePage() {
                     <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-xs text-white/80 uppercase tracking-[0.12em] sm:tracking-[0.16em] font-semibold">
                       {item.role}
                     </p>
+                    <div className="mt-3 flex flex-wrap gap-2 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                      {socialLinks(item.social).map((social) => (
+                        <a
+                          key={social.key}
+                          href={social.href}
+                          target="_blank"
+                          rel="noreferrer"
+                          aria-label={social.label}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-md transition hover:bg-white hover:text-[#C92D7D]"
+                        >
+                          {social.icon}
+                        </a>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </motion.article>
             ))}
+          </div>
+
+          {/* See more button */}
+          <div className="mt-6 flex justify-center">
+            <Link
+              href="/photographer"
+              className="rounded-xl bg-[#C92D7D] px-6 py-2.5 text-xs font-semibold text-white hover:bg-[#b52670]"
+            >
+              See more
+            </Link>
           </div>
         </div>
       </section>
@@ -287,13 +510,13 @@ export default function HomePage() {
                 <div className="h-2 w-2 rounded-full bg-[#00d084] animate-pulse"></div>
               </div>
               
-              <div className="rounded-lg bg-gradient-to-br from-white/10 to-white/5 p-6 border border-white/15 hover:border-white/25 transition-all duration-300 mb-5">
+              <div className="rounded-lg bg-linear-to-br from-white/10 to-white/5 p-6 border border-white/15 hover:border-white/25 transition-all duration-300 mb-5">
                 <p className="text-[10px] text-[#ffb0cd] uppercase tracking-widest font-semibold">Active Photographers</p>
                 <p
                   className="mt-5 text-5xl font-semibold tracking-tight"
                   style={{ fontFamily: 'var(--font-newsreader)' }}
                 >
-                  17
+                  {activePhotographerCount ?? 0}
                 </p>
                 <div className="mt-5 pt-5 border-t border-white/10">
                   <p className="text-[10px] text-white/60 uppercase tracking-wide">Status: All systems operational</p>
@@ -305,7 +528,7 @@ export default function HomePage() {
                 initial={{ opacity: 0, y: 10 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3, duration: 0.5 }}
-                className="rounded-lg bg-gradient-to-br from-white/5 to-white/0 p-5 border border-white/10"
+                className="rounded-lg bg-linear-to-br from-white/5 to-white/0 p-5 border border-white/10"
               >
                 <div className="flex items-center justify-between mb-4">
                   <p className="text-[10px] text-[#ffb0cd] uppercase tracking-widest font-semibold">Reviews</p>
@@ -383,17 +606,17 @@ export default function HomePage() {
             <img
               src="https://images.unsplash.com/photo-1472396961693-142e6e269027?auto=format&fit=crop&w=900&q=80"
               alt="Coastal archive"
-              className="h-[360px] w-full rounded-2xl object-cover"
+              className="h-90 w-full rounded-2xl object-cover"
             />
             <img
               src="https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=900&q=80"
               alt="Bridal archive"
-              className="mt-8 h-[300px] w-full rounded-2xl object-cover"
+              className="mt-8 h-75 w-full rounded-2xl object-cover"
             />
             <img
               src="https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&w=900&q=80"
               alt="Family archive"
-              className="mt-16 h-[260px] w-full rounded-2xl object-cover"
+              className="mt-16 h-65 w-full rounded-2xl object-cover"
             />
           </div>
         </div>
@@ -404,7 +627,7 @@ export default function HomePage() {
           <img
             src="https://images.unsplash.com/photo-1525258946800-98cfd641d0de?auto=format&fit=crop&w=1000&q=80"
             alt="Wedding flowers"
-            className="h-[320px] w-full rounded-2xl object-cover"
+            className="h-80 w-full rounded-2xl object-cover"
           />
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#8c0053]">
@@ -446,27 +669,26 @@ export default function HomePage() {
 
           {/* Asymmetric Editorial Grid */}
           <div className="grid gap-4 sm:gap-5 md:gap-6 md:grid-cols-12 auto-rows-max">
-            {/* Featured Large Card (Left) */}
             <motion.article
-              key={journalEntries[0].title}
+              key={journalCards[0]?.title}
               initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, amount: 0.15 }}
               transition={{ delay: 0, duration: 0.4 }}
               className="col-span-1 md:col-span-6 md:row-span-2 group rounded-2xl overflow-hidden h-96 md:h-full transition-all duration-300 hover:shadow-2xl"
+              role={journalCards[0]?.raw ? 'button' : undefined}
+              tabIndex={journalCards[0]?.raw ? 0 : undefined}
+              onClick={journalCards[0]?.raw ? () => openPublicBookFullscreen(journalCards[0].raw) : undefined}
             >
               <div className="relative w-full h-full overflow-hidden bg-[#ebe0e1]">
                 <img
-                  src={journalEntries[0].image}
-                  alt={journalEntries[0].title}
+                  src={journalCards[0]?.image}
+                  alt={journalCards[0]?.title}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent flex flex-col justify-end p-6">
-                  <h3
-                    className="text-2xl md:text-3xl text-white font-light"
-                    style={{ fontFamily: 'var(--font-newsreader)' }}
-                  >
-                    {journalEntries[0].title}
+                <div className="absolute inset-0 bg-linear-to-t from-black/50 via-black/20 to-transparent flex flex-col justify-end p-6">
+                  <h3 className="text-2xl md:text-3xl text-white font-light" style={{ fontFamily: 'var(--font-newsreader)' }}>
+                    {journalCards[0]?.title}
                   </h3>
                   <p className="mt-2 text-xs text-white/80 uppercase tracking-[0.18em] font-semibold">
                     Personal Archive
@@ -475,8 +697,7 @@ export default function HomePage() {
               </div>
             </motion.article>
 
-            {/* Right Column - Grid of 4 Cards */}
-            {journalEntries.slice(1, 5).map((entry, index) => (
+            {journalCards.slice(1, 5).map((entry: any, index: number) => (
               <motion.article
                 key={entry.title}
                 initial={{ opacity: 0, y: 16 }}
@@ -484,6 +705,9 @@ export default function HomePage() {
                 viewport={{ once: true, amount: 0.15 }}
                 transition={{ delay: (index + 1) * 0.06, duration: 0.4 }}
                 className="col-span-1 md:col-span-3 group rounded-2xl overflow-hidden h-40 md:h-48 transition-all duration-300 hover:shadow-lg"
+                role={entry.raw ? 'button' : undefined}
+                tabIndex={entry.raw ? 0 : undefined}
+                onClick={entry.raw ? () => openPublicBookFullscreen(entry.raw) : undefined}
               >
                 <div className="relative w-full h-full overflow-hidden bg-[#ebe0e1]">
                   <img
@@ -491,11 +715,8 @@ export default function HomePage() {
                     alt={entry.title}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/45 to-transparent flex flex-col justify-end p-4">
-                    <h3
-                      className="text-base md:text-lg text-white font-light"
-                      style={{ fontFamily: 'var(--font-newsreader)' }}
-                    >
+                  <div className="absolute inset-0 bg-linear-to-t from-black/45 to-transparent flex flex-col justify-end p-4">
+                    <h3 className="text-base md:text-lg text-white font-light" style={{ fontFamily: 'var(--font-newsreader)' }}>
                       {entry.title}
                     </h3>
                     <p className="mt-1 text-[10px] text-white/70 uppercase tracking-[0.16em] font-semibold">
@@ -509,7 +730,7 @@ export default function HomePage() {
 
           {/* Bottom Row - Remaining Cards */}
           <div className="grid gap-6 md:grid-cols-2 auto-rows-max mt-6">
-            {journalEntries.slice(5).map((entry, index) => (
+            {journalCards.slice(5).map((entry: any, index: number) => (
               <motion.article
                 key={entry.title}
                 initial={{ opacity: 0, y: 16 }}
@@ -517,6 +738,9 @@ export default function HomePage() {
                 viewport={{ once: true, amount: 0.15 }}
                 transition={{ delay: (index + 5) * 0.06, duration: 0.4 }}
                 className="group rounded-2xl overflow-hidden h-48 md:h-56 transition-all duration-300 hover:shadow-lg"
+                role={entry.raw ? 'button' : undefined}
+                tabIndex={entry.raw ? 0 : undefined}
+                onClick={entry.raw ? () => openPublicBookFullscreen(entry.raw) : undefined}
               >
                 <div className="relative w-full h-full overflow-hidden bg-[#ebe0e1]">
                   <img
@@ -524,11 +748,8 @@ export default function HomePage() {
                     alt={entry.title}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/45 to-transparent flex flex-col justify-end p-4">
-                    <h3
-                      className="text-lg md:text-xl text-white font-light"
-                      style={{ fontFamily: 'var(--font-newsreader)' }}
-                    >
+                  <div className="absolute inset-0 bg-linear-to-t from-black/45 to-transparent flex flex-col justify-end p-4">
+                    <h3 className="text-lg md:text-xl text-white font-light" style={{ fontFamily: 'var(--font-newsreader)' }}>
                       {entry.title}
                     </h3>
                     <p className="mt-1 text-[10px] text-white/70 uppercase tracking-[0.16em] font-semibold">
@@ -542,14 +763,28 @@ export default function HomePage() {
 
           {/* CTA Section */}
           <div className="mt-14 text-center">
-            <button className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-full font-serif font-semibold text-white transition-all duration-300 hover:shadow-lg active:scale-95" style={{ background: 'linear-gradient(135deg, #d23284 0%, #890051 100%)' }}>
+            <Link
+              href="/album"
+              className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-full font-serif font-semibold text-white transition-all duration-300 hover:shadow-lg active:scale-95"
+              style={{ background: 'linear-gradient(135deg, #d23284 0%, #890051 100%)' }}
+            >
               Explore Full Journal
-            </button>
+            </Link>
           </div>
         </div>
       </section>
 
       <Footer />
+
+      {selectedPublicBook ? (
+        <FullscreenBook
+          template={selectedPublicBook.template as any}
+          mediaItems={selectedPublicBook.mediaItems}
+          coverPhoto={selectedPublicBook.coverPhoto}
+          coverPhotoName={selectedPublicBook.coverPhotoName}
+          onClose={closePublicBook}
+        />
+      ) : null}
 
     </main>
   );

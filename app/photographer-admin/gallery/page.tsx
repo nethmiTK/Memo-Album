@@ -398,7 +398,19 @@ export default function GalleryPage() {
 
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3">
             {visibleAlbums.map((album) => (
-              <article key={album._id} className="group relative overflow-hidden rounded-xl bg-white shadow-sm transition-shadow hover:shadow-md">
+              <article
+                key={album._id}
+                role="button"
+                tabIndex={0}
+                onClick={() => void openBookView(album)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    void openBookView(album);
+                  }
+                }}
+                className="group relative cursor-pointer overflow-hidden rounded-xl bg-white shadow-sm transition-shadow hover:shadow-md"
+              >
                 <div className="relative aspect-4/3 overflow-hidden bg-[#efe7e5]">
                   <img
                     className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
@@ -411,15 +423,10 @@ export default function GalleryPage() {
                   <div className="absolute right-4 top-4 flex gap-2">
                     <button
                       type="button"
-                      onClick={() => void openBookView(album)}
-                      className="relative z-20 inline-flex items-center gap-1 rounded-full bg-white/95 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[#211a1b] shadow-sm transition-colors hover:bg-white"
-                    >
-                      <Eye size={12} />
-                      View
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => openDesignerView(album)}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        openDesignerView(album);
+                      }}
                       className="relative z-20 inline-flex items-center gap-1 rounded-full bg-[#b10e6b] px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white shadow-sm transition-colors hover:bg-[#951254]"
                     >
                       <Edit2 size={12} />

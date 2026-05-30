@@ -2,8 +2,10 @@
 
 import { motion } from 'framer-motion';
 import { Newsreader, Plus_Jakarta_Sans } from 'next/font/google';
+import { useState } from 'react';
 import Navbar from '../Components/website/navbar';
 import Footer from '../Components/website/Footer';
+import API_URL from '@/lib/api';
 
 const newsreader = Newsreader({
   subsets: ['latin'],
@@ -19,6 +21,48 @@ const plusJakarta = Plus_Jakarta_Sans({
 });
 
 export default function ContactPage() {
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    location: '',
+    message: '',
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const handleChange = (field: string, value: string) => {
+    setFormData((current) => ({ ...current, [field]: value }));
+  };
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSubmitting(true);
+    setSuccessMessage('');
+    setErrorMessage('');
+
+    try {
+      const response = await fetch(`${API_URL}/contact`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || 'Failed to send message');
+      }
+
+      setSuccessMessage('Your message was sent successfully. We will get back to you soon.');
+      setFormData({ name: '', email: '', location: '', message: '' });
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Something went wrong.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <main className={`${newsreader.variable} ${plusJakarta.variable} min-h-screen bg-[#fff8f8] text-[#211a1b] font-sans`}>
       <Navbar />
@@ -72,13 +116,15 @@ export default function ContactPage() {
             <div className="bg-white/60 backdrop-blur-xl rounded-[48px] p-8 md:p-14 shadow-[0_40px_100px_rgba(33,26,27,0.06)] border border-white/40">
               <h2 className="text-3xl mb-8" style={{ fontFamily: 'var(--font-newsreader)' }}>Send a Message</h2>
               
-              <form className="space-y-8">
+              <form className="space-y-8" onSubmit={handleSubmit}>
                 <div className="grid gap-8 md:grid-cols-2">
                   <div className="relative group">
                     <label className="block text-[10px] uppercase tracking-[0.2em] text-[#8b7079] mb-2 ml-1 group-focus-within:text-[#890051] transition-colors">Full Name</label>
                     <input 
                       type="text" 
                       placeholder="Your Name"
+                      value={formData.name}
+                      onChange={(event) => handleChange('name', event.target.value)}
                       className="w-full bg-transparent border-b border-[#211a1b]/10 py-3 focus:border-[#890051] outline-none transition-all placeholder:text-[#8b7079]/30 text-lg" 
                     />
                   </div>
@@ -87,6 +133,8 @@ export default function ContactPage() {
                     <input 
                       type="email" 
                       placeholder="Your Email"
+                      value={formData.email}
+                      onChange={(event) => handleChange('email', event.target.value)}
                       className="w-full bg-transparent border-b border-[#211a1b]/10 py-3 focus:border-[#890051] outline-none transition-all placeholder:text-[#8b7079]/30 text-lg" 
                     />
                   </div>
@@ -99,6 +147,8 @@ export default function ContactPage() {
                     <input 
                       type="text" 
                       placeholder="Your Location"
+                      value={formData.location}
+                      onChange={(event) => handleChange('location', event.target.value)}
                       className="w-full bg-transparent border-b border-[#211a1b]/10 py-3 focus:border-[#890051] outline-none transition-all placeholder:text-[#8b7079]/30 text-lg" 
                     />
                   </div>
@@ -109,15 +159,29 @@ export default function ContactPage() {
                   <textarea 
                     rows={4}
                     placeholder="Briefly describe your vision..."
+                    value={formData.message}
+                    onChange={(event) => handleChange('message', event.target.value)}
                     className="w-full bg-transparent border-b border-[#211a1b]/10 py-3 focus:border-[#890051] outline-none transition-all resize-none placeholder:text-[#8b7079]/30 text-lg"
                   ></textarea>
                 </div>
 
-                <button className="group flex items-center gap-4 text-[#890051] hover:gap-6 transition-all duration-300">
-                  <span className="w-14 h-14 rounded-full bg-gradient-to-tr from-[#890051] to-[#d23284] flex items-center justify-center text-white shadow-xl group-hover:shadow-[#890051]/30">
+                {successMessage ? (
+                  <p className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+                    {successMessage}
+                  </p>
+                ) : null}
+
+                {errorMessage ? (
+                  <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {errorMessage}
+                  </p>
+                ) : null}
+
+                <button type="submit" disabled={isSubmitting} className="group flex items-center gap-4 text-[#890051] hover:gap-6 transition-all duration-300 disabled:opacity-60">
+                  <span className="w-14 h-14 rounded-full bg-linear-to-tr from-[#890051] to-[#d23284] flex items-center justify-center text-white shadow-xl group-hover:shadow-[#890051]/30">
                     →
                   </span>
-                  <span className="text-xs font-bold uppercase tracking-[0.3em]">Submit Application</span>
+                  <span className="text-xs font-bold uppercase tracking-[0.3em]">{isSubmitting ? 'Sending...' : 'Submit Application'}</span>
                 </button>
               </form>
             </div>
@@ -136,7 +200,7 @@ export default function ContactPage() {
 
       {/* Grid of Editorial Images */}
       <section className="mx-auto max-w-7xl px-4 sm:px-5 md:px-10 pb-24">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 h-[300px]">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 h-75">
           <div className="rounded-3xl overflow-hidden bg-stone-100">
             <img src="https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&w=600&q=80" className="h-full w-full object-cover grayscale hover:grayscale-0 transition-all duration-700" alt="Gallery" />
           </div>

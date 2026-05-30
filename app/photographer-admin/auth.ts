@@ -17,7 +17,17 @@ export const getPhotographerToken = (): string | null => {
 };
 
 export const logoutPhotographer = () => {
+  if (typeof window === 'undefined') return;
+
+  // Clear both legacy and current auth keys used across admin pages.
   localStorage.removeItem('photographerToken');
   localStorage.removeItem('photographerUser');
-  window.location.href = '/photographer-login';
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  localStorage.removeItem('userData');
+  sessionStorage.removeItem('token');
+  sessionStorage.removeItem('user');
+  sessionStorage.removeItem('userData');
+
+  window.location.href = '/login';
 };

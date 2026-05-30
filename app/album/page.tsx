@@ -53,6 +53,14 @@ interface PublicBookAlbum {
   albumType?: string;
   mainSiteShowStatus?: boolean;
   status?: string;
+  pageLayouts?: Array<{
+    pageNumber?: number;
+    slotAssignments?: Array<{
+      dataUrl?: string;
+      mediaKind?: string;
+      fileName?: string;
+    }>;
+  }>;
   curateId?: {
     albumName?: string;
     coverPhoto?: string;
@@ -839,6 +847,35 @@ export default function AlbumPage() {
     return albumImages;
   };
 
+  const openBookCollection = (bookAlbum: PublicBookAlbum) => {
+    const pageImages = (bookAlbum.pageLayouts || []).flatMap((page) =>
+      (page.slotAssignments || [])
+        .map((slot) => slot.dataUrl || '')
+        .filter(Boolean)
+    );
+
+    const syntheticAlbum: Album = {
+      _id: bookAlbum._id,
+      vendor_id: 'book-album',
+      album_title: bookAlbum.albumName || bookAlbum.curateId?.albumName || bookAlbum.templateId?.name || 'Album Book',
+      description: bookAlbum.templateId?.name ? `Template: ${bookAlbum.templateId.name}` : 'Curated book album from the designer',
+      images: JSON.stringify(pageImages),
+      cover_image: bookAlbum.curateId?.coverPhoto || '',
+      price: 0,
+      category: bookAlbum.albumType || 'Album Book',
+      availability_status: bookAlbum.mainSiteShowStatus ? 'available' : 'hidden',
+      publish_status: bookAlbum.status || 'saved',
+    };
+
+    setSelectedAlbum(syntheticAlbum);
+    setViewMode('book');
+  };
+
+  const closeBookView = () => {
+    setViewMode('browse');
+    setSelectedAlbum(null);
+  };
+
   // Animation variants
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
@@ -891,102 +928,6 @@ export default function AlbumPage() {
 
           <div className="flex flex-col">
 
-            {/* ═══ SECTION 1: Ethereal Albums (Top 8) ═══ */}
-            <motion.section
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: "-100px" }}
-              variants={scaleUpVariants}
-              className="py-12 sm:py-18 md:py-24 relative"
-            >
-              <div className="absolute top-0 right-0 floating-premium-text opacity-[0.02] select-none">ALBUMS</div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 50 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                className="mb-8 sm:mb-10 md:mb-12 text-center px-4"
-                id="album-gallery"
-              >
-                <span className="text-[#920857] font-black text-[8px] sm:text-[9px] md:text-[10px] uppercase tracking-[0.35em] sm:tracking-[0.4em] mb-2 block">Our Work</span>
- <h2
-              className="max-w-xl text-5xl leading-[1.02] text-[#25181d] md:text-7xl"
-               style={{ fontFamily: 'var(--font-newsreader)' }}
-            >                  Curated <span className="text-[#920857] italic">Masterpieces</span>
-                </h2>
-                <div className="w-8 sm:w-16 md:w-24 h-0.5 md:h-1 bg-[#e7c5df] mx-auto mt-3 sm:mt-4 rounded-full" />
-              </motion.div>
-
-              {/* Category selection */}
-              <div className="relative mb-8 sm:mb-10 md:mb-12 group">
-                <div className="flex overflow-x-auto no-scrollbar items-center md:justify-center gap-2 sm:gap-3 px-4 sm:px-6 pb-3 sm:pb-4 -mx-4 sm:-mx-6 md:mx-0 snap-x snap-mandatory">
-                  {categories.map((cat) => (
-                    <motion.button
-                      key={cat}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => setActiveCategory(cat)}
-                      className={`flex-shrink-0 snap-center px-6 md:px-8 py-3 rounded-full text-[10px] md:text-xs font-black uppercase tracking-widest transition-all duration-300 border ${activeCategory === cat
-                        ? 'bg-[#920857] text-white border-[#920857] shadow-xl shadow-[#d8b3cc] scale-105'
-                        : 'bg-white/70 text-gray-600 border-[#ead5e4] hover:border-[#c98eb8] hover:bg-white backdrop-blur-md'
-                        }`}
-                    >
-                      {getCategoryEmoji(cat)} {cat}
-                    </motion.button>
-                  ))}
-                </div>
-              </div>
-
-              {loading ? (
-                <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-4 border-[#920857] border-t-transparent" /></div>
-              ) : (
-                <div className="px-6 md:px-12">
-                  <motion.div
-                    variants={containerVariants}
-                    initial="hidden"
-                    whileInView="visible"
-                    viewport={{ once: true }}
-                    className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-5 mb-8"
-                  >
-                    {filteredAlbums.slice(0, 25).map((album, idx) => {
-                      const imageArray = getImageArray(album.images);
-                      const firstImage = imageArray[0] ? getImageUrl(imageArray[0]) : '/images/placeholder-album.jpg';
-                      return (
-                        <motion.div
-                          key={album._id}
-                          variants={itemVariants}
-                          whileHover={{ y: -10 }}
-                          whileTap={{ scale: 0.98 }}
-                          className="group relative cursor-pointer rounded-xl sm:rounded-2xl md:rounded-[2.5rem] overflow-hidden shadow-xl transition-all duration-500 aspect-square md:aspect-[3/4]"
-                          onClick={() => handleAlbumClick(album)}
-                        >
-                          {firstImage && <img src={firstImage} alt={album.album_title} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" onError={(e) => { e.currentTarget.src = '/images/placeholder-album.jpg'; }} />}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-100 transition-opacity" />
-                          <div className="absolute bottom-6 left-6 right-6 md:bottom-8 md:left-8 md:right-8 text-white">
-                            <p className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] text-[#e6c8de] mb-1">{album.category}</p>
-                            <h3 className="text-xs md:text-2xl font-serif font-bold leading-tight uppercase tracking-tight">{album.album_title}</h3>
-                            <div className="mt-4 flex items-center justify-between opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all">
-                              <span className="text-[10px] font-bold tracking-widest uppercase">View</span>
-                              <div className="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center text-sm">→</div>
-                            </div>
-                          </div>
-                        </motion.div>
-                      );
-                    })}
-                  </motion.div>
-                  <div className="flex justify-center">
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      className="px-8 py-3 bg-gradient-to-r from-[#920857] to-[#b43c8f] text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all uppercase text-sm tracking-widest"
-                      onClick={() => document.getElementById('album-gallery')?.scrollIntoView({ behavior: 'smooth' })}
-                    >
-                      View All Albums
-                    </motion.button>
-                  </div>
-                </div>
-              )}
-            </motion.section>
-
             {/* ═══ SECTION 2: The Full Experience (Masonry) ═══ */}
             <motion.section
               initial="hidden"
@@ -1037,7 +978,11 @@ export default function AlbumPage() {
                               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                               onError={(e) => { e.currentTarget.src = '/images/placeholder-album.jpg'; }}
                             />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent flex flex-col items-start justify-end p-4 md:p-6">
+                            <button
+                              type="button"
+                              onClick={() => openBookCollection(album)}
+                              className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent flex flex-col items-start justify-end p-4 md:p-6 text-left"
+                            >
                               <span className="text-[#f0dce8] text-[9px] font-black uppercase tracking-[0.22em] mb-1">
                                 Collection {String(idx + 1).padStart(2, '0')}
                               </span>
@@ -1051,7 +996,7 @@ export default function AlbumPage() {
                                 <span className="text-[10px] font-bold tracking-widest uppercase text-white">View</span>
                                 <div className="w-6 h-6 rounded-full bg-white text-black flex items-center justify-center text-xs">→</div>
                               </div>
-                            </div>
+                            </button>
                           </motion.div>
                         ))
                       ) : (
@@ -1142,6 +1087,33 @@ export default function AlbumPage() {
                 </div>
               </div>
             </section>
+
+            {selectedAlbum && viewMode === 'book' ? (
+              <div className="fixed inset-0 z-100 bg-black/80 backdrop-blur-md">
+                <div className="absolute inset-0 overflow-auto p-0">
+                  <div className="min-h-screen">
+                    <div className="sticky top-0 z-101 flex items-center justify-between border-b border-white/10 bg-black/80 px-4 py-3 text-white backdrop-blur-md md:px-6">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#e6c8de]">Album Book</p>
+                        <h3 className="text-sm font-semibold md:text-base">{selectedAlbum.album_title}</h3>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={closeBookView}
+                        className="rounded-full border border-white/20 px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-white transition hover:border-white hover:bg-white/10"
+                      >
+                        Close
+                      </button>
+                    </div>
+                    <FullScreenBookViewer
+                      album={selectedAlbum}
+                      images={getImageArray(selectedAlbum.images).map((img) => getImageUrl(img))}
+                      onClose={closeBookView}
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : null}
  
            <Footer />
           </div>
