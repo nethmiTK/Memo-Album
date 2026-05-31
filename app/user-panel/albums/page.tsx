@@ -1,9 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { Plus, Image as ImageIcon, ArrowRight } from 'lucide-react';
+import { Image as ImageIcon, ArrowRight } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useProtectedRoute, logout } from '@/lib/useAuth';
+import { apiFetch, handleAuthError } from '@/lib/api';
+
+const albumCacheKey = 'memoalbum:user-panel:assigned-albums';
 
 interface Album {
   id: string;
@@ -20,8 +23,56 @@ export default function AlbumsPage() {
 
   useEffect(() => {
     if (!authLoading) {
-      // TODO: Fetch albums from API
-      setLoading(false);
+      if (typeof window !== 'undefined') {
+        try {
+          const cached = window.localStorage.getItem(albumCacheKey);
+          if (cached) {
+            const parsed = JSON.parse(cached) as { items?: Album[] };
+            if (Array.isArray(parsed.items)) {
+              setAlbums(parsed.items);
+            }
+          }
+        } catch {
+          // Ignore stale cache.
+        }
+      }
+
+      const loadAssignedAlbums = async () => {
+        try {
+          const response = await apiFetch('/client-invites/assigned-albums');
+          if (response.status === 401) {
+            handleAuthError(response);
+            return;
+          }
+
+          const result = await response.json();
+          if (!response.ok || !result.success || !Array.isArray(result.albums)) {
+            setAlbums([]);
+            return;
+          }
+
+          const mapped: Album[] = result.albums.map((item: any) => ({
+            id: item.id,
+            name: item.name || 'Album',
+            coverImage: item.coverImage || '',
+            photoCount: Number(item.photoCount || 0),
+            date: item.date ? new Date(item.date).toLocaleDateString() : '-',
+          }));
+
+          setAlbums(mapped);
+
+          if (typeof window !== 'undefined') {
+            window.localStorage.setItem(albumCacheKey, JSON.stringify({ items: mapped, timestamp: Date.now() }));
+          }
+        } catch (error) {
+          console.error('Failed to load assigned albums:', error);
+          setAlbums([]);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      loadAssignedAlbums();
     }
   }, [authLoading]);
 
@@ -232,20 +283,6 @@ export default function AlbumsPage() {
                   </div>
                 </Link>
               )}
-            </div>
-
-            {/* Create New Album CTA */}
-            <div className="mt-12 pt-12 text-center border-t" style={{ borderColor: '#E5CCD4' }}>
-              <Link
-                href="/user-panel/albums/new"
-                className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-full font-serif font-semibold text-white transition-all duration-300 hover:shadow-lg active:scale-95"
-                style={{
-                  background: 'linear-gradient(135deg, #D23284 0%, #B50F69 100%)',
-                }}
-              >
-                <Plus size={20} />
-                Create New Album
-              </Link>
             </div>
           </div>
         </section>

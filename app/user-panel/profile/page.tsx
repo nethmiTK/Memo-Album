@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Camera, User as UserIcon, ArrowLeft, LogOut } from 'lucide-react';
-import Link from 'next/link';
-import { useProtectedRoute, logout } from '@/lib/useAuth';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useRef } from 'react';
+import { Camera, ImagePlus, Trash2, User as UserIcon } from 'lucide-react';
+import { useProtectedRoute } from '@/lib/useAuth';
+import { apiFetch, handleAuthError } from '@/lib/api';
 
 interface UserProfile {
   name: string;
@@ -15,33 +14,34 @@ interface UserProfile {
 }
 
 export default function ProfilePage() {
-  const router = useRouter();
   const { user, loading: authLoading } = useProtectedRoute(['client', 'couple']);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [profile, setProfile] = useState<UserProfile>({
     name: '',
     email: '',
   });
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [profileVisibility, setProfileVisibility] = useState(true);
-  const [twoFactorAuth, setTwoFactorAuth] = useState(false);
+  const [saveMessage, setSaveMessage] = useState('');
+  const [saveError, setSaveError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (!authLoading) {
       const loadProfile = async () => {
         try {
-          const token = localStorage.getItem('token');
-          const response = await fetch('/api/admin/users/' + user?.id, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-            },
-          });
+          const response = await apiFetch('/auth/me');
+
+          if (response.status === 401) {
+            handleAuthError(response);
+            return;
+          }
 
           if (response.ok) {
             const data = await response.json();
             setProfile({
-              name: data.user?.name || '',
-              email: data.user?.email || '',
+              name: data.user?.name || user?.name || '',
+              email: data.user?.email || user?.email || '',
               phone: data.user?.phone || '',
               profileImage: data.user?.profilePic || '',
               bio: data.user?.bio || '',
@@ -78,8 +78,48 @@ export default function ProfilePage() {
   }, [authLoading, user?.id]);
 
   const handleSaveProfile = async () => {
-    // TODO: Save profile changes to API
-    setIsEditing(false);
+    try {
+      setIsSaving(true);
+      setSaveError('');
+      setSaveMessage('');
+
+      const response = await apiFetch('/auth/me', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          name: profile.name,
+          email: profile.email,
+          phone: profile.phone,
+          bio: profile.bio,
+          profilePic: profile.profileImage,
+        }),
+      });
+
+      if (response.status === 401) {
+        handleAuthError(response);
+        return;
+      }
+
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Failed to save profile');
+      }
+
+      const storedUserRaw = localStorage.getItem('user');
+      const storedUser = storedUserRaw ? JSON.parse(storedUserRaw) : {};
+      localStorage.setItem('user', JSON.stringify({
+        ...storedUser,
+        name: data.user?.name || profile.name,
+        email: data.user?.email || profile.email,
+        profilePic: data.user?.profilePic || profile.profileImage || '',
+      }));
+
+      setSaveMessage('Profile saved successfully.');
+      setIsEditing(false);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Failed to save profile');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (authLoading || loading) {
@@ -90,276 +130,170 @@ export default function ProfilePage() {
     );
   }
 
+  const handlePickProfileImage = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleProfileImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setProfile((current) => ({ ...current, profileImage: reader.result as string }));
+        setIsEditing(true);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   return (
-    <div className="px-4 md:px-8 lg:px-12 py-8 pb-24 md:pb-8">
-      {/* Top Navigation */}
-      <div className="flex items-center justify-between mb-8 pb-4 border-b" style={{ borderColor: 'rgba(229, 204, 212, 0.2)' }}>
-        <Link href="/user-panel" className="flex items-center gap-2 text-sm font-medium transition-colors hover:text-pink-600" style={{ color: '#D23284' }}>
-          <ArrowLeft size={18} />
-          Back to Panel
-        </Link>
-        <button
-          onClick={logout}
-          className="flex items-center gap-2 text-sm font-medium transition-colors hover:text-red-600"
-          style={{ color: '#6B7387' }}
-        >
-          <LogOut size={18} />
-          Logout
-        </button>
-      </div>
-
-      <div className="mb-12 pb-8 border-b-4" style={{ borderColor: '#D23284' }}>
-        <h1 className="text-4xl md:text-5xl font-serif font-bold mb-2" style={{ color: '#2C1E26' }}>
-          The Profile
-        </h1>
-        <p className="text-lg text-gray-600" style={{ color: '#6B7387' }}>
-          Manage your digital identity and preferences. Curated settings for a more intentional experience.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-        <div className="lg:col-span-2 space-y-8">
-          <div className="rounded-2xl p-8" style={{ backgroundColor: '#FFFFFF', border: '1px solid #E5CCD4' }}>
-            <div className="flex flex-col md:flex-row items-center md:items-start gap-8 pb-8 border-b" style={{ borderColor: 'rgba(229, 204, 212, 0.2)' }}>
-              <div className="relative flex-shrink-0">
-                {profile.profileImage ? (
-                  <img
-                    src={profile.profileImage}
-                    alt={profile.name}
-                    className="w-28 h-28 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-28 h-28 rounded-full flex items-center justify-center" style={{ backgroundColor: '#FEF0F1' }}>
-                    <UserIcon size={56} style={{ color: '#D23284' }} />
-                  </div>
-                )}
-                {isEditing && (
-                  <button className="absolute bottom-0 right-0 p-2 rounded-full transition-all hover:shadow-md" style={{ backgroundColor: '#D23284' }}>
-                    <Camera size={16} style={{ color: '#FFFFFF' }} />
+    <div className="min-h-screen bg-[#fff8f8] px-4 py-8 pb-24 md:px-8 md:pb-8 lg:px-12">
+      <div className="mx-auto max-w-6xl">
+        <div className="mx-auto max-w-2xl">
+          <div className="rounded-4xl border border-[#E5CCD4] bg-white p-6 shadow-sm md:p-8">
+            <div className="flex flex-col items-center gap-6 text-center">
+              <div className="relative">
+                <div className="h-32 w-32 overflow-hidden rounded-full border-4 border-[#F6D6E0] bg-[#FEF0F1] shadow-sm md:h-36 md:w-36">
+                  {profile.profileImage ? (
+                    <img src={profile.profileImage} alt={profile.name || 'Profile photo'} className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center">
+                      <UserIcon size={64} style={{ color: '#D23284' }} />
+                    </div>
+                  )}
+                </div>
+                {isEditing ? (
+                  <button
+                    type="button"
+                    onClick={handlePickProfileImage}
+                    className="absolute bottom-1 right-1 inline-flex h-11 w-11 items-center justify-center rounded-full bg-[#D23284] text-white shadow-lg transition hover:scale-105"
+                    aria-label="Upload profile photo"
+                  >
+                    <ImagePlus size={18} />
                   </button>
-                )}
+                ) : null}
               </div>
 
-              <div className="flex-1 text-center md:text-left">
-                <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: '#9B9095' }}>
-                  Curator Identity
-                </p>
-                <h2 className="text-3xl font-serif font-bold mb-1" style={{ color: '#2C1E26' }}>
-                  {profile.name || 'Your Name'}
-                </h2>
-                <p className="text-gray-600" style={{ color: '#6B7387' }}>
-                  {profile.email}
-                </p>
-              </div>
-            </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleProfileImageChange}
+              />
 
-            <div className="space-y-6 pt-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h1 className="text-3xl font-serif font-bold text-[#2C1E26]">My Profile</h1>
+                <p className="mt-2 text-sm text-[#6B7387]">Update your profile photo and details in one place.</p>
+              </div>
+
+              <div className="w-full space-y-5 text-left">
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: '#9B9095' }}>
-                    Full Name
-                  </label>
+                  <label className="mb-2 block text-xs font-bold uppercase tracking-wider" style={{ color: '#9B9095' }}>Full Name</label>
                   {isEditing ? (
                     <input
                       type="text"
                       value={profile.name}
                       onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-                      className="w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:border-[#D23284] transition-colors"
-                      style={{ borderColor: '#E5CCD4', backgroundColor: '#FEF0F1' }}
+                      className="w-full rounded-xl border border-[#E5CCD4] px-4 py-3 focus:border-[#D23284] focus:outline-none"
                     />
                   ) : (
-                    <p className="text-gray-700 font-medium" style={{ color: '#2C1E26' }}>{profile.name || 'Not provided'}</p>
+                    <p className="rounded-xl border border-[#F1E0E6] bg-[#FFF9FB] px-4 py-3 text-[#2C1E26]">{profile.name || 'Not provided'}</p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: '#9B9095' }}>
-                    Email Address
-                  </label>
+                  <label className="mb-2 block text-xs font-bold uppercase tracking-wider" style={{ color: '#9B9095' }}>Email Address</label>
                   {isEditing ? (
                     <input
                       type="email"
                       value={profile.email}
                       onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                      className="w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:border-[#D23284] transition-colors"
-                      style={{ borderColor: '#E5CCD4', backgroundColor: '#FEF0F1' }}
+                      className="w-full rounded-xl border border-[#E5CCD4] px-4 py-3 focus:border-[#D23284] focus:outline-none"
                     />
                   ) : (
-                    <p className="text-gray-700 font-medium" style={{ color: '#2C1E26' }}>{profile.email || 'Not provided'}</p>
+                    <p className="rounded-xl border border-[#F1E0E6] bg-[#FFF9FB] px-4 py-3 text-[#2C1E26]">{profile.email || 'Not provided'}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-xs font-bold uppercase tracking-wider" style={{ color: '#9B9095' }}>Phone Number</label>
+                  {isEditing ? (
+                    <input
+                      type="tel"
+                      value={profile.phone || ''}
+                      onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                      className="w-full rounded-xl border border-[#E5CCD4] px-4 py-3 focus:border-[#D23284] focus:outline-none"
+                    />
+                  ) : (
+                    <p className="rounded-xl border border-[#F1E0E6] bg-[#FFF9FB] px-4 py-3 text-[#2C1E26]">{profile.phone || 'Not provided'}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-xs font-bold uppercase tracking-wider" style={{ color: '#9B9095' }}>Biography</label>
+                  {isEditing ? (
+                    <textarea
+                      value={profile.bio || ''}
+                      onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
+                      rows={4}
+                      className="w-full resize-none rounded-xl border border-[#E5CCD4] px-4 py-3 focus:border-[#D23284] focus:outline-none"
+                    />
+                  ) : (
+                    <p className="rounded-xl border border-[#F1E0E6] bg-[#FFF9FB] px-4 py-3 leading-7 text-[#2C1E26]">{profile.bio || 'Not provided'}</p>
                   )}
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: '#9B9095' }}>
-                  Phone Number
-                </label>
+              <div className="flex w-full gap-3 pt-2">
                 {isEditing ? (
-                  <input
-                    type="tel"
-                    value={profile.phone || ''}
-                    onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                    className="w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:border-[#D23284] transition-colors"
-                    style={{ borderColor: '#E5CCD4', backgroundColor: '#FEF0F1' }}
-                  />
+                  <>
+                    <button
+                      onClick={handleSaveProfile}
+                      disabled={isSaving}
+                      className="flex-1 rounded-xl bg-[#D23284] px-6 py-3 font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {isSaving ? 'Saving...' : 'Save'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsEditing(false);
+                        setSaveError('');
+                        setSaveMessage('');
+                      }}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#E5CCD4] px-4 py-3 font-semibold text-[#6B7387] transition hover:bg-[#FEF0F1]"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setProfile((current) => ({ ...current, profileImage: '' }))}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#E5CCD4] px-4 py-3 font-semibold text-[#6B7387] transition hover:bg-[#FEF0F1]"
+                    >
+                      <Trash2 size={16} />
+                      Remove Photo
+                    </button>
+                  </>
                 ) : (
-                  <p className="text-gray-700 font-medium" style={{ color: '#2C1E26' }}>{profile.phone || 'Not provided'}</p>
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="flex-1 rounded-xl bg-[#D23284] px-6 py-3 font-semibold text-white transition hover:opacity-90"
+                  >
+                    Edit
+                  </button>
                 )}
               </div>
 
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: '#9B9095' }}>
-                  Short Biography
-                </label>
-                {isEditing ? (
-                  <textarea
-                    value={profile.bio || ''}
-                    onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
-                    rows={4}
-                    className="w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:border-[#D23284] transition-colors resize-none"
-                    style={{ borderColor: '#E5CCD4', backgroundColor: '#FEF0F1' }}
-                  />
-                ) : (
-                  <p className="text-gray-700 font-medium" style={{ color: '#2C1E26' }}>{profile.bio || 'Not provided'}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="flex gap-4 mt-8 pt-8 border-t" style={{ borderColor: 'rgba(229, 204, 212, 0.2)' }}>
-              {isEditing ? (
-                <>
-                  <button
-                    onClick={handleSaveProfile}
-                    className="flex-1 py-3 px-6 text-white font-semibold rounded-lg transition-all hover:shadow-md"
-                    style={{ background: 'linear-gradient(180deg, #C41474 0%, #B50F69 100%)' }}
-                  >
-                    Save Changes
-                  </button>
-                  <button
-                    onClick={() => setIsEditing(false)}
-                    className="flex-1 py-3 px-6 font-semibold rounded-lg transition-all hover:bg-gray-100"
-                    style={{ color: '#6B7387', borderColor: '#E5CCD4', border: '1px solid' }}
-                  >
-                    Cancel
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="w-full py-3 px-6 text-white font-semibold rounded-lg transition-all hover:shadow-md"
-                  style={{ background: 'linear-gradient(180deg, #C41474 0%, #B50F69 100%)' }}
-                >
-                  Edit Profile
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div className="rounded-2xl p-8" style={{ backgroundColor: '#FFFFFF', border: '1px solid #E5CCD4' }}>
-            <h3 className="text-xs font-bold uppercase tracking-wider mb-6" style={{ color: '#9B9095' }}>
-              Privacy & Security
-            </h3>
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-semibold" style={{ color: '#2C1E26' }}>
-                    Profile Visibility
-                  </p>
-                  <p className="text-sm text-gray-600 mt-1" style={{ color: '#6B7387' }}>
-                    Make your album visible to other users
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setProfileVisibility((current) => !current)}
-                  className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors duration-300 ${
-                    profileVisibility ? 'bg-[#D23284]' : 'bg-[#E5CCD4]'
-                  }`}
-                  aria-pressed={profileVisibility}
-                  aria-label="Toggle profile visibility"
-                >
-                  <span
-                    className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform duration-300 shadow-sm ${
-                      profileVisibility ? 'translate-x-8' : 'translate-x-1'
-                    }`}
-                  />
-                  <span className="absolute -right-10 text-[10px] font-bold uppercase tracking-widest" style={{ color: '#9B9095' }}>
-                    {profileVisibility ? 'On' : 'Off'}
-                  </span>
-                </button>
-              </div>
-
-              <div className="flex items-center justify-between border-t pt-6" style={{ borderColor: 'rgba(229, 204, 212, 0.2)' }}>
-                <div>
-                  <p className="font-semibold" style={{ color: '#2C1E26' }}>
-                    Two-Factor Authentication
-                  </p>
-                  <p className="text-sm text-gray-600 mt-1" style={{ color: '#6B7387' }}>
-                    Add an extra layer of security
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setTwoFactorAuth((current) => !current)}
-                  className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors duration-300 ${
-                    twoFactorAuth ? 'bg-[#D23284]' : 'bg-[#E5CCD4]'
-                  }`}
-                  aria-pressed={twoFactorAuth}
-                  aria-label="Toggle two factor authentication"
-                >
-                  <span
-                    className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform duration-300 shadow-sm ${
-                      twoFactorAuth ? 'translate-x-8' : 'translate-x-1'
-                    }`}
-                  />
-                  <span className="absolute -right-10 text-[10px] font-bold uppercase tracking-widest" style={{ color: '#9B9095' }}>
-                    {twoFactorAuth ? 'On' : 'Off'}
-                  </span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-8">
-          <div className="rounded-2xl p-6" style={{ backgroundColor: '#FFFFFF', border: '1px solid #E5CCD4' }}>
-            <h3 className="text-xs font-bold uppercase tracking-wider mb-6" style={{ color: '#9B9095' }}>
-              Communication
-            </h3>
-            <div className="space-y-4">
-              <label className="flex items-start gap-3 cursor-pointer">
-                <input type="checkbox" defaultChecked className="mt-1 rounded accent-[#D23284]" style={{ accentColor: '#D23284' }} />
-                <span className="text-sm" style={{ color: '#2C1E26' }}>New Collection Alerts</span>
-              </label>
-              <label className="flex items-start gap-3 cursor-pointer">
-                <input type="checkbox" defaultChecked className="mt-1 rounded accent-[#D23284]" style={{ accentColor: '#D23284' }} />
-                <span className="text-sm" style={{ color: '#2C1E26' }}>Editorial Monthly</span>
-              </label>
-              <label className="flex items-start gap-3 cursor-pointer">
-                <input type="checkbox" className="mt-1 rounded accent-[#D23284]" style={{ accentColor: '#D23284' }} />
-                <span className="text-sm" style={{ color: '#2C1E26' }}>Partner Collaborations</span>
-              </label>
-            </div>
-          </div>
-
-          <div className="rounded-2xl p-6" style={{ backgroundColor: '#FEF0F1' }}>
-            <h3 className="text-xs font-bold uppercase tracking-wider mb-6" style={{ color: '#9B9095' }}>
-              Account Status
-            </h3>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-xs uppercase tracking-wider" style={{ color: '#9B9095' }}>Plan</span>
-                <span className="px-3 py-1 text-xs font-bold uppercase tracking-widest rounded-full" style={{ backgroundColor: '#D23284', color: '#FFFFFF' }}>
-                  Premium
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-xs uppercase tracking-wider" style={{ color: '#9B9095' }}>Storage</span>
-                <span style={{ color: '#2C1E26' }}>2.5GB / 50GB</span>
-              </div>
-              <div className="w-full bg-gray-200 h-1 rounded-full overflow-hidden">
-                <div className="h-full rounded-full transition-all" style={{ backgroundColor: '#D23284', width: '5%' }}></div>
-              </div>
+              {saveMessage ? (
+                <p className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">{saveMessage}</p>
+              ) : null}
+              {saveError ? (
+                <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{saveError}</p>
+              ) : null}
             </div>
           </div>
         </div>

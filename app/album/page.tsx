@@ -7,6 +7,8 @@ import Link from 'next/link';
 import Navbar from '../Components/website/navbar';
 import Footer from '../Components/website/Footer';
 import API_URL from '@/lib/api';
+import { FullscreenBook } from '@/app/Components/photographer-admin/FullscreenBook';
+import { TemplatePage, TemplateRecord, CurateMediaInput } from '@/lib/template-book-media';
 
 interface Album {
   _id: string;
@@ -53,12 +55,27 @@ interface PublicBookAlbum {
   albumType?: string;
   mainSiteShowStatus?: boolean;
   status?: string;
+  template_data?: {
+    accent?: string;
+    pages?: TemplatePage[];
+    slots?: TemplatePage['slots'];
+    colors?: { accent?: string };
+  };
   pageLayouts?: Array<{
     pageNumber?: number;
     slotAssignments?: Array<{
+      slotId?: string;
+      mediaId?: string;
       dataUrl?: string;
       mediaKind?: string;
       fileName?: string;
+      fileType?: string;
+      fileSize?: number;
+      mediaOrder?: number;
+      x?: number;
+      y?: number;
+      width?: number;
+      height?: number;
     }>;
   }>;
   curateId?: {
@@ -66,9 +83,14 @@ interface PublicBookAlbum {
     coverPhoto?: string;
     coverPhotoName?: string;
     weddingDate?: string | Date;
+    mediaItems?: CurateMediaInput[];
   };
   templateId?: {
+    _id?: string;
     name?: string;
+    accent?: string;
+    pages?: TemplatePage[];
+    slots?: TemplatePage['slots'];
   };
 }
 
@@ -210,6 +232,75 @@ const getVideoThumbnail = (video: Video): string => {
   if (ytMatch) return `https://img.youtube.com/vi/${ytMatch[1]}/mqdefault.jpg`;
   // Return a beautiful wedding placeholder instead of an empty string
   return 'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&q=80&w=500';
+};
+
+const buildCollectionBookPayload = (bookAlbum: PublicBookAlbum) => {
+  const pageLayouts = Array.isArray(bookAlbum.pageLayouts) ? bookAlbum.pageLayouts : [];
+  const mediaItems: CurateMediaInput[] =
+    Array.isArray(bookAlbum.curateId?.mediaItems) && bookAlbum.curateId?.mediaItems.length > 0
+      ? bookAlbum.curateId.mediaItems
+      : pageLayouts.flatMap((page) =>
+          (page.slotAssignments || []).map((slot, slotIndex) => ({
+            id: slot.mediaId || slot.slotId || `page-${page.pageNumber || 1}-slot-${slotIndex + 1}`,
+            order: Number.isFinite(Number(slot.mediaOrder)) ? Number(slot.mediaOrder) : slotIndex + 1,
+            fileName: slot.fileName || '',
+            fileType: slot.fileType || '',
+            fileSize: slot.fileSize || 0,
+            mediaKind: slot.mediaKind || 'image',
+            dataUrl: slot.dataUrl || '',
+          }))
+        );
+
+  const inferredPagesFromLayouts: TemplatePage[] = pageLayouts.map((page, pageIndex) => ({
+    pageNumber: Number(page.pageNumber) || pageIndex + 1,
+    pageLabel: `Page ${Number(page.pageNumber) || pageIndex + 1}`,
+    slots: (page.slotAssignments || []).map((slot, slotIndex) => ({
+      id: slot.slotId || slot.mediaId || `slot-${pageIndex + 1}-${slotIndex + 1}`,
+      label: slot.fileName || `Slot ${slotIndex + 1}`,
+      kind: slot.mediaKind || 'image',
+      x: slot.x,
+      y: slot.y,
+      width: slot.width,
+      height: slot.height,
+    })),
+  }));
+
+  const templatePages =
+    bookAlbum.template_data?.pages && bookAlbum.template_data.pages.length > 0
+      ? bookAlbum.template_data.pages
+      : inferredPagesFromLayouts.length > 0
+        ? inferredPagesFromLayouts
+        : bookAlbum.template_data?.slots && bookAlbum.template_data.slots.length > 0
+          ? [{ pageNumber: 1, pageLabel: 'Page 1', slots: bookAlbum.template_data.slots }]
+          : [{
+              pageNumber: 1,
+              pageLabel: 'Page 1',
+              slots: [
+                {
+                  id: 'cover-slot-1',
+                  label: 'Cover Slot',
+                  kind: 'image',
+                },
+              ],
+            }];
+
+  const template: TemplateRecord = {
+    _id: bookAlbum._id,
+    name: bookAlbum.albumName || bookAlbum.curateId?.albumName || bookAlbum.templateId?.name || 'Album Book',
+    description: bookAlbum.templateId?.name ? `Template: ${bookAlbum.templateId.name}` : 'Curated book album',
+    accent: bookAlbum.template_data?.accent || bookAlbum.template_data?.colors?.accent || bookAlbum.templateId?.accent || '#b10e6b',
+    coverImage: bookAlbum.curateId?.coverPhoto || '',
+    pages: templatePages,
+    slots: bookAlbum.template_data?.slots || bookAlbum.templateId?.slots,
+  };
+
+  return {
+    template,
+    mediaItems,
+    coverPhoto: bookAlbum.curateId?.coverPhoto || '',
+    coverPhotoName: bookAlbum.curateId?.coverPhotoName || bookAlbum.albumName || bookAlbum.curateId?.albumName || '',
+    coverWeddingDate: bookAlbum.curateId?.weddingDate,
+  };
 };
 
 // ===================== 3D PERSPECTIVE HERO =====================
@@ -558,11 +649,13 @@ function FullScreenBookViewer({ album, images, onClose }: { album: Album; images
 // ===================== IMAGE LIGHTBOX =====================
 function ImageLightbox({ images, startIndex, onClose }: { images: string[]; startIndex: number; onClose: () => void }) {
   const [current, setCurrent] = useState(startIndex);
+  const [zoom, setZoom] = useState(100);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight') setCurrent(c => (c + 1) % images.length);
-      else if (e.key === 'ArrowLeft') setCurrent(c => (c - 1 + images.length) % images.length);
+      if (e.key === '+' || e.key === '=') setZoom(z => Math.min(200, z + 10));
+      else if (e.key === '-') setZoom(z => Math.max(50, z - 10));
+      else if (e.key === '0') setZoom(100);
       else if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', handleKey);
@@ -584,30 +677,38 @@ function ImageLightbox({ images, startIndex, onClose }: { images: string[]; star
       >
         ✕
       </motion.button>
-      <motion.button
-        whileHover={{ scale: 1.1, x: -5 }}
-        onClick={(e) => { e.stopPropagation(); setCurrent(c => (c - 1 + images.length) % images.length); }}
-        className="absolute left-4 md:left-8 w-14 h-14 bg-[#920857]/80 hover:bg-[#920857] rounded-full flex items-center justify-center text-white text-2xl z-10 shadow-lg"
-      >
-        ◀
-      </motion.button>
+      <div className="absolute top-6 left-6 z-10 flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-white backdrop-blur">
+        <button
+          onClick={(e) => { e.stopPropagation(); setZoom((z) => Math.max(50, z - 10)); }}
+          className="rounded-full px-3 py-1 text-sm hover:bg-white/10"
+        >
+          -
+        </button>
+        <span className="min-w-12 text-center text-sm font-semibold">{zoom}%</span>
+        <button
+          onClick={(e) => { e.stopPropagation(); setZoom((z) => Math.min(200, z + 10)); }}
+          className="rounded-full px-3 py-1 text-sm hover:bg-white/10"
+        >
+          +
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); setZoom(100); }}
+          className="rounded-full px-3 py-1 text-sm hover:bg-white/10"
+        >
+          Reset
+        </button>
+      </div>
       <motion.div
         key={current}
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="max-w-5xl max-h-[85vh] px-16"
+        className="max-w-6xl max-h-[85vh] px-6"
         onClick={e => e.stopPropagation()}
       >
-        <img src={images[current]} alt={`Photo ${current + 1}`} className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl" />
+        <div style={{ transform: `scale(${zoom / 100})`, transition: 'transform 0.2s ease' }}>
+          <img src={images[current]} alt={`Photo ${current + 1}`} className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl" />
+        </div>
       </motion.div>
-      <motion.button
-        whileHover={{ scale: 1.1, x: 5 }}
-        onClick={(e) => { e.stopPropagation(); setCurrent(c => (c + 1) % images.length); }}
-        className="absolute right-4 md:right-8 w-14 h-14 bg-[#920857]/80 hover:bg-[#920857] rounded-full flex items-center justify-center text-white text-2xl z-10 shadow-lg"
-      >
-        ▶
-      </motion.button>
-      <div className="absolute bottom-6 text-white/60 text-sm">{current + 1} / {images.length} • Use ← → keys</div>
     </motion.div>
   );
 }
@@ -789,6 +890,7 @@ export default function AlbumPage() {
   const [collectionLoading, setCollectionLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [selectedAlbum, setSelectedAlbum] = useState<Album | null>(null);
+  const [selectedCollectionBook, setSelectedCollectionBook] = useState<ReturnType<typeof buildCollectionBookPayload> | null>(null);
   const [viewMode, setViewMode] = useState<'browse' | 'book'>('browse');
   const [activeCategory, setActiveCategory] = useState('All');
   const [activeTab, setActiveTab] = useState<'albums' | 'videos' | 'all'>('all');
@@ -848,27 +950,11 @@ export default function AlbumPage() {
   };
 
   const openBookCollection = (bookAlbum: PublicBookAlbum) => {
-    const pageImages = (bookAlbum.pageLayouts || []).flatMap((page) =>
-      (page.slotAssignments || [])
-        .map((slot) => slot.dataUrl || '')
-        .filter(Boolean)
-    );
+    setSelectedCollectionBook(buildCollectionBookPayload(bookAlbum));
+  };
 
-    const syntheticAlbum: Album = {
-      _id: bookAlbum._id,
-      vendor_id: 'book-album',
-      album_title: bookAlbum.albumName || bookAlbum.curateId?.albumName || bookAlbum.templateId?.name || 'Album Book',
-      description: bookAlbum.templateId?.name ? `Template: ${bookAlbum.templateId.name}` : 'Curated book album from the designer',
-      images: JSON.stringify(pageImages),
-      cover_image: bookAlbum.curateId?.coverPhoto || '',
-      price: 0,
-      category: bookAlbum.albumType || 'Album Book',
-      availability_status: bookAlbum.mainSiteShowStatus ? 'available' : 'hidden',
-      publish_status: bookAlbum.status || 'saved',
-    };
-
-    setSelectedAlbum(syntheticAlbum);
-    setViewMode('book');
+  const closeCollectionBook = () => {
+    setSelectedCollectionBook(null);
   };
 
   const closeBookView = () => {
@@ -983,6 +1069,9 @@ export default function AlbumPage() {
                               onClick={() => openBookCollection(album)}
                               className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent flex flex-col items-start justify-end p-4 md:p-6 text-left"
                             >
+                              <div className="absolute left-4 top-4 rounded-full border border-white/20 bg-black/35 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/90 backdrop-blur-md">
+                                {album.albumName || album.curateId?.albumName || album.templateId?.name || 'Album Book'}
+                              </div>
                               <span className="text-[#f0dce8] text-[9px] font-black uppercase tracking-[0.22em] mb-1">
                                 Collection {String(idx + 1).padStart(2, '0')}
                               </span>
@@ -994,7 +1083,6 @@ export default function AlbumPage() {
                               </p>
                               <div className="mt-3 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-all">
                                 <span className="text-[10px] font-bold tracking-widest uppercase text-white">View</span>
-                                <div className="w-6 h-6 rounded-full bg-white text-black flex items-center justify-center text-xs">→</div>
                               </div>
                             </button>
                           </motion.div>
@@ -1087,6 +1175,17 @@ export default function AlbumPage() {
                 </div>
               </div>
             </section>
+
+            {selectedCollectionBook ? (
+              <FullscreenBook
+                template={selectedCollectionBook.template}
+                mediaItems={selectedCollectionBook.mediaItems}
+                coverPhoto={selectedCollectionBook.coverPhoto}
+                coverPhotoName={selectedCollectionBook.coverPhotoName}
+                coverWeddingDate={selectedCollectionBook.coverWeddingDate}
+                onClose={closeCollectionBook}
+              />
+            ) : null}
 
             {selectedAlbum && viewMode === 'book' ? (
               <div className="fixed inset-0 z-100 bg-black/80 backdrop-blur-md">

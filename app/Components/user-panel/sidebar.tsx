@@ -6,7 +6,6 @@ import {
   Image,
   Heart,
   User,
-  Settings,
   HelpCircle,
 } from 'lucide-react';
 
@@ -31,7 +30,6 @@ export default function UserSidebar({ isMobileOpen, onClose }: UserSidebarProps)
   ];
 
   const bottomMenuItems: MenuItem[] = [
-    { label: 'Settings', href: '/user-panel/settings', icon: <Settings size={20} /> },
     { label: 'Support', href: '/user-panel/support', icon: <HelpCircle size={20} /> },
   ];
 
@@ -78,7 +76,7 @@ export default function UserSidebar({ isMobileOpen, onClose }: UserSidebarProps)
               }`}
             >
               {active && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 rounded-r-full bg-[#D23284]"></div>}
-              <div className={`flex-shrink-0 w-5 h-5 ${active ? 'text-[#D23284]' : 'text-[#6B7387]'}`}>{item.icon}</div>
+              <div className={`shrink-0 w-5 h-5 ${active ? 'text-[#D23284]' : 'text-[#6B7387]'}`}>{item.icon}</div>
               <span className="text-sm font-medium tracking-wide">{item.label}</span>
             </Link>
           );
@@ -113,7 +111,7 @@ export default function UserSidebar({ isMobileOpen, onClose }: UserSidebarProps)
                 }`}
               >
                 {active && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 rounded-r-full bg-[#D23284]"></div>}
-                <div className={`flex-shrink-0 w-5 h-5 ${active ? 'text-[#D23284]' : 'text-[#6B7387]'}`}>{item.icon}</div>
+                <div className={`shrink-0 w-5 h-5 ${active ? 'text-[#D23284]' : 'text-[#6B7387]'}`}>{item.icon}</div>
                 <span className="text-sm font-medium tracking-wide">{item.label}</span>
               </Link>
             );
@@ -127,7 +125,7 @@ export default function UserSidebar({ isMobileOpen, onClose }: UserSidebarProps)
     <>
       {/* Desktop Sidebar */}
       <aside
-        className="hidden md:flex w-64 flex-col flex-shrink-0 overflow-y-auto"
+        className="hidden md:flex w-64 flex-col shrink-0 overflow-y-auto"
         style={{
           backgroundColor: '#F3E5E6',
           boxShadow: 'none',

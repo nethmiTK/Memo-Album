@@ -40,7 +40,7 @@ export default function LoginPage() {
         window.location.href = "/photographer-admin/settings";
         break;
       case "couple":
-        window.location.href = "/couple_adminInvite/albums";
+        window.location.href = "/user-panel/albums";
         break;
       case "client":
       default:

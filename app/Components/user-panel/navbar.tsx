@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Bell, Menu, LogOut, User as UserIcon } from 'lucide-react';
+import { Bell, Menu, LogOut, User as UserIcon, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { apiFetch, handleAuthError } from '@/lib/api';
 
 interface UserNavbarProps {
   onMenuClick?: () => void;
@@ -37,6 +38,39 @@ export default function UserNavbar({ onMenuClick }: UserNavbarProps) {
     };
 
     resolveUserInfo();
+    const hydrateFromApi = async () => {
+      try {
+        const response = await apiFetch('/auth/me');
+        if (response.status === 401) {
+          handleAuthError(response);
+          return;
+        }
+
+        if (!response.ok) return;
+
+        const result = await response.json();
+        if (!result?.success || !result.user) return;
+
+        const nextUser = {
+          id: result.user.id,
+          name: result.user.name || '',
+          email: result.user.email || '',
+          profileImage: result.user.profilePic || '',
+          profilePic: result.user.profilePic || '',
+          role: result.user.role || 'client',
+          status: result.user.status || 'active',
+        };
+
+        localStorage.setItem('user', JSON.stringify(nextUser));
+        localStorage.setItem('userData', JSON.stringify(nextUser));
+        setUserName(nextUser.name || 'User');
+        setProfileImage(nextUser.profileImage || '');
+      } catch {
+        // Keep cached/local profile info if the API round-trip fails.
+      }
+    };
+
+    hydrateFromApi();
     window.addEventListener('storage', resolveUserInfo);
     window.addEventListener('profile-updated', resolveUserInfo as EventListener);
     return () => {
@@ -50,7 +84,6 @@ export default function UserNavbar({ onMenuClick }: UserNavbarProps) {
     if (pathname.includes('/albums')) return 'My Albums';
     if (pathname.includes('/favorites')) return 'Favorites';
     if (pathname.includes('/profile')) return 'Profile';
-    if (pathname.includes('/settings')) return 'Settings';
     if (pathname.includes('/support')) return 'Support';
     return 'Dashboard';
   };
@@ -75,7 +108,7 @@ export default function UserNavbar({ onMenuClick }: UserNavbarProps) {
         </button>
 
         {/* Title - Hidden on mobile */}
-        <div className="hidden md:block min-w-[220px]">
+        <div className="hidden md:block min-w-55">
           <h2 className="font-serif text-2xl" style={{ color: '#C64D92' }}>{getNavTitle()}</h2>
         </div>
 
@@ -113,7 +146,7 @@ export default function UserNavbar({ onMenuClick }: UserNavbarProps) {
                   <UserIcon size={16} style={{ color: '#D23284' }} />
                 </div>
               )}
-              <span className="hidden md:block text-sm font-medium text-gray-700 max-w-[150px] truncate">
+              <span className="hidden md:block text-sm font-medium text-gray-700 max-w-37.5 truncate">
                 {userName}
               </span>
             </button>
@@ -130,7 +163,15 @@ export default function UserNavbar({ onMenuClick }: UserNavbarProps) {
                   onClick={() => setShowProfileMenu(false)}
                 >
                   <UserIcon size={16} />
-                  View Profile
+                  Profile
+                </Link>
+                <Link
+                  href="/home"
+                  className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  onClick={() => setShowProfileMenu(false)}
+                >
+                  <ExternalLink size={16} />
+                  Main Site
                 </Link>
                 <button
                   onClick={handleLogout}

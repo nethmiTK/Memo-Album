@@ -57,6 +57,23 @@ type FullscreenBookData = {
     slots?: any[];
   };
   mediaItems: any[];
+  pageLayouts?: Array<{
+    pageNumber?: number;
+    slotAssignments?: Array<{
+      slotId?: string;
+      mediaId?: string;
+      dataUrl?: string;
+      mediaKind?: string;
+      fileName?: string;
+      fileType?: string;
+      fileSize?: number;
+      mediaOrder?: number;
+      x?: number;
+      y?: number;
+      width?: number;
+      height?: number;
+    }>;
+  }>;
 };
 
 const fallbackCover = 'https://images.unsplash.com/photo-1522673607200-164d1b6ce8d2?w=1200&q=80';
@@ -175,8 +192,10 @@ export default function GalleryPage() {
           coverImage: templateSource.coverImage || '',
           pages: templateSource.pages || [],
           slots: templateSource.slots || [],
+          pageLayouts: Array.isArray(book.pageLayouts) ? book.pageLayouts : undefined,
         },
         mediaItems: Array.isArray(curateSource.mediaItems) ? curateSource.mediaItems : [],
+        pageLayouts: Array.isArray(book.pageLayouts) ? book.pageLayouts : undefined,
       });
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Failed to open book preview');

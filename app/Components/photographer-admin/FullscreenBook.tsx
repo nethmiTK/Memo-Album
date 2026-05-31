@@ -10,11 +10,93 @@ const FlipBook = HTMLFlipBook as any;
 interface FullscreenBookProps {
   template: TemplateRecord;
   mediaItems: CurateMediaInput[];
+  pageLayouts?: Array<{
+    pageNumber?: number;
+    slotAssignments?: Array<{
+      slotId?: string;
+      slotLabel?: string;
+      mediaId?: string | null;
+      mediaOrder?: number | null;
+      fileName?: string;
+      fileType?: string;
+      fileSize?: number;
+      dataUrl?: string;
+      mediaKind?: string;
+      x?: number;
+      y?: number;
+      width?: number;
+      height?: number;
+    }>;
+  }>;
   coverPhoto?: string;
   coverPhotoName?: string;
   coverWeddingDate?: string | Date;
   onClose: () => void;
 }
+
+type BookAlbumPageLayout = NonNullable<FullscreenBookProps['pageLayouts']>[number];
+
+const pageLayoutsToTemplatePages = (pageLayouts: BookAlbumPageLayout[]): TemplatePage[] =>
+  pageLayouts
+    .map((layout, index) => ({
+      pageNumber: Number.isFinite(Number(layout.pageNumber)) ? Number(layout.pageNumber) : index + 1,
+      pageLabel: `Page ${Number.isFinite(Number(layout.pageNumber)) ? Number(layout.pageNumber) : index + 1}`,
+      slots: (layout.slotAssignments || []).map((slot, slotIndex) => ({
+        id: slot.slotId || `slot-${index + 1}-${slotIndex + 1}`,
+        label: slot.slotLabel || slot.fileName || `Slot ${slotIndex + 1}`,
+        kind: slot.mediaKind || 'image',
+        x: slot.x,
+        y: slot.y,
+        width: slot.width,
+        height: slot.height,
+      })),
+    }))
+    .sort((left, right) => left.pageNumber - right.pageNumber);
+
+const pageLayoutsToMediaMap = (
+  pageLayouts: BookAlbumPageLayout[],
+  draftedMedia: TemplateMediaAsset[] = []
+): Record<string, TemplateMediaAsset> => {
+  const mediaMap: Record<string, TemplateMediaAsset> = {};
+
+  pageLayouts.forEach((layout, pageIndex) => {
+    (layout.slotAssignments || []).forEach((slot, slotIndex) => {
+      if (slot.dataUrl) {
+        const mediaKind = slot.mediaKind === 'video' ? 'video' : slot.mediaKind === 'other' ? 'other' : 'image';
+        mediaMap[slot.slotId || `slot-${pageIndex + 1}-${slotIndex + 1}`] = {
+          id: slot.mediaId || slot.slotId || `slot-${pageIndex + 1}-${slotIndex + 1}`,
+          sourceId: slot.mediaId || slot.slotId || `slot-${pageIndex + 1}-${slotIndex + 1}`,
+          src: slot.dataUrl,
+          label: slot.fileName || slot.slotLabel || `Page ${pageIndex + 1} Slot ${slotIndex + 1}`,
+          order: Number.isFinite(Number(slot.mediaOrder)) ? Number(slot.mediaOrder) : pageIndex * 100 + slotIndex + 1,
+          mediaKind,
+          fileType: slot.fileType || '',
+        };
+        return;
+      }
+
+      if (slot.mediaId) {
+        const found = draftedMedia.find((m) => m.sourceId === slot.mediaId || m.id === slot.mediaId);
+        if (found) {
+          mediaMap[slot.slotId || `slot-${pageIndex + 1}-${slotIndex + 1}`] = { ...found };
+          return;
+        }
+      }
+
+      if (slot.fileName) {
+        const foundByName = draftedMedia.find((m) => m.label === slot.fileName || (m.fileType && slot.fileName?.includes(m.fileType)));
+        if (foundByName) {
+          mediaMap[slot.slotId || `slot-${pageIndex + 1}-${slotIndex + 1}`] = { ...foundByName };
+          return;
+        }
+      }
+
+      // otherwise leave unmapped and fallback will assign sequentially
+    });
+  });
+
+  return mediaMap;
+};
 
 function CoverPage({ template, accent, coverPhoto, coverPhotoName, coverWeddingDate }: { template: TemplateRecord; accent: string; coverPhoto?: string; coverPhotoName?: string; coverWeddingDate?: string | Date }) {
   const coverImage = coverPhoto || template.coverImage;
@@ -128,9 +210,23 @@ export function FullscreenBook({ template, mediaItems, coverPhoto, coverPhotoNam
   const [bookSize, setBookSize] = useState({ width: 600, height: 800 });
   const [bookScale, setBookScale] = useState(80);
 
-  const pages = useMemo(() => getTemplatePages(template), [template]);
+  const pages = useMemo(() => {
+    if (Array.isArray((template as any).pages) && (template as any).pages.length > 0) return getTemplatePages(template);
+    return getTemplatePages(template);
+  }, [template]);
+
   const draftedMedia = useMemo(() => toTemplateMedia(mediaItems, coverPhoto, coverPhotoName), [mediaItems, coverPhoto, coverPhotoName]);
-  const mediaMap = useMemo(() => buildSlotMediaMap(pages, draftedMedia), [pages, draftedMedia]);
+
+  const mediaMap = useMemo(() => {
+    const fallback = buildSlotMediaMap(pages, draftedMedia);
+    // If parent passed pageLayouts via template.pages (from the BookAlbum), prefer explicit mapping
+    const pageLayouts = (template as any).pageLayouts as BookAlbumPageLayout[] | undefined;
+    if (Array.isArray(pageLayouts) && pageLayouts.length > 0) {
+      const explicit = pageLayoutsToMediaMap(pageLayouts, draftedMedia);
+      return { ...fallback, ...explicit };
+    }
+    return fallback;
+  }, [pages, draftedMedia, template]);
   const accent = template.accent || '#b10e6b';
 
   const playFlipSound = () => {

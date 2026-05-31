@@ -1,225 +1,229 @@
-'use client';
+ 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, Heart as HeartIcon, Image as ImageIcon, Sparkles } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { ArrowRight, Heart, Image as ImageIcon, X } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { apiFetch, handleAuthError } from '@/lib/api';
+import { useProtectedRoute } from '@/lib/useAuth';
+
+const favoritesCacheKey = 'memoalbum:user-panel:favorites';
 
 interface FavoritePhoto {
   id: string;
   url: string;
   albumName: string;
-  date: string;
+  fileName?: string;
+  mediaKind?: string;
+  sourceType?: string;
+  createdAt?: string;
 }
 
 export default function FavoritesPage() {
+  const { loading: authLoading } = useProtectedRoute(['client', 'couple']);
   const [favorites, setFavorites] = useState<FavoritePhoto[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const showcaseCards = [
-    {
-      title: 'The Bridal Story',
-      subtitle: 'Cinematic cover moment',
-      size: 'h-[18rem] lg:h-[22rem]',
-      background:
-        'linear-gradient(135deg, rgba(33, 26, 27, 0.85) 0%, rgba(210, 50, 132, 0.65) 35%, rgba(255, 248, 247, 0.95) 100%)',
-    },
-    {
-      title: 'City Light Walk',
-      subtitle: 'Soft frame / editorial travel',
-      size: 'h-52',
-      background:
-        'linear-gradient(135deg, rgba(243, 229, 230, 1) 0%, rgba(255, 248, 247, 0.95) 55%, rgba(221, 193, 202, 0.86) 100%)',
-    },
-    {
-      title: 'Vogue Study',
-      subtitle: 'High-contrast portrait crop',
-      size: 'h-72',
-      background:
-        'linear-gradient(135deg, rgba(33, 26, 27, 0.9) 0%, rgba(95, 84, 88, 0.72) 48%, rgba(255, 248, 247, 0.96) 100%)',
-    },
-    {
-      title: 'Ceremony Details',
-      subtitle: 'Tablescape and florals',
-      size: 'h-56',
-      background:
-        'linear-gradient(135deg, rgba(255, 248, 247, 1) 0%, rgba(245, 220, 227, 0.86) 50%, rgba(210, 50, 132, 0.42) 100%)',
-    },
-    {
-      title: 'Archive Cut',
-      subtitle: 'Lower frame / contact sheet',
-      size: 'h-48',
-      background:
-        'linear-gradient(135deg, rgba(244, 236, 238, 1) 0%, rgba(255, 248, 247, 0.94) 52%, rgba(178, 14, 107, 0.28) 100%)',
-    },
-    {
-      title: 'Golden Hour Reception',
-      subtitle: 'The closing wide shot',
-      size: 'h-[22rem]',
-      background:
-        'linear-gradient(135deg, rgba(33, 26, 27, 0.5) 0%, rgba(210, 50, 132, 0.2) 45%, rgba(255, 248, 247, 0.92) 100%)',
-    },
-  ];
+  const [removingId, setRemovingId] = useState<string | null>(null);
+  const [message, setMessage] = useState('');
+  const [selectedPhoto, setSelectedPhoto] = useState<FavoritePhoto | null>(null);
 
   useEffect(() => {
-    // TODO: Fetch favorite photos from API
-    setLoading(false);
-  }, []);
+    if (authLoading) return;
+
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = window.localStorage.getItem(favoritesCacheKey);
+        if (cached) {
+          const parsed = JSON.parse(cached) as { items?: FavoritePhoto[] };
+          if (Array.isArray(parsed.items)) {
+            setFavorites(parsed.items);
+          }
+        }
+      } catch {
+        // Ignore cache parse failures.
+      }
+    }
+
+    const loadFavorites = async () => {
+      try {
+        const response = await apiFetch('/favorites');
+        if (response.status === 401) {
+          handleAuthError(response);
+          return;
+        }
+
+        const result = await response.json();
+        if (!response.ok || !result.success || !Array.isArray(result.favorites)) {
+          setFavorites([]);
+          return;
+        }
+
+        setFavorites(result.favorites);
+
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem(favoritesCacheKey, JSON.stringify({ items: result.favorites, timestamp: Date.now() }));
+        }
+      } catch (error) {
+        console.error('Failed to load favorites:', error);
+        setFavorites([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadFavorites();
+  }, [authLoading]);
+
+  const removeFavorite = async (id: string) => {
+    try {
+      setRemovingId(id);
+      const response = await apiFetch(`/favorites/${id}`, { method: 'DELETE' });
+      if (response.status === 401) {
+        handleAuthError(response);
+        return;
+      }
+
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || 'Unable to remove favorite');
+      }
+
+      setFavorites((current) => current.filter((photo) => photo.id !== id));
+      setMessage('Removed from favorites');
+      window.setTimeout(() => setMessage(''), 2000);
+    } catch (error) {
+      console.error('Failed to remove favorite:', error);
+      setMessage('Could not remove favorite');
+      window.setTimeout(() => setMessage(''), 2000);
+    } finally {
+      setRemovingId(null);
+    }
+  };
+
+  if (authLoading || loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#fff8f8] px-4">
+        <p className="text-sm font-medium text-[#6B7387]">Loading favorites...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="px-4 md:px-8 lg:px-12 py-8 pb-24 md:pb-8">
-      <div className="mb-12">
-        <p className="text-[10px] font-bold uppercase tracking-[0.35em] mb-3" style={{ color: '#D23284' }}>
-          Collection 04 / Favorites
-        </p>
-        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
-          <div className="max-w-2xl">
-            <h1 className="text-4xl md:text-6xl font-serif font-bold mb-4 leading-none" style={{ color: '#2C1E26' }}>
-              The Curated <span className="italic font-normal">Moments</span>
-            </h1>
-            <p className="text-lg md:text-xl italic max-w-2xl leading-relaxed" style={{ color: '#6B7387' }}>
-              A selective anthology of your most cherished instances, captured with intentionality and preserved for eternity.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-6 rounded-full px-5 py-4 self-start lg:self-auto" style={{ backgroundColor: '#FFFFFF' }}>
-            <div className="text-right">
-              <span className="block text-[10px] font-bold uppercase tracking-[0.3em]" style={{ color: '#9B9095' }}>Total Items</span>
-              <span className="block text-3xl font-serif" style={{ color: '#2C1E26' }}>{favorites.length || 24}</span>
-            </div>
-            <div className="h-10 w-px" style={{ backgroundColor: '#E5CCD4' }}></div>
-            <div className="text-right">
-              <span className="block text-[10px] font-bold uppercase tracking-[0.3em]" style={{ color: '#9B9095' }}>Curated On</span>
-              <span className="block text-3xl font-serif" style={{ color: '#2C1E26' }}>Oct '23</span>
-            </div>
-          </div>
+    <div className="min-h-screen bg-[#fff8f8] px-4 py-8 md:px-8 lg:px-12">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-6">
+          <h1 className="text-3xl font-serif text-[#2C1E26]">Favorites</h1>
         </div>
-      </div>
 
-      {!loading && favorites.length === 0 ? (
-        <div className="editorial-grid items-start">
-          <div className="col-span-12 lg:col-span-5 rounded-2xl overflow-hidden relative min-h-[32rem]" style={{ backgroundColor: '#FFFFFF' }}>
-            <div
-              className="absolute inset-0"
-              style={{
-                background:
-                  'linear-gradient(135deg, rgba(255, 248, 247, 0.65) 0%, rgba(210, 50, 132, 0.1) 40%, rgba(33, 26, 27, 0.16) 100%)',
-              }}
-            ></div>
-            <div className="relative z-10 p-6 h-full flex flex-col justify-between">
-              <div className="inline-flex items-center gap-2 self-start rounded-full bg-white/90 px-4 py-2 shadow-sm">
-                <Sparkles size={14} style={{ color: '#D23284' }} />
-                <span className="text-[10px] font-bold uppercase tracking-[0.3em]" style={{ color: '#9B9095' }}>
-                  Curator's Choice
-                </span>
-              </div>
-              <div className="rounded-2xl p-5 bg-white/90 backdrop-blur-sm shadow-xl max-w-[17rem]">
-                <p className="text-[10px] font-bold uppercase tracking-[0.3em] mb-2" style={{ color: '#D23284' }}>
-                  Hero Selection
-                </p>
-                <h2 className="text-2xl font-serif font-bold mb-1" style={{ color: '#2C1E26' }}>
-                  Editorial Portrait
-                </h2>
-                <p className="text-sm" style={{ color: '#6B7387' }}>
-                  A cover-worthy frame reserved for the moments that lead the story.
-                </p>
-              </div>
-            </div>
+        {message ? (
+          <div className="mt-2 rounded-2xl border border-[#E5CCD4] bg-white px-4 py-3 text-sm font-medium text-[#2C1E26] shadow-sm">
+            {message}
           </div>
+        ) : null}
 
-          <div className="col-span-12 lg:col-span-7 grid grid-cols-12 gap-4">
-            <div className="col-span-12 md:col-span-5 rounded-2xl overflow-hidden relative h-[18rem]" style={{ background: showcaseCards[1].background }}>
-              <div className="absolute inset-0 bg-[url('/images/logobg.png')] bg-no-repeat bg-[right_1rem_top_1rem] opacity-10"></div>
-              <div className="absolute inset-x-0 bottom-0 p-5 bg-gradient-to-t from-white/90 to-transparent">
-                <p className="text-[10px] font-bold uppercase tracking-[0.3em]" style={{ color: '#D23284' }}>{showcaseCards[1].title}</p>
-                <p className="text-sm mt-1" style={{ color: '#6B7387' }}>{showcaseCards[1].subtitle}</p>
-              </div>
-            </div>
-
-            <div className="col-span-12 md:col-span-7 rounded-2xl overflow-hidden relative h-[18rem]" style={{ background: showcaseCards[2].background }}>
-              <div className="absolute inset-0 flex items-end justify-start p-6">
-                <div className="bg-white/90 backdrop-blur-sm rounded-full px-4 py-2 shadow-lg">
-                  <span className="text-[10px] font-bold uppercase tracking-[0.3em]" style={{ color: '#D23284' }}>Favorites Selection</span>
-                </div>
-              </div>
-              <div className="absolute top-5 left-5 text-white/80 text-[10px] font-bold uppercase tracking-[0.35em]">Vogue Study</div>
-            </div>
-
-            <div className="col-span-12 md:col-span-4 rounded-2xl overflow-hidden relative h-[15rem]" style={{ background: showcaseCards[3].background }}>
-              <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-white/90 to-transparent">
-                <p className="font-serif text-lg" style={{ color: '#2C1E26' }}>{showcaseCards[3].title}</p>
-              </div>
-            </div>
-
-            <div className="col-span-12 md:col-span-4 rounded-2xl overflow-hidden relative h-[15rem] mt-0 md:-mt-20" style={{ background: showcaseCards[4].background }}>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="rounded-full bg-white/90 px-4 py-3 shadow-lg">
-                  <ImageIcon size={18} style={{ color: '#D23284' }} />
-                </div>
-              </div>
-            </div>
-
-            <div className="col-span-12 md:col-span-4 rounded-2xl overflow-hidden relative h-[20rem] md:h-[22rem] mt-0 md:-mt-8" style={{ background: showcaseCards[5].background }}>
-              <div className="absolute bottom-0 left-0 right-0 p-5 bg-gradient-to-t from-white/90 to-transparent">
-                <p className="text-[10px] font-bold uppercase tracking-[0.3em] mb-1" style={{ color: '#9B9095' }}>Archive Cut</p>
-                <p className="font-serif text-2xl" style={{ color: '#2C1E26' }}>{showcaseCards[5].title}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {favorites.map((photo) => (
-            <div
-              key={photo.id}
-              className="group rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-xl"
-              style={{ backgroundColor: '#FFFFFF' }}
-            >
-              <div className="relative w-full h-72 overflow-hidden bg-[#FEF0F1]">
-                <img
-                  src={photo.url}
-                  alt="Favorite photo"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                />
-                <button
-                  className="absolute top-4 right-4 p-3 rounded-full shadow-lg transition-all duration-200"
-                  style={{ backgroundColor: 'rgba(255, 255, 255, 0.95)' }}
-                  title="Remove from favorites"
+        <section className="mt-6">
+          {favorites.length > 0 ? (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {favorites.map((photo) => (
+                <motion.article
+                  key={photo.id}
+                  initial={{ y: 0 }}
+                  whileHover={{ y: -6 }}
+                  className="group overflow-hidden rounded-3xl border border-[#E5CCD4] bg-white shadow-sm"
                 >
-                  <HeartIcon size={18} style={{ color: '#E91E63', fill: '#E91E63' }} />
-                </button>
-              </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPhoto(photo)}
+                    className="relative block aspect-4/5 w-full overflow-hidden bg-[#FEF0F1] text-left"
+                    aria-label="Open favorite image"
+                  >
+                    <img src={photo.url} alt="Favorite image" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
 
-              <div className="p-5">
-                <p className="text-[10px] font-bold uppercase tracking-[0.3em] mb-2" style={{ color: '#9B9095' }}>
-                  Favorite Selection
-                </p>
-                <p className="text-lg font-serif font-semibold" style={{ color: '#2C1E26' }}>
-                  {photo.albumName}
-                </p>
-                <p className="text-sm mt-1" style={{ color: '#6B7387' }}>
-                  {photo.date}
-                </p>
-              </div>
+                    <div className="absolute inset-0 bg-linear-to-t from-black/55 via-black/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+
+                    <div className="absolute right-4 top-4 z-20 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeFavorite(photo.id);
+                        }}
+                        disabled={removingId === photo.id}
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/95 text-[#D23284] shadow-md transition hover:scale-105 disabled:cursor-not-allowed disabled:opacity-60"
+                        aria-label="Remove from favorites"
+                      >
+                        <Heart size={16} fill="#D23284" />
+                      </button>
+                    </div>
+
+                  </button>
+                </motion.article>
+              ))}
             </div>
-          ))}
-        </div>
-      )}
-
-      <div className="mt-20 py-16 text-center">
-        <p className="max-w-xl mx-auto text-lg italic leading-relaxed" style={{ color: '#534345' }}>
-          “Every curated moment is a step back into the light of that perfect day.”
-        </p>
-        <div className="mt-8">
-          <Link
-            href="/user-panel/albums"
-            className="group inline-flex items-center gap-3 rounded-full border px-6 py-3 transition-colors"
-            style={{ borderColor: 'rgba(33, 26, 27, 0.15)', backgroundColor: '#FFFFFF', color: '#2C1E26' }}
-          >
-            <span className="font-serif italic">View All Curations</span>
-            <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" style={{ color: '#D23284' }} />
-          </Link>
-        </div>
+          ) : (
+            <div className="rounded-3xl border border-dashed border-[#E5CCD4] bg-white p-10 text-center shadow-sm">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#FEF0F1] text-[#D23284]">
+                <ImageIcon size={28} />
+              </div>
+              <h2 className="mt-6 text-2xl font-serif text-[#2C1E26]">No favorites yet</h2>
+              <p className="mt-3 text-sm leading-7 text-[#6B7387]">
+                Open one of your assigned albums and click an image to save it as a favorite.
+              </p>
+              <Link
+                href="/user-panel/albums"
+                className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#D23284] px-5 py-3 text-sm font-semibold text-white"
+              >
+                Browse Albums <ArrowRight size={16} />
+              </Link>
+            </div>
+          )}
+        </section>
       </div>
+
+      <AnimatePresence>
+        {selectedPhoto ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 md:p-8"
+            onClick={() => setSelectedPhoto(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.92, y: 18, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.96, y: 10, opacity: 0 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+              className="relative w-full max-w-5xl overflow-hidden rounded-3xl bg-[#140d10] shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                onClick={() => setSelectedPhoto(null)}
+                className="absolute right-4 top-4 z-10 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-md transition hover:bg-white/20"
+                aria-label="Close preview"
+              >
+                <X size={20} />
+              </button>
+
+              <div className="grid gap-0 lg:grid-cols-[1.5fr_0.9fr]">
+                <div className="flex items-center justify-center bg-black">
+                  <motion.img
+                    key={selectedPhoto.id}
+                    initial={{ scale: 0.98, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ duration: 0.3 }}
+                    src={selectedPhoto.url}
+                    alt="Favorite image"
+                    className="max-h-[82vh] w-full object-contain"
+                  />
+                </div>
+                <div className="hidden lg:block bg-black" />
+              </div>
+            </motion.div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }
