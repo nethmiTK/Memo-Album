@@ -73,6 +73,8 @@ const parseApiJson = async (response: Response) => {
   }
 };
 
+const hasMediaSrc = (value?: string) => Boolean(value && value.trim());
+
 interface MediaItem {
   id: string;
   fileName: string;
@@ -928,14 +930,14 @@ const CreateAlbum: React.FC = () => {
                       onDragOver={(e) => handleDragOver(e, item)}
                       onDragEnd={handleDragEnd}
                     >
-                      {item.mediaKind === 'image' && item.dataUrl ? (
+                      {item.mediaKind === 'image' && hasMediaSrc(item.dataUrl) ? (
                         <div className="relative h-32 bg-[#f7ecef]">
                           <img src={item.dataUrl} alt={item.fileName} className="h-full w-full object-cover" />
                           <div className="absolute inset-0 bg-linear-to-t from-black/50 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
                         </div>
                       ) : (
                         <div className="relative h-32 bg-black">
-                          {item.dataUrl ? (
+                          {hasMediaSrc(item.dataUrl) ? (
                             <video
                               src={item.dataUrl}
                               className="h-full w-full object-cover"
@@ -1029,7 +1031,7 @@ const CreateAlbum: React.FC = () => {
         <button
           type="button"
           onClick={() => setIsBookModalOpen(true)}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-[#b10e6b] px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#b10e6b] transition hover:bg-[#fff0f4]"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-[#b10e6b] px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#b10e6b] transition hover:bg-[#BE126F] hover:text-white"
         >
           <Maximize2 size={14} />
           Fullscreen Book
@@ -1095,10 +1097,16 @@ const CreateAlbum: React.FC = () => {
         </div>
 
         <div className="bg-[#111]">
-          {previewMedia.mediaKind === 'video' ? (
-            <video src={previewMedia.dataUrl} className="max-h-[80vh] w-full object-contain" controls autoPlay playsInline />
+          {hasMediaSrc(previewMedia.dataUrl) ? (
+            previewMedia.mediaKind === 'video' ? (
+              <video src={previewMedia.dataUrl} className="max-h-[80vh] w-full object-contain" controls autoPlay playsInline />
+            ) : (
+              <img src={previewMedia.dataUrl} alt={previewMedia.fileName} className="max-h-[80vh] w-full object-contain" />
+            )
           ) : (
-            <img src={previewMedia.dataUrl} alt={previewMedia.fileName} className="max-h-[80vh] w-full object-contain" />
+            <div className="flex min-h-[40vh] items-center justify-center bg-[#111] text-center text-sm text-white/70">
+              Preview unavailable
+            </div>
           )}
         </div>
       </div>

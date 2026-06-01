@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { TemplateRecord, TemplatePage, TemplateMediaAsset, getTemplatePages, buildSlotMediaMap, toTemplateMedia, CurateMediaInput } from '@/lib/template-book-media';
 import HTMLFlipBook from 'react-pageflip';
 
@@ -35,6 +35,17 @@ interface FullscreenBookProps {
 }
 
 type BookAlbumPageLayout = NonNullable<FullscreenBookProps['pageLayouts']>[number];
+
+const hexToRgba = (hex: string, alpha: number) => {
+  const normalized = hex.replace('#', '').trim();
+  if (!/^[0-9a-fA-F]{6}$/.test(normalized)) return `rgba(177,14,107,${alpha})`;
+
+  const red = Number.parseInt(normalized.slice(0, 2), 16);
+  const green = Number.parseInt(normalized.slice(2, 4), 16);
+  const blue = Number.parseInt(normalized.slice(4, 6), 16);
+
+  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+};
 
 const pageLayoutsToTemplatePages = (pageLayouts: BookAlbumPageLayout[]): TemplatePage[] =>
   pageLayouts
@@ -104,8 +115,8 @@ function CoverPage({ template, accent, coverPhoto, coverPhotoName, coverWeddingD
   const weddingDate = coverWeddingDate ? new Date(coverWeddingDate).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : '';
 
   return (
-    <div className="h-full w-full bg-[#FFF6F5] p-2">
-      <div className="relative h-full w-full overflow-hidden rounded-[1.15rem] border border-[#ead7dc] bg-white shadow-[0_16px_38px_rgba(0,0,0,0.08)]">
+    <div className="h-full w-full p-2" style={{ background: `linear-gradient(180deg, ${hexToRgba(accent, 0.20)} 0%, ${hexToRgba(accent, 0.08)} 100%)` }}>
+      <div className="relative h-full w-full overflow-hidden rounded-[1.15rem] border bg-white shadow-[0_16px_38px_rgba(0,0,0,0.08)]" style={{ borderColor: hexToRgba(accent, 0.24) }}>
         {coverImage ? (
           <>
             <img src={coverImage} alt={coverTitle} className="h-full w-full object-cover" />
@@ -146,10 +157,11 @@ function BookPage({
   onMediaClick: (media: TemplateMediaAsset) => void;
 }) {
   const usesAbsoluteLayout = page.slots.some((slot) => Number.isFinite(Number(slot.x)) || Number.isFinite(Number(slot.y)));
+  const pageSurface = `linear-gradient(180deg, ${hexToRgba(accent, 0.16)} 0%, #fffdfd 24%, #fff8fb 72%, ${hexToRgba(accent, 0.10)} 100%)`;
 
   return (
-    <div className="h-full w-full bg-[#FFF8F7] p-2">
-      <div className="flex h-full flex-col overflow-hidden rounded-[1.1rem] border border-[#ede5e8] bg-white p-4 shadow-[0_14px_35px_rgba(0,0,0,0.06)]">
+    <div className="h-full w-full p-2" style={{ background: pageSurface }}>
+      <div className="flex h-full flex-col overflow-hidden rounded-[1.1rem] border bg-white p-4 shadow-[0_14px_35px_rgba(0,0,0,0.06)]" style={{ borderColor: hexToRgba(accent, 0.26) }}>
         <div className={`flex items-center justify-between border-b border-[#f2e8ec] pb-2 ${variant === 'fullscreen' ? 'hidden' : ''}`}>
           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#8d7d81]">{pageLabel}</p>
         </div>
@@ -180,9 +192,9 @@ function BookPage({
                 }}
                 onClick={() => media && onMediaClick(media)}
               >
-                {media ? (
+                {media?.src ? (
                   media.mediaKind === 'video' ? (
-                    <video src={media.src} playsInline className="absolute inset-0 h-full w-full object-cover" />
+                    <video src={media.src} playsInline preload="metadata" controls className="absolute inset-0 h-full w-full object-cover" />
                   ) : (
                     <img src={media.src} alt={media.label} className="absolute inset-0 h-full w-full object-cover" />
                   )
@@ -198,17 +210,69 @@ function BookPage({
   );
 }
 
+function ScrollFeedItem({
+  media,
+  onMediaClick,
+}: {
+  media: TemplateMediaAsset;
+  onMediaClick: (media: TemplateMediaAsset) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onMediaClick(media)}
+      className="group flex w-full items-stretch justify-center rounded-3xl border border-[#f0e1e7] bg-white/90 p-3 text-left shadow-[0_14px_30px_rgba(0,0,0,0.06)] transition-transform duration-300 hover:-translate-y-1 hover:shadow-[0_18px_38px_rgba(0,0,0,0.1)]"
+    >
+      <div
+        className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-2xl bg-[#120b0d]"
+        style={{ minHeight: 'clamp(320px, 42vh, 430px)' }}
+      >
+        {media.mediaKind === 'video' ? (
+          <video
+            src={media.src}
+            autoPlay
+            muted
+            loop
+            playsInline
+            controls
+            className="max-h-full max-w-full object-cover"
+          />
+        ) : (
+          <img
+            src={media.src}
+            alt={media.label}
+            className="max-h-full max-w-full object-cover"
+          />
+        )}
+
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/70 via-black/20 to-transparent p-4 text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+          <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/75">Media Preview</p>
+          <p className="mt-1 text-sm font-medium text-white">{media.label}</p>
+        </div>
+      </div>
+    </button>
+  );
+}
+
+type FullscreenViewMode = 'book' | 'scroll';
+
 export function FullscreenBook({ template, mediaItems, coverPhoto, coverPhotoName, coverWeddingDate, onClose }: FullscreenBookProps) {
   const bookRef = useRef<any>(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const lastPointerMoveRef = useRef(0);
   const bookHoverRef = useRef(false);
   const autoFlipTimerRef = useRef<number | null>(null);
   const [isHeaderVisible, setIsHeaderVisible] = useState(false);
   const [isFooterVisible, setIsFooterVisible] = useState(false);
+  const [isPointerInsideScroll, setIsPointerInsideScroll] = useState(false);
+  const [viewMode, setViewMode] = useState<FullscreenViewMode>('book');
   const [currentPage, setCurrentPage] = useState(0);
   const [selectedMedia, setSelectedMedia] = useState<TemplateMediaAsset | null>(null);
   const [mediaZoom, setMediaZoom] = useState(100);
   const [bookSize, setBookSize] = useState({ width: 600, height: 800 });
   const [bookScale, setBookScale] = useState(80);
+  const isMobileLayout = bookSize.width < 520;
+  const isScrollMode = viewMode === 'scroll';
 
   const pages = useMemo(() => {
     if (Array.isArray((template as any).pages) && (template as any).pages.length > 0) return getTemplatePages(template);
@@ -216,6 +280,24 @@ export function FullscreenBook({ template, mediaItems, coverPhoto, coverPhotoNam
   }, [template]);
 
   const draftedMedia = useMemo(() => toTemplateMedia(mediaItems, coverPhoto, coverPhotoName), [mediaItems, coverPhoto, coverPhotoName]);
+
+  const scrollMediaItems = useMemo(() => {
+    const orderedDraftedMedia = [...draftedMedia].sort((left, right) => (left.order || 0) - (right.order || 0));
+    const coverImage = coverPhoto || template.coverImage;
+    const coverItem = coverImage
+      ? [{
+          id: 'cover-media',
+          sourceId: 'cover-media',
+          src: coverImage,
+          label: coverPhotoName || template.name || 'Album Cover',
+          order: -1,
+          mediaKind: 'image' as const,
+          fileType: 'image/jpeg',
+        }]
+      : [];
+
+    return [...coverItem, ...orderedDraftedMedia].filter((item, index, array) => array.findIndex((entry) => entry.src === item.src) === index);
+  }, [draftedMedia, coverPhoto, coverPhotoName, template.coverImage, template.name]);
 
   const mediaMap = useMemo(() => {
     const fallback = buildSlotMediaMap(pages, draftedMedia);
@@ -228,6 +310,8 @@ export function FullscreenBook({ template, mediaItems, coverPhoto, coverPhotoNam
     return fallback;
   }, [pages, draftedMedia, template]);
   const accent = template.accent || '#b10e6b';
+  const goToPreviousPage = () => bookRef.current?.pageFlip?.()?.flipPrev?.();
+  const goToNextPage = () => bookRef.current?.pageFlip?.()?.flipNext?.();
 
   const playFlipSound = () => {
     if (typeof window === 'undefined') return;
@@ -236,22 +320,28 @@ export function FullscreenBook({ template, mediaItems, coverPhoto, coverPhotoNam
     if (!AudioContextClass) return;
 
     const audioContext = new AudioContextClass();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
+    const notes = [392, 523.25, 659.25];
 
-    oscillator.type = 'triangle';
-    oscillator.frequency.setValueAtTime(640, audioContext.currentTime);
-    oscillator.frequency.exponentialRampToValueAtTime(220, audioContext.currentTime + 0.16);
+    notes.forEach((frequency, index) => {
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      const startTime = audioContext.currentTime + index * 0.06;
 
-    gainNode.gain.setValueAtTime(0.0001, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.08, audioContext.currentTime + 0.02);
-    gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.18);
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(frequency, startTime);
+      oscillator.frequency.exponentialRampToValueAtTime(frequency * 0.96, startTime + 0.12);
 
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    oscillator.start();
-    oscillator.stop(audioContext.currentTime + 0.2);
-    oscillator.onended = () => audioContext.close().catch(() => undefined);
+      gainNode.gain.setValueAtTime(0.0001, startTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.045, startTime + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.18);
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      oscillator.start(startTime);
+      oscillator.stop(startTime + 0.2);
+    });
+
+    window.setTimeout(() => audioContext.close().catch(() => undefined), 500);
   };
 
   const stopAutoFlip = () => {
@@ -262,7 +352,7 @@ export function FullscreenBook({ template, mediaItems, coverPhoto, coverPhotoNam
   };
   
   const startAutoFlip = () => {
-    if (autoFlipTimerRef.current || pages.length <= 1) return;
+    if (autoFlipTimerRef.current || pages.length <= 1 || isScrollMode) return;
 
     autoFlipTimerRef.current = window.setInterval(() => {
       if (bookHoverRef.current) return;
@@ -273,18 +363,28 @@ export function FullscreenBook({ template, mediaItems, coverPhoto, coverPhotoNam
         return;
       }
 
-      bookRef.current?.pageFlip?.().flipNext?.();
+      bookRef.current?.pageFlip?.()?.flipNext?.();
     }, 2600);
   };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
+      if (selectedMedia) return;
+      if (isScrollMode) return;
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        goToPreviousPage();
+      }
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        goToNextPage();
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
+  }, [onClose, selectedMedia, isScrollMode]);
 
   useEffect(() => {
     if (!template) return;
@@ -303,15 +403,56 @@ export function FullscreenBook({ template, mediaItems, coverPhoto, coverPhotoNam
   }, [template, pages.length]);
 
   useEffect(() => {
+    if (isScrollMode) {
+      stopAutoFlip();
+      return;
+    }
+
     startAutoFlip();
     return () => stopAutoFlip();
-  }, [currentPage, pages.length]);
+  }, [currentPage, pages.length, isScrollMode]);
+
+  useEffect(() => {
+    if (isScrollMode) {
+      setIsHeaderVisible(true);
+      setIsFooterVisible(false);
+      bookHoverRef.current = false;
+    }
+  }, [isScrollMode]);
+
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container || !isScrollMode) return;
+
+    let frame = 0;
+    const speed = 0.35;
+    const idleThresholdMs = 700;
+
+    const autoScroll = () => {
+      const isIdle = Date.now() - lastPointerMoveRef.current > idleThresholdMs;
+      const shouldAutoScroll = !isPointerInsideScroll || isIdle;
+
+      if (shouldAutoScroll) {
+        container.scrollTop += speed;
+      }
+
+      if (container.scrollTop >= container.scrollHeight - container.clientHeight) {
+        container.scrollTop = 0;
+      }
+
+      frame = window.requestAnimationFrame(autoScroll);
+    };
+
+    frame = window.requestAnimationFrame(autoScroll);
+    return () => window.cancelAnimationFrame(frame);
+  }, [isPointerInsideScroll, isScrollMode]);
 
   useEffect(() => {
     const computeSize = () => {
-      const availableHeight = Math.max(600, window.innerHeight - 200);
-      const availableWidth = Math.max(800, window.innerWidth - 100);
-      const targetWidth = Math.max(500, Math.floor((availableWidth - 24) / 2));
+      const isMobile = window.innerWidth < 768;
+      const availableHeight = isMobile ? Math.max(420, window.innerHeight - 160) : Math.max(600, window.innerHeight - 200);
+      const availableWidth = isMobile ? Math.max(320, window.innerWidth - 32) : Math.max(800, window.innerWidth - 100);
+      const targetWidth = isMobile ? Math.min(availableWidth, 420) : Math.max(500, Math.floor((availableWidth - 24) / 2));
       setBookSize({ width: targetWidth, height: availableHeight });
     };
 
@@ -322,6 +463,12 @@ export function FullscreenBook({ template, mediaItems, coverPhoto, coverPhotoNam
   }, []);
 
   const handlePointerMove = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (isScrollMode) {
+      setIsHeaderVisible(true);
+      setIsFooterVisible(false);
+      return;
+    }
+
     const topTriggerHeight = 72;
     const bottomTriggerHeight = 72;
     const isTopZone = event.clientY <= topTriggerHeight;
@@ -343,37 +490,114 @@ export function FullscreenBook({ template, mediaItems, coverPhoto, coverPhotoNam
         bookHoverRef.current = false;
       }}
     >
+      <div className="pointer-events-none absolute inset-0 z-10 hidden md:block">
+        {!isScrollMode && (
+          <>
+            <button
+              type="button"
+              aria-label="Previous page"
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                try { bookRef.current?.pageFlip?.()?.flipPrev?.(); } catch (err) {}
+                playFlipSound();
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className="pointer-events-auto absolute left-0 top-0 h-full w-[22%] cursor-pointer bg-transparent"
+            >
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full border border-white/80 bg-white/90 px-3 py-2 text-xs font-bold uppercase tracking-[0.18em] text-[#9b0044] shadow-lg">
+                <ChevronLeft size={16} className="inline-block align-middle" /> Prev
+              </span>
+            </button>
+            <button
+              type="button"
+              aria-label="Next page"
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                try { bookRef.current?.pageFlip?.()?.flipNext?.(); } catch (err) {}
+                playFlipSound();
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className="pointer-events-auto absolute right-0 top-0 h-full w-[22%] cursor-pointer bg-transparent"
+            >
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full border border-white/80 bg-white/90 px-3 py-2 text-xs font-bold uppercase tracking-[0.18em] text-[#9b0044] shadow-lg">
+                Next <ChevronRight size={16} className="inline-block align-middle" />
+              </span>
+            </button>
+          </>
+        )}
+      </div>
+
+      {!isScrollMode && (
+        <div className="pointer-events-none absolute inset-0 z-10 md:hidden">
+          <button
+            type="button"
+            aria-label="Previous page"
+            onPointerDown={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              try { bookRef.current?.pageFlip?.()?.flipPrev?.(); } catch (err) {}
+              playFlipSound();
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className="pointer-events-auto absolute left-0 top-0 h-full w-[22%] bg-transparent"
+          />
+          <button
+            type="button"
+            aria-label="Next page"
+            onPointerDown={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              try { bookRef.current?.pageFlip?.()?.flipNext?.(); } catch (err) {}
+              playFlipSound();
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className="pointer-events-auto absolute right-0 top-0 h-full w-[22%] bg-transparent"
+          />
+        </div>
+      )}
+
       {/* Header */}
-      <header className={`absolute inset-x-0 top-0 z-20 border-b border-[#ead5dc] bg-[#FFF1F3]/95 px-6 py-3 backdrop-blur transition-all duration-200 ${isHeaderVisible ? 'translate-y-0 opacity-100' : '-translate-y-full pointer-events-none opacity-0'}`}>
+      <header className={`absolute inset-x-0 top-0 z-20 border-b border-[#ead5dc] bg-[#FFF1F3]/98 px-4 py-3 transition-all duration-200 md:px-6 ${isMobileLayout || isHeaderVisible ? 'translate-y-0 opacity-100' : '-translate-y-full pointer-events-none opacity-0'}`}>
         <div className="flex items-center justify-between">
           <div>
             <h1 className="font-['Libre_Caslon_Text'] text-[26px] leading-none text-[#9b0044]">{template.name}</h1>
-            <p className="mt-0.5 text-[8px] font-bold uppercase tracking-[0.24em] text-[#8d7d81]">Fullscreen Flip Preview</p>
+            <p className="mt-0.5 text-[8px] font-bold uppercase tracking-[0.24em] text-[#8d7d81]">{isScrollMode ? 'Fullscreen Scroll Preview' : 'Fullscreen Flip Preview'}</p>
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Book Zoom Controls */}
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#e1bec4] bg-white">
-              <button
-                onClick={() => setBookScale(prev => Math.max(50, prev - 10))}
-                className="px-2 py-1 text-xs hover:bg-[#fff0f4] rounded transition-colors text-[#9b0044]"
-              >
-                -
-              </button>
-              <span className="min-w-11.25 text-center text-xs font-bold text-[#8d7d81]">{bookScale}%</span>
-              <button
-                onClick={() => setBookScale(prev => Math.min(150, prev + 10))}
-                className="px-2 py-1 text-xs hover:bg-[#fff0f4] rounded transition-colors text-[#9b0044]"
-              >
-                +
-              </button>
-              <button
-                onClick={() => setBookScale(100)}
-                className="px-2 py-1 text-xs hover:bg-[#fff0f4] rounded transition-colors text-[#9b0044]"
-              >
-                Reset
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => setViewMode((prev) => (prev === 'book' ? 'scroll' : 'book'))}
+              className="inline-flex items-center gap-2 rounded-lg border border-[#e1bec4] bg-white px-3 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[#9b0044] transition-colors hover:bg-[#fff0f4]"
+            >
+              {isScrollMode ? 'Book view' : 'Scroll view'}
+            </button>
+
+            {!isScrollMode && (
+              <div className="hidden items-center gap-2 rounded-lg border border-[#e1bec4] bg-white px-3 py-1.5 md:flex">
+                <button
+                  onClick={() => setBookScale(prev => Math.max(50, prev - 10))}
+                  className="rounded px-2 py-1 text-xs text-[#9b0044] transition-colors hover:bg-[#fff0f4]"
+                >
+                  -
+                </button>
+                <span className="min-w-11.25 text-center text-xs font-bold text-[#8d7d81]">{bookScale}%</span>
+                <button
+                  onClick={() => setBookScale(prev => Math.min(150, prev + 10))}
+                  className="rounded px-2 py-1 text-xs text-[#9b0044] transition-colors hover:bg-[#fff0f4]"
+                >
+                  +
+                </button>
+                <button
+                  onClick={() => setBookScale(100)}
+                  className="rounded px-2 py-1 text-xs text-[#9b0044] transition-colors hover:bg-[#fff0f4]"
+                >
+                  Reset
+                </button>
+              </div>
+            )}
 
             <button
               onClick={onClose}
@@ -387,54 +611,122 @@ export function FullscreenBook({ template, mediaItems, coverPhoto, coverPhotoNam
       </header>
 
       {/* Book View */}
-      <main className="absolute inset-0 flex items-center justify-center overflow-hidden">
-        <div 
-          className="flex h-full w-full items-center justify-center"
-          style={{ transform: `scale(${bookScale / 100})`, transition: 'transform 0.3s ease' }}
-        >
-          <div style={{ width: '100%', maxWidth: '100%', height: '100%' }} className="mx-auto flex items-center justify-center">
-            <FlipBook
-              ref={bookRef}
-              width={bookSize.width}
-              height={bookSize.height}
-              size="stretch"
-              minWidth={400}
-              maxWidth={1400}
-              minHeight={600}
-              maxHeight={1200}
-              showCover
-              mobileScrollSupport
-              className="mx-auto"
-              onFlip={(event: any) => {
-                setCurrentPage(event.data);
-                playFlipSound();
-              }}
-            >
-              <div>
-                <CoverPage template={template} accent={accent} coverPhoto={coverPhoto} coverPhotoName={coverPhotoName} coverWeddingDate={coverWeddingDate} />
-              </div>
+      <main
+        ref={scrollRef}
+        className={`absolute inset-0 ${isScrollMode ? 'overflow-y-auto overscroll-contain scroll-smooth snap-y snap-mandatory' : 'flex items-center justify-center overflow-hidden'}`}
+        onMouseEnter={() => {
+          lastPointerMoveRef.current = Date.now();
+          setIsPointerInsideScroll(true);
+        }}
+        onMouseMove={() => {
+          lastPointerMoveRef.current = Date.now();
+        }}
+        onMouseLeave={() => setIsPointerInsideScroll(false)}
+      >
+        {isScrollMode ? (
+          <div className="mx-auto flex min-h-full w-full max-w-4xl flex-col gap-4 px-4 pb-12 pt-24 sm:px-6 lg:px-8">
+            <div className="rounded-3xl border border-[#f0e1e7] bg-white px-6 py-5 shadow-sm">
+              <h3 className="text-[10px] font-bold uppercase tracking-[0.26em] text-[#9a8a8e]">Live Content Feed</h3>
+              <p className="mt-1 text-xs text-[#9a8a8e]">Images and video run as one centered stream. Move the cursor inside to pause, leave the screen to resume auto scroll.</p>
+            </div>
 
-              {pages.map((page) => (
-                <div key={`${page.pageNumber}-${page.pageLabel || 'page'}`}>
-                  <BookPage 
-                    page={page} 
-                    accent={accent} 
-                    pageLabel={page.pageLabel || `Page ${page.pageNumber}`}
-                    variant="fullscreen"
-                    mediaMap={mediaMap}
-                    onMediaClick={setSelectedMedia}
-                  />
-                </div>
-              ))}
-            </FlipBook>
+            {scrollMediaItems.map((media, index) => (
+              <div key={`${media.id || media.sourceId || media.src}-${index}`} className="mx-auto w-full snap-start">
+                <ScrollFeedItem media={media} onMediaClick={setSelectedMedia} />
+              </div>
+            ))}
+
+            {scrollMediaItems.length === 0 ? (
+              <div className="flex min-h-[56vh] items-center justify-center rounded-3xl border border-dashed border-[#ecd8e0] bg-white text-sm text-[#9a8a8e]">
+                No media selected yet
+              </div>
+            ) : null}
           </div>
-        </div>
+        ) : (
+          <div 
+            className="flex h-full w-full items-center justify-center"
+            style={{ transform: `scale(${bookScale / 100})`, transition: 'transform 0.3s ease' }}
+          >
+            <div style={{ width: '100%', maxWidth: '100%', height: '100%' }} className="mx-auto flex items-center justify-center">
+              <FlipBook
+                ref={bookRef}
+                width={bookSize.width}
+                height={bookSize.height}
+                size="stretch"
+                minWidth={400}
+                maxWidth={1400}
+                minHeight={600}
+                maxHeight={1200}
+                showCover
+                mobileScrollSupport
+                className="mx-auto"
+                onFlip={(event: any) => {
+                  setCurrentPage(event.data);
+                  playFlipSound();
+                }}
+              >
+                <div>
+                  <CoverPage template={template} accent={accent} coverPhoto={coverPhoto} coverPhotoName={coverPhotoName} coverWeddingDate={coverWeddingDate} />
+                </div>
+
+                {pages.map((page) => (
+                  <div key={`${page.pageNumber}-${page.pageLabel || 'page'}`}>
+                    <BookPage 
+                      page={page} 
+                      accent={accent} 
+                      pageLabel={page.pageLabel || `Page ${page.pageNumber}`}
+                      variant="fullscreen"
+                      mediaMap={mediaMap}
+                      onMediaClick={setSelectedMedia}
+                    />
+                  </div>
+                ))}
+              </FlipBook>
+            </div>
+          </div>
+        )}
       </main>
 
+      {!isScrollMode && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-4 z-30 flex items-center justify-between px-4 md:hidden">
+          <button
+            type="button"
+            onPointerDown={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              try { bookRef.current?.pageFlip?.()?.flipPrev?.(); } catch (err) {}
+              playFlipSound();
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className="pointer-events-auto inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/80 bg-white/90 text-[#9b0044] shadow-lg transition-colors active:scale-95"
+            aria-label="Previous page"
+          >
+            <ChevronLeft size={22} />
+          </button>
+
+          <button
+            type="button"
+            onPointerDown={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              try { bookRef.current?.pageFlip?.()?.flipNext?.(); } catch (err) {}
+              playFlipSound();
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className="pointer-events-auto inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/80 bg-white/90 text-[#9b0044] shadow-lg transition-colors active:scale-95"
+            aria-label="Next page"
+          >
+            <ChevronRight size={22} />
+          </button>
+        </div>
+      )}
+
       {/* Footer */}
-      <footer className={`absolute inset-x-0 bottom-0 z-20 border-t border-[#ead5dc] bg-[#FFF1F3] px-6 py-2 text-center text-[9px] font-bold uppercase tracking-[0.2em] text-[#8d7d81] transition-all duration-200 ${isFooterVisible ? 'translate-y-0 opacity-100' : 'translate-y-full pointer-events-none opacity-0'}`}>
-        Hover to show controls
-      </footer>
+      {!isScrollMode && (
+        <footer className={`absolute inset-x-0 bottom-0 z-20 border-t border-[#ead5dc] bg-[#FFF1F3] px-4 py-2 text-center text-[9px] font-bold uppercase tracking-[0.2em] text-[#8d7d81] transition-all duration-200 md:px-6 ${isMobileLayout || isFooterVisible ? 'translate-y-0 opacity-100' : 'translate-y-full pointer-events-none opacity-0'}`}>
+          {isMobileLayout ? 'Tap left or right to flip pages' : 'Hover to show controls'}
+        </footer>
+      )}
 
       {/* Media Popup */}
       {selectedMedia && (

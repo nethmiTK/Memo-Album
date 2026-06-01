@@ -178,10 +178,14 @@ function InteractiveBookPage({
               >
                 {slot.dataUrl ? (
                   <>
-                    {slot.mediaKind === 'image' ? (
+                    {slot.mediaKind === 'image' && slot.dataUrl ? (
                       <img src={slot.dataUrl} alt={slot.fileName} className="w-full h-full object-cover" />
+                    ) : slot.dataUrl ? (
+                      <video src={slot.dataUrl} className="w-full h-full object-cover" controls playsInline preload="metadata" />
                     ) : (
-                      <video src={slot.dataUrl} className="w-full h-full object-cover" />
+                      <div className="flex h-full w-full items-center justify-center bg-linear-to-br from-gray-100 to-gray-300">
+                        <span className="text-[10px] font-bold tracking-widest text-gray-600">MEDIA</span>
+                      </div>
                     )}
                     {isEditable && (
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
@@ -337,7 +341,7 @@ export function BookViewInteractive({
                     fileName: media.fileName,
                     fileType: media.fileType,
                     fileSize: media.fileSize,
-                    dataUrl: media.dataUrl,
+                    dataUrl: media.dataUrl || '',
                     mediaKind: media.mediaKind,
                   }
                 : {

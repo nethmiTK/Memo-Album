@@ -553,16 +553,16 @@ export default function ArchivePage() {
 
             return (
               <article key={group.folderName} className="overflow-hidden rounded-3xl border border-[#e9dddd] bg-white shadow-sm transition-shadow hover:shadow-md">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setExpandedArchiveId(isExpanded ? null : group.folderName);
-                    setSelectedFullscreenBook(null);
-                    setEditingFolderName('');
-                  }}
-                  className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
-                >
-                  <div className="flex items-center gap-4">
+                <div className="flex w-full items-center justify-between gap-4 px-5 py-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setExpandedArchiveId(isExpanded ? null : group.folderName);
+                      setSelectedFullscreenBook(null);
+                      setEditingFolderName('');
+                    }}
+                    className="flex flex-1 items-center gap-4 text-left"
+                  >
                     <div className="relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-[#f7e3ec] text-[#9b0044]">
                       <img src={archiveCover(representativeArchive)} alt={group.folderName} className="absolute inset-0 h-full w-full object-cover" />
                       <div className="absolute inset-0 bg-black/15" />
@@ -579,7 +579,8 @@ export default function ArchivePage() {
                       </div>
                       <p className="text-xs text-[#6b5d60]">File folder · {new Date(group.latestAt || Date.now()).toLocaleDateString()}</p>
                     </div>
-                  </div>
+                    <ChevronDown size={18} className={`text-[#9b0044] transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                  </button>
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
@@ -604,9 +605,8 @@ export default function ArchivePage() {
                       <Trash2 size={12} />
                       Remove
                     </button>
-                    <ChevronDown size={18} className={`text-[#9b0044] transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                   </div>
-                </button>
+                </div>
 
                 {isExpanded ? (
                   <div className="border-t border-[#efe7e4] bg-[#fcfbfb] px-5 py-5">

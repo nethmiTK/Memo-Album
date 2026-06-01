@@ -16,6 +16,17 @@ import {
 
 const FlipBook = HTMLFlipBook as unknown as React.ComponentType<Record<string, unknown>>;
 
+const hexToRgba = (hex: string, alpha: number) => {
+  const normalized = hex.replace('#', '').trim();
+  if (!/^[0-9a-fA-F]{6}$/.test(normalized)) return `rgba(177,14,107,${alpha})`;
+
+  const red = Number.parseInt(normalized.slice(0, 2), 16);
+  const green = Number.parseInt(normalized.slice(2, 4), 16);
+  const blue = Number.parseInt(normalized.slice(4, 6), 16);
+
+  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+};
+
 type TemplateBookFlipProps = {
   template: TemplateRecord;
   mediaItems?: CurateMediaInput[];
@@ -76,10 +87,11 @@ function BookPage({
 }) {
   const showChrome = variant !== 'fullscreen';
   const usesAbsoluteLayout = page.slots.some((slot) => Number.isFinite(Number(slot.x)) || Number.isFinite(Number(slot.y)));
+  const pageSurface = `linear-gradient(180deg, ${hexToRgba(accent, 0.14)} 0%, #fffdfd 24%, #fff8fb 72%, ${hexToRgba(accent, 0.1)} 100%)`;
 
   return (
-    <div className={`h-full w-full ${variant === 'fullscreen' ? 'bg-[#FFF8F7]' : 'bg-[#FFF8F7] p-1'}`}>
-      <div className={`flex h-full flex-col overflow-hidden ${showChrome ? 'rounded-2xl border border-[#ede5e8] bg-white p-2 shadow-[0_10px_28px_rgba(0,0,0,0.06)]' : 'rounded-[1.1rem] border border-[#ede5e8] bg-white p-0 shadow-[0_10px_28px_rgba(0,0,0,0.06)]'}`}>
+    <div className={`h-full w-full ${variant === 'fullscreen' ? 'p-1' : 'bg-[#FFF8F7] p-1'}`} style={{ background: pageSurface }}>
+      <div className={`flex h-full flex-col overflow-hidden ${showChrome ? 'rounded-2xl border border-[#ede5e8] bg-white p-2 shadow-[0_10px_28px_rgba(0,0,0,0.06)]' : 'rounded-[1.1rem] border border-[#ede5e8] bg-white p-0 shadow-[0_10px_28px_rgba(0,0,0,0.06)]'}`} style={{ borderColor: `${accent}33` }}>
         <div className={`relative flex-1 ${usesAbsoluteLayout ? 'mt-2 overflow-hidden' : `grid gap-0 ${variant === 'fullscreen' ? 'auto-rows-[minmax(80px,1fr)] grid-cols-2' : 'auto-rows-[minmax(64px,1fr)] grid-cols-2 gap-2 md:grid-cols-3'}`}`}>
           {page.slots.map((slot) => {
             const colSpan = Math.max(1, Math.min(3, slot.width || 1));
@@ -148,9 +160,9 @@ function BookPage({
                   height: isAbsolute ? `${height}%` : undefined,
                 }}
               >
-                {media ? (
+                {media?.src ? (
                   isVideoMedia(media.fileType, media.mediaKind) ? (
-                    <video src={media.src} controls playsInline className="absolute inset-0 h-full w-full object-cover" />
+                    <video src={media.src} controls playsInline preload="metadata" className="absolute inset-0 h-full w-full object-cover" />
                   ) : (
                     <img src={media.src} alt={media.label} className="absolute inset-0 h-full w-full object-cover" />
                   )
@@ -238,7 +250,24 @@ export function TemplateBookFlip({
   }
 
   return (
-    <div className={`flex flex-col items-center gap-3 ${className}`}>
+    <div className={`relative flex flex-col items-center gap-3 ${className}`}>
+      {variant === 'fullscreen' ? (
+        <div className="pointer-events-none absolute inset-0 z-10 md:hidden">
+          <button
+            type="button"
+            aria-label="Previous page"
+            onClick={flipPrev}
+            className="pointer-events-auto absolute left-0 top-0 h-full w-[22%] bg-transparent"
+          />
+          <button
+            type="button"
+            aria-label="Next page"
+            onClick={flipNext}
+            className="pointer-events-auto absolute right-0 top-0 h-full w-[22%] bg-transparent"
+          />
+        </div>
+      ) : null}
+
       <div className={`flex w-full justify-center ${variant === 'fullscreen' ? 'overflow-hidden' : 'overflow-x-auto'}`}>
         <div style={{ width: bookSize.width, height: bookSize.height }}>
           <FlipBook
@@ -274,11 +303,11 @@ export function TemplateBookFlip({
         </div>
       </div>
 
-      <div className={`flex items-center justify-center gap-3 ${variant === 'fullscreen' ? 'hidden' : ''}`}>
+      <div className={`flex items-center justify-center gap-3 ${variant === 'fullscreen' ? 'hidden md:flex' : ''}`}>
         <button
           type="button"
           onClick={flipPrev}
-          className="p-2 rounded-full bg-[#f0e2e6] hover:bg-[#e5d4db] transition"
+          className="rounded-full bg-[#f0e2e6] p-2 transition hover:bg-[#BE126F] hover:text-white"
           title="Previous page"
         >
           <ChevronLeft size={18} className="text-[#211A1B]" />
@@ -290,7 +319,7 @@ export function TemplateBookFlip({
         <button
           type="button"
           onClick={flipNext}
-          className="p-2 rounded-full bg-[#f0e2e6] hover:bg-[#e5d4db] transition"
+          className="rounded-full bg-[#f0e2e6] p-2 transition hover:bg-[#BE126F] hover:text-white"
           title="Next page"
         >
           <ChevronRight size={18} className="text-[#211A1B]" />

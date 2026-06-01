@@ -423,7 +423,7 @@ function UniqueHero3D({ albums, videos, categories, heroOpacity, heroScale }: { 
                 className="absolute inset-0 bg-white rounded-[2rem] md:rounded-[3rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.15)] border border-[#edd9e6] overflow-hidden"
               >
                 <img
-                  src={(albums.length > 0 && getImageArray(albums[0]?.images).length > 0) ? getImageUrl(getImageArray(albums[0].images)[0]) : "/images/album.png"}
+                  src={(albums.length > 0 && albums[0]?.cover_image) ? getImageUrl(albums[0].cover_image) : (albums.length > 0 && getImageArray(albums[0]?.images).length > 0) ? getImageUrl(getImageArray(albums[0].images)[0]) : "/images/album.png"}
                   className="w-full h-full object-cover"
                   alt="Featured wedding album"
                   onError={(e) => { e.currentTarget.src = "/images/album.png"; }}
@@ -437,7 +437,7 @@ function UniqueHero3D({ albums, videos, categories, heroOpacity, heroScale }: { 
                 className="absolute -top-5 -right-5 md:-top-10 md:-right-10 w-32 h-44 md:w-48 md:h-64 bg-white rounded-2xl md:rounded-3xl shadow-2xl border border-[#edd9e6] overflow-hidden rotate-6"
               >
                 <img
-                  src={(albums.length > 1 && getImageArray(albums[1]?.images).length > 0) ? getImageUrl(getImageArray(albums[1].images)[0]) : "/images/album-stack-1.jpg"}
+                  src={(albums.length > 1 && albums[1]?.cover_image) ? getImageUrl(albums[1].cover_image) : (albums.length > 1 && getImageArray(albums[1]?.images).length > 0) ? getImageUrl(getImageArray(albums[1].images)[0]) : "/images/album-stack-1.jpg"}
                   className="w-full h-full object-cover"
                   alt="Wedding moments preview"
                   onError={(e) => { e.currentTarget.src = "/images/album-stack-1.jpg"; }}
@@ -1108,11 +1108,11 @@ export default function AlbumPage() {
               <div className="container mx-auto px-4 sm:px-6 md:px-12">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 sm:gap-10 md:gap-12 items-center">
                   <motion.div className="lg:col-span-12 text-center mb-8 sm:mb-10 md:mb-12">
-                    <span className="text-[#920857] font-black text-[8px] sm:text-[9px] md:text-[10px] uppercase tracking-[0.35em] sm:tracking-[0.4em] mb-2 block">Cinematic Films</span>
+                    <span className="text-[#920857] font-black text-[8px] sm:text-[9px] md:text-[10px] uppercase tracking-[0.35em] sm:tracking-[0.4em] mb-2 block">Video Gallery</span>
                     <h1
-              className="max-w-xl text-5xl leading-[1.02] text-[#25181d] md:text-7xl"
+              className="max-w-xl text-5xl leading-[1.02] text-[#25181d] md:text-7xl mx-auto"
                style={{ fontFamily: 'var(--font-newsreader)' }}
-            >  Captured <span className="text-[#920857] italic">Stories</span></h1>
+            >  Watch Our <span className="text-[#920857] italic">Films</span></h1>
                   </motion.div>
 
                   <div className="lg:col-span-12 grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
@@ -1152,9 +1152,11 @@ export default function AlbumPage() {
                     Join our collective and grow with intentional storytelling.
                   </p>
                   <div className="mt-8 flex flex-wrap gap-3">
-                    <button className="rounded-xl bg-gradient-to-r from-[#920857] to-[#b43c8f] px-6 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-white shadow-[0_14px_32px_rgba(146,8,87,0.22)]">
-                      Apply to Join
-                    </button>
+                    <Link href="/contact">
+                      <button className="rounded-xl bg-gradient-to-r from-[#920857] to-[#b43c8f] px-6 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-white shadow-[0_14px_32px_rgba(146,8,87,0.22)]">
+                        Apply to Join
+                      </button>
+                    </Link>
                     <button className="rounded-xl bg-white px-6 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-[#6d5b61]">
                       Photographer Login
                     </button>

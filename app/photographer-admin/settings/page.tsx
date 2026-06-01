@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 
 
@@ -10,6 +10,19 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profilePreview, setProfilePreview] = useState<string>('');
+  const initialStateRef = useRef({
+    user: null as any,
+    profilePreview: '',
+    formData: {
+      username: '',
+      email: '',
+      businessName: '',
+      whatsappNo: '',
+      contactNo: '',
+      address: '',
+      bio: '',
+    },
+  });
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -37,7 +50,7 @@ export default function SettingsPage() {
     const mergedUser = { ...parsedUser, ...parsedUserData };
     setUser(mergedUser);
     setProfilePreview(mergedUser.profileImage || mergedUser.profilePic || '');
-    setFormData({
+    const mergedFormData = {
       username: mergedUser.username || 'Photographer',
       email: mergedUser.email || 'demo@memoalbum.com',
       businessName: mergedUser.businessName || 'MemoAlbum Studio',
@@ -45,7 +58,14 @@ export default function SettingsPage() {
       contactNo: mergedUser.contactNo || '',
       address: mergedUser.address || '',
       bio: mergedUser.bio || '',
-    });
+    };
+
+    setFormData(mergedFormData);
+    initialStateRef.current = {
+      user: mergedUser,
+      profilePreview: mergedUser.profileImage || mergedUser.profilePic || '',
+      formData: mergedFormData,
+    };
 
     const hydrateProfile = async () => {
       const token =
@@ -73,15 +93,24 @@ export default function SettingsPage() {
 
         const data = await response.json();
         const apiUser = data?.user || {};
+        const updatedFormData = {
+          username: apiUser.name || mergedFormData.username,
+          email: apiUser.email || mergedFormData.email,
+          businessName: apiUser.businessName || mergedFormData.businessName,
+          whatsappNo: apiUser.whatsappNo || mergedFormData.whatsappNo,
+          contactNo: apiUser.contactNo || mergedFormData.contactNo,
+          address: apiUser.address || mergedFormData.address,
+          bio: apiUser.bio || mergedFormData.bio,
+        };
 
         setUser((current: any) => ({ ...current, ...apiUser }));
         setProfilePreview(apiUser.profilePic || apiUser.profileImage || mergedUser.profileImage || mergedUser.profilePic || '');
-        setFormData((current) => ({
-          ...current,
-          username: apiUser.name || current.username,
-          email: apiUser.email || current.email,
-          bio: apiUser.bio || current.bio,
-        }));
+        setFormData(updatedFormData);
+        initialStateRef.current = {
+          user: { ...mergedUser, ...apiUser },
+          profilePreview: apiUser.profilePic || apiUser.profileImage || mergedUser.profileImage || mergedUser.profilePic || '',
+          formData: updatedFormData,
+        };
       } catch (error) {
         console.error('Failed to   photographer profile:', error);
       } finally {
@@ -159,6 +188,19 @@ export default function SettingsPage() {
       window.dispatchEvent(new Event('profile-updated'));
       setUser(updatedUser);
       setProfilePreview(updatedUser.profileImage || updatedUser.profilePic || profilePreview);
+      initialStateRef.current = {
+        user: updatedUser,
+        profilePreview: updatedUser.profileImage || updatedUser.profilePic || profilePreview,
+        formData: {
+          username: formData.username,
+          email: formData.email,
+          businessName: formData.businessName,
+          whatsappNo: formData.whatsappNo,
+          contactNo: formData.contactNo,
+          address: formData.address,
+          bio: formData.bio,
+        },
+      };
 toast.success('Profile updated successfully!', {
         style: {
           background: '#FDF3F2',
@@ -175,6 +217,13 @@ toast.success('Profile updated successfully!', {
   };
 
   if (loading) return <div className="p-10 text-center">Loading Settings...</div>;
+
+  const handleDiscard = () => {
+    const snapshot = initialStateRef.current;
+    setUser(snapshot.user);
+    setProfilePreview(snapshot.profilePreview);
+    setFormData(snapshot.formData);
+  };
 
   const resolveProfileImage = () => {
     const value = profilePreview || user?.profileImage || user?.profilePic || '';
@@ -195,7 +244,9 @@ toast.success('Profile updated successfully!', {
           <p className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: '#B10E6B' }}>
             Account Atelier
           </p>
-          <h1 className="mt-2 font-serif text-3xl text-[#211A1B] md:text-5xl">Personal Details</h1>
+          <h1 className="mt-2 font-serif text-3xl md:text-5xl" style={{ color: '#BF1270' }}>
+            Personal Details
+          </h1>
           <p className="mt-3 max-w-2xl text-sm text-[#5E4D53] md:text-base">
             Update your profile picture and core details in one simple screen.
           </p>
@@ -319,7 +370,7 @@ toast.success('Profile updated successfully!', {
           <div className="flex items-center justify-end gap-3 pt-3">
             <button
               type="button"
-              onClick={() => window.location.reload()}
+              onClick={handleDiscard}
               className="px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest"
               style={{ backgroundColor: '#F3E5E6', color: '#7A656D' }}
             >

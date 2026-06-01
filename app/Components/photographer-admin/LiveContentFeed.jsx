@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { X } from 'lucide-react';
+import { X, BookOpen } from 'lucide-react';
 
 /**
  * @param {{ files?: File[], persistedMediaItems?: Array<{ id?: string, dataUrl?: string, mediaKind?: string }>, onRemoveUpload?: (index: number) => void, onRemovePersisted?: (id: string) => void }} props
@@ -93,20 +93,47 @@ export default function LiveContentFeed(props) {
               ) : (
                 <img src={media.url} alt="Uploaded media" style={{ height: '220px' }} className="w-full object-cover" />
               )}
-              <button
-                type="button"
-                onClick={() => {
-                  if (media.persisted) {
-                    onRemovePersisted?.(media.id);
-                  } else {
-                    onRemoveUpload?.(index);
-                  }
-                }}
-                className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-black/75"
-                aria-label={media.persisted ? 'Remove saved media' : 'Remove uploaded media'}
-              >
-                <X size={16} />
-              </button>
+              <div className="absolute right-3 top-3 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    if (media.persisted) {
+                      onRemovePersisted?.(media.id);
+                    } else {
+                      onRemoveUpload?.(index);
+                    }
+                  }}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-black/75"
+                  aria-label={media.persisted ? 'Remove saved media' : 'Remove uploaded media'}
+                >
+                  <X size={16} />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    // scroll header into view and dispatch an event to open the fullscreen book
+                    try {
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    } catch (err) {}
+                    const detail = { media };
+                    try {
+                      window.dispatchEvent(new CustomEvent('open-fullscreen-book', { detail }));
+                    } catch (err) {
+                      // fallback: set a global if CustomEvent not allowed
+                      window.__open_fullscreen_book__ = detail;
+                    }
+                  }}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-[#9b0044] border border-[#f3e4ea] shadow-sm hover:bg-white transition-colors"
+                  aria-label="Open in book view"
+                >
+                  <BookOpen size={16} />
+                </button>
+              </div>
             </div>
           ))}
         </div>

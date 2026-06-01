@@ -22,8 +22,64 @@ interface PersistedMediaItem {
   dataUrl?: string;
 }
 
+interface CachedFileItem {
+  name: string;
+  type: string;
+  size: number;
+  lastModified: number;
+  dataUrl: string;
+}
+
+interface CachedCurateDraft {
+  formData: FormData;
+  persistedMediaItems: PersistedMediaItem[];
+  curateId: string;
+  uploadProgress: number;
+  coverPreview: string | null;
+  files: CachedFileItem[];
+}
+
+const CURATE_DRAFT_CACHE_KEY = 'memo.photographer-admin.curate.page.v1';
+
+function readDraftCache(): CachedCurateDraft | null {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const raw = window.sessionStorage.getItem(CURATE_DRAFT_CACHE_KEY) || window.localStorage.getItem(CURATE_DRAFT_CACHE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as CachedCurateDraft;
+  } catch {
+    return null;
+  }
+}
+
+function writeDraftCache(value: CachedCurateDraft) {
+  if (typeof window === 'undefined') return;
+
+  try {
+    const payload = JSON.stringify(value);
+    window.sessionStorage.setItem(CURATE_DRAFT_CACHE_KEY, payload);
+    window.localStorage.setItem(CURATE_DRAFT_CACHE_KEY, payload);
+  } catch {
+    // Ignore storage quota and serialization errors.
+  }
+}
+
+function clearDraftCache() {
+  if (typeof window === 'undefined') return;
+
+  try {
+    window.sessionStorage.removeItem(CURATE_DRAFT_CACHE_KEY);
+    window.localStorage.removeItem(CURATE_DRAFT_CACHE_KEY);
+  } catch {
+    // Ignore storage errors.
+  }
+}
+
 export default function NewCollectionPage() {
   const router = useRouter();
+  const hasHydratedRef = useRef(false);
+  const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState<FormData>({
     albumName: '',
     weddingDate: '',
@@ -42,6 +98,15 @@ export default function NewCollectionPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
+
+  const dataUrlToFile = async (item: CachedFileItem) => {
+    const response = await fetch(item.dataUrl);
+    const blob = await response.blob();
+    return new File([blob], item.name, {
+      type: item.type || blob.type,
+      lastModified: item.lastModified,
+    });
+  };
 
   const toastStyle = {
     style: {
@@ -91,6 +156,31 @@ export default function NewCollectionPage() {
     });
 
   useEffect(() => {
+    const cachedDraft = readDraftCache();
+
+    if (cachedDraft) {
+      const restoreCachedDraft = async () => {
+        try {
+          const restoredFiles = await Promise.all((cachedDraft.files || []).map((item) => dataUrlToFile(item)));
+
+          setFormData(cachedDraft.formData || { albumName: '', weddingDate: '', accessControl: 'public' });
+          setPersistedMediaItems(Array.isArray(cachedDraft.persistedMediaItems) ? cachedDraft.persistedMediaItems : []);
+          setCurateId(cachedDraft.curateId || '');
+          setUploadProgress(Number.isFinite(Number(cachedDraft.uploadProgress)) ? Number(cachedDraft.uploadProgress) : 0);
+          setCoverPreview(cachedDraft.coverPreview || null);
+          setFiles(restoredFiles);
+        } catch {
+          clearDraftCache();
+        } finally {
+          hasHydratedRef.current = true;
+          setLoading(false);
+        }
+      };
+
+      restoreCachedDraft();
+      return;
+    }
+
     const loadCurrentDraft = async () => {
       try {
         const response = await apiFetch('/curate/current');
@@ -120,13 +210,57 @@ export default function NewCollectionPage() {
         setPersistedMediaItems(Array.isArray(curate.mediaItems) ? curate.mediaItems : []);
         setUploadProgress(Number.isFinite(Number(curate.progress)) ? Number(curate.progress) : 0);
         setCoverPreview(curate.coverPhoto || null);
+        clearDraftCache();
       } catch {
         // Keep the empty draft state if loading fails.
+      }
+      finally {
+        hasHydratedRef.current = true;
+        setLoading(false);
       }
     };
 
     loadCurrentDraft();
   }, []);
+
+  useEffect(() => {
+    if (!hasHydratedRef.current) return;
+
+    let cancelled = false;
+
+    const persistDraft = async () => {
+      try {
+        const cachedFiles = await Promise.all(
+          files.map(async (file) => ({
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            lastModified: file.lastModified,
+            dataUrl: await fileToDataUrl(file),
+          }))
+        );
+
+        if (cancelled) return;
+
+        writeDraftCache({
+          formData,
+          persistedMediaItems,
+          curateId,
+          uploadProgress,
+          coverPreview,
+          files: cachedFiles,
+        });
+      } catch {
+        // Ignore cache write failures.
+      }
+    };
+
+    persistDraft();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [formData, persistedMediaItems, curateId, uploadProgress, coverPreview, files]);
 
  
   useEffect(() => {
@@ -296,6 +430,7 @@ export default function NewCollectionPage() {
   };
 
   const handleDiscard = async () => {
+    clearDraftCache();
     setFormData({
       albumName: '',
       weddingDate: '',

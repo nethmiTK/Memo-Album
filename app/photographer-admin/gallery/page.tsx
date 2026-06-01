@@ -437,20 +437,7 @@ export default function GalleryPage() {
                     alt={album.albumName}
                   />
                   <div className="absolute left-4 top-4 rounded-full bg-[#e8def8] px-3 py-1 text-[10px] font-bold uppercase tracking-tighter text-[#1f1a24]">
-                    {album.status || 'saved'}
-                  </div>
-                  <div className="absolute right-4 top-4 flex gap-2">
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        openDesignerView(album);
-                      }}
-                      className="relative z-20 inline-flex items-center gap-1 rounded-full bg-[#b10e6b] px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white shadow-sm transition-colors hover:bg-[#951254]"
-                    >
-                      <Edit2 size={12} />
-                      Edit
-                    </button>
+                    {bookByCurateId.get(album._id) ? album.status || 'saved' : 'Not Assigned Template'}
                   </div>
                 </div>
                 <div className="p-6">
@@ -462,13 +449,6 @@ export default function GalleryPage() {
                       <h4 className="mt-2 text-xl text-black" style={{ fontFamily: "'Newsreader', serif" }}>
                         {album.albumName}
                       </h4>
-                    </div>
-                  </div>
-                  <div className="mt-5 flex items-center justify-between border-t border-[#f0e7e3] pt-4">
-                    <span className="text-xs text-[#4f4539]">Click album to open fullscreen book</span>
-                    <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-[#b10e6b]">
-                      <span className="inline-flex items-center gap-1"><BookOpen size={12} /> Book</span>
-                      <span className="inline-flex items-center gap-1"><Edit2 size={12} /> Designer</span>
                     </div>
                   </div>
                 </div>

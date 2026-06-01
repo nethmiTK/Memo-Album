@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Calendar, ChevronLeft, ChevronRight, ExternalLink, Plus } from 'lucide-react';
 import { apiFetch, handleAuthError } from '@/lib/api';
+import { FullscreenBook } from '@/app/Components/photographer-admin/FullscreenBook';
 
 type AlbumItem = {
   _id: string;
@@ -20,6 +21,59 @@ type ClientInviteItem = {
   emailStatus: 'queued' | 'sent' | 'partial' | 'failed';
   sentAt?: string | null;
   createdAt?: string;
+};
+
+type BookAlbumPreview = {
+  _id: string;
+  albumName?: string;
+  coverPhoto?: string;
+  coverPhotoName?: string;
+  weddingDate?: string | Date;
+  templateId?: {
+    _id?: string;
+    name?: string;
+    description?: string;
+    accent?: string;
+    coverImage?: string;
+    pages?: Array<{
+      pageNumber: number;
+      pageLabel?: string;
+      slots: Array<{
+        id: string;
+        label: string;
+        kind: string;
+        x?: number;
+        y?: number;
+        width?: number;
+        height?: number;
+      }>;
+    }>;
+    slots?: Array<{
+      id: string;
+      label: string;
+      kind: string;
+      x?: number;
+      y?: number;
+      width?: number;
+      height?: number;
+    }>;
+  };
+  curateId?: {
+    _id?: string;
+    albumName?: string;
+    coverPhoto?: string;
+    coverPhotoName?: string;
+    weddingDate?: string | Date;
+    mediaItems?: Array<{
+      id?: string;
+      order?: number;
+      fileName?: string;
+      fileType?: string;
+      fileSize?: number;
+      mediaKind?: string;
+      dataUrl?: string;
+    }>;
+  };
 };
 
 const StatCard = ({ title, value }: { title: string; value: string }) => (
@@ -59,6 +113,8 @@ export default function CuratePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState('');
   const [toastMessage, setToastMessage] = useState('');
+  const [selectedBookPreview, setSelectedBookPreview] = useState<BookAlbumPreview | null>(null);
+  const [isLoadingBookPreview, setIsLoadingBookPreview] = useState(false);
 
   const showToast = (value: string) => {
     setToastMessage(value);
@@ -113,6 +169,50 @@ export default function CuratePage() {
     loadAlbums();
     loadInvites();
   }, []);
+
+  const openBookPreview = async (inviteAlbumId: AlbumItem | string) => {
+    const albumId = typeof inviteAlbumId === 'string' ? inviteAlbumId : inviteAlbumId?._id;
+    if (!albumId) return;
+
+    setIsLoadingBookPreview(true);
+    try {
+      const response = await apiFetch('/book-albums');
+      if (response.status === 401) {
+        handleAuthError(response);
+        return;
+      }
+
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || 'Failed to load book view');
+      }
+
+      const bookAlbum = Array.isArray(result.bookAlbums)
+        ? result.bookAlbums.find((item: any) => item.curateId?._id === albumId || item.curateId === albumId)
+        : null;
+
+      if (!bookAlbum?._id) {
+        throw new Error('Book view is not available yet for this invite');
+      }
+
+      const detailsResponse = await apiFetch(`/book-albums/${bookAlbum._id}`);
+      if (detailsResponse.status === 401) {
+        handleAuthError(detailsResponse);
+        return;
+      }
+
+      const details = await detailsResponse.json();
+      if (!detailsResponse.ok || !details.success || !details.bookAlbum) {
+        throw new Error(details.message || 'Failed to load book details');
+      }
+
+      setSelectedBookPreview(details.bookAlbum);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Failed to open book view');
+    } finally {
+      setIsLoadingBookPreview(false);
+    }
+  };
 
   const handleInviteCollaborator = () => {
     emailInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -306,7 +406,12 @@ export default function CuratePage() {
                   </div>
                   <div className="flex flex-col items-end justify-between h-full">
                     {getStatusBadge(invite.inviteStatus)}
-                    <button className="text-gray-400 hover:text-[#b10e6b] mt-4">
+                    <button
+                      type="button"
+                      onClick={() => void openBookPreview(invite.albumId)}
+                      className="mt-4 text-gray-400 transition-colors hover:text-[#b10e6b]"
+                      title="Open book view"
+                    >
                       <ExternalLink size={16} />
                     </button>
                   </div>
@@ -335,6 +440,17 @@ export default function CuratePage() {
           <StatCard title="Selected Album" value={selectedAlbum ? '01' : '00'} />
         </footer> */}
       </div>
+
+      {selectedBookPreview ? (
+        <FullscreenBook
+          template={selectedBookPreview.templateId as any}
+          mediaItems={(selectedBookPreview.curateId?.mediaItems || []) as any}
+          coverPhoto={selectedBookPreview.curateId?.coverPhoto || selectedBookPreview.coverPhoto}
+          coverPhotoName={selectedBookPreview.curateId?.coverPhotoName || selectedBookPreview.coverPhotoName || selectedBookPreview.albumName}
+          coverWeddingDate={selectedBookPreview.curateId?.weddingDate || selectedBookPreview.weddingDate}
+          onClose={() => setSelectedBookPreview(null)}
+        />
+      ) : null}
     </div>
   );
 }
