@@ -39,6 +39,7 @@ const plusJakarta = Plus_Jakarta_Sans({
 export default function PhotographerPage() {
   const [visibleCount, setVisibleCount] = useState(25);
   const [photographersData, setPhotographersData] = useState<PhotographerCard[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // 25 Photographers Array
   const photographers = [
@@ -276,6 +277,17 @@ export default function PhotographerPage() {
   }, []);
 
   const displayedPhotographers = photographersData.length > 0 ? photographersData : photographers;
+  
+  const filteredPhotographers = displayedPhotographers.filter((photographer) => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      photographer.name.toLowerCase().includes(query) ||
+      photographer.email.toLowerCase().includes(query) ||
+      photographer.desc.toLowerCase().includes(query) ||
+      photographer.phone.toLowerCase().includes(query)
+    );
+  });
   return (
     <main className={`${newsreader.variable} ${plusJakarta.variable} min-h-screen bg-[#fff8f8] text-[#211a1b] font-sans`}>
       <Navbar />
@@ -346,7 +358,7 @@ export default function PhotographerPage() {
       {/* Feature Section - Virtual Atelier Experience */}
       <section className="bg-[#f3e5e6] mt-24 py-24 sm:py-32">
         <div className="mx-auto max-w-7xl px-4 sm:px-5 md:px-10">
-          <div className="mb-20 flex flex-col items-end justify-between gap-8 md:flex-row">
+          <div className="mb-12 flex flex-col items-end justify-between gap-8 md:flex-row">
             <div className="max-w-2xl">
               <h2 className="mb-6 text-4xl md:text-5xl lg:text-6xl" style={{ fontFamily: 'var(--font-newsreader)' }}>
                 Virtual <span className="italic">Atelier</span> Experience
@@ -361,13 +373,48 @@ export default function PhotographerPage() {
             </div>
           </div>
 
+          {/* Search Bar */}
+          <div className="mb-8 max-w-2xl">
+            <div className="relative">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search photographers by name, email, or description..."
+                className="w-full rounded-2xl border border-[#e5d5d8] bg-white px-6 py-4 text-sm text-[#211a1b] placeholder:text-[#8c7f83] shadow-sm transition-all focus:border-[#8c0053] focus:shadow-md focus:outline-none"
+              />
+              <svg className="absolute right-6 top-1/2 h-5 w-5 -translate-y-1/2 text-[#8c0053]/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            {searchQuery && (
+              <p className="mt-3 text-xs text-[#534345]">
+                Found {filteredPhotographers.length} photographer{filteredPhotographers.length !== 1 ? 's' : ''}
+              </p>
+            )}
+          </div>
+
           {/* Photographers Grid with Groups */}
           <div className="space-y-12">
-            {/* Display cards in groups of 5 */}
-            {Array.from({ length: Math.ceil(Math.min(visibleCount, displayedPhotographers.length) / 5) }).map((_, groupIdx) => {
-              const startIdx = groupIdx * 5;
-              const endIdx = startIdx + 5;
-              const groupPhotographers = displayedPhotographers.slice(startIdx, Math.min(endIdx, visibleCount));
+            {filteredPhotographers.length === 0 ? (
+              <div className="rounded-3xl border border-dashed border-[#e5d5d8] bg-white px-8 py-16 text-center">
+                <svg className="mx-auto h-12 w-12 text-[#8c0053]/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <p className="mt-4 text-lg" style={{ fontFamily: 'var(--font-newsreader)' }}>No photographers found</p>
+                <p className="mt-2 text-sm text-[#534345]">Try adjusting your search query</p>
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="mt-6 rounded-xl border border-[#8c0053] px-6 py-2.5 text-xs font-semibold uppercase tracking-[0.2em] text-[#8c0053] transition-colors hover:bg-[#8c0053] hover:text-white"
+                >
+                  Clear Search
+                </button>
+              </div>
+            ) : (
+              Array.from({ length: Math.ceil(Math.min(visibleCount, filteredPhotographers.length) / 5) }).map((_, groupIdx) => {
+                const startIdx = groupIdx * 5;
+                const endIdx = startIdx + 5;
+                const groupPhotographers = filteredPhotographers.slice(startIdx, Math.min(endIdx, visibleCount));
 
               return (
                 <div key={groupIdx}>
@@ -497,7 +544,8 @@ export default function PhotographerPage() {
                 </div>
                 
               );
-            })}
+            })
+            )}
             
           </div>
         </div>

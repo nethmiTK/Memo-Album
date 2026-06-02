@@ -646,17 +646,15 @@ const CreateAlbum: React.FC = () => {
 
       {/* Main Content */}
       <div className="flex-1 px-4 md:px-9 py-6 overflow-hidden">
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(420px,5fr)_minmax(0,7fr)] gap-8 h-full">
-           <div className="space-y-1 overflow-y-auto lg:pr-2">
-  
-<div
-  className="w-full max-w-xl p-6 rounded-2xl shadow-lg bg-white space-y-6 border-l-4 border-[#b10e6b]"
->
-
-   <h3 className="text-[11px] tracking-widest uppercase text-[#b10e6b] font-bold">
-    SELECTION PANEL
-  </h3>
-
+        <div className="flex flex-col gap-6">
+          {/* Top Row - Selection Panel and Book Panel side by side */}
+          <div className="flex gap-6">
+          {/* SELECTION PANEL - Left Side */}
+          <div className="w-80 shrink-0">
+            <div className="w-full p-5 rounded-2xl shadow-lg bg-white border-l-4 border-[#b10e6b] h-fit sticky top-6">
+              <h3 className="text-[11px] tracking-widest uppercase text-[#b10e6b] font-bold mb-4">SELECTION PANEL</h3>
+              
+              <div className="space-y-4">
   {/* ALBUM SELECT */}
   <div>
     <label className="block text-[11px] font-bold uppercase mb-3 text-[#54474d]">
@@ -775,10 +773,67 @@ const CreateAlbum: React.FC = () => {
   </div>
 
 </div>
+            </div>
           </div>
 
-        {/* RIGHT COLUMN - MEDIA UPLOAD & PREVIEW */}
-<div className="space-y-6 overflow-y-auto lg:min-w-0">
+        {/* BOOK PANEL - Right Side */}
+        <div className="w-80 shrink-0">
+  {/* Template Book Preview (flip book with curate images in slots) */}
+  {selectedTemplateData ? (
+    <div className="bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col border border-gray-100 h-fit">
+      <div className="p-4 border-b border-gray-200 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h3 className="text-sm font-bold uppercase tracking-widest text-[#211A1B]">TEMPLATE BOOK</h3>
+          <p className="text-xs text-[#211A1B]/70 mt-0.5">
+            {selectedTemplateData.name}
+            {isSyncingBook ? ' · Saving to album book…' : bookAlbumId ? ' · Saved' : ''}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setIsBookModalOpen(true)}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-[#b10e6b] px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#b10e6b] transition hover:bg-[#BE126F] hover:text-white"
+        >
+          <Maximize2 size={14} />
+          Fullscreen Book
+        </button>
+      </div>
+
+      <div className="p-3 bg-[#fff8f7]">
+        {mediaItems.length > 0 || selectedAlbumData?.coverPhoto ? (
+          <div className="w-full h-64 rounded-xl overflow-hidden">
+            <div className="scale-[0.6] origin-top-left" style={{ width: '166.67%', height: '166.67%' }}>
+            <TemplateBookFlip
+              template={selectedTemplateData}
+              mediaItems={mediaItems}
+              coverPhoto={selectedAlbumData?.coverPhoto}
+              coverPhotoName={selectedAlbumData?.albumName}
+              coverWeddingDate={selectedAlbumData?.weddingDate}
+              variant="inline"
+            />
+            </div>
+          </div>
+        ) : (
+          <div className="min-h-32 py-4 px-4 text-left text-sm text-[#594045] flex flex-col items-start justify-center">
+            <p>Select a curate with images to fill this template book.</p>
+            <Link href="/photographer-admin/curate" className="mt-2 inline-block text-[#b10e6b] underline text-xs font-semibold">
+              Go to Curate
+            </Link>
+          </div>
+        )}
+      </div>
+    </div>
+  ) : (
+    <div className="bg-white rounded-2xl border border-dashed border-gray-200 px-6 py-5 min-h-32 flex flex-col items-start justify-center text-left">
+      <p className="text-sm font-medium text-gray-500">Select a template to open the book view</p>
+      <p className="text-xs text-gray-400 mt-1">Curate images will map into template slots from the database</p>
+    </div>
+  )}
+        </div>
+        </div>
+
+        {/* NARRATIVE FLOW - Full Width Below */}
+        <div className="w-full">
   {/* Narrative Flow - Media Upload */}
   <div className="bg-white min-h-48 rounded-xl shadow-sm overflow-hidden flex flex-col border border-[#b10e6b]/5" style={{ fontFamily: 'Manrope, "Segoe UI", sans-serif' }}>
     <div className="p-4 border-b flex justify-between items-center gap-3">
@@ -1016,57 +1071,9 @@ const CreateAlbum: React.FC = () => {
       </div>
     )}
   </div>
-
-  {/* Template Book Preview (flip book with curate images in slots) */}
-  {selectedTemplateData ? (
-    <div className="bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col border border-gray-100 min-h-88">
-      <div className="p-4 border-b border-gray-200 flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h3 className="text-sm font-bold uppercase tracking-widest text-[#211A1B]">TEMPLATE BOOK</h3>
-          <p className="text-xs text-[#211A1B]/70 mt-0.5">
-            {selectedTemplateData.name}
-            {isSyncingBook ? ' · Saving to album book…' : bookAlbumId ? ' · Saved' : ''}
-          </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setIsBookModalOpen(true)}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-[#b10e6b] px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#b10e6b] transition hover:bg-[#BE126F] hover:text-white"
-        >
-          <Maximize2 size={14} />
-          Fullscreen Book
-        </button>
-      </div>
 
-      <div className="p-3 bg-[#fff8f7]">
-        {mediaItems.length > 0 || selectedAlbumData?.coverPhoto ? (
-          <div className="w-full max-h-92 overflow-hidden rounded-xl">
-            <TemplateBookFlip
-              template={selectedTemplateData}
-              mediaItems={mediaItems}
-              coverPhoto={selectedAlbumData?.coverPhoto}
-              coverPhotoName={selectedAlbumData?.albumName}
-              coverWeddingDate={selectedAlbumData?.weddingDate}
-              variant="inline"
-            />
-          </div>
-        ) : (
-          <div className="min-h-32 py-4 px-4 text-left text-sm text-[#594045] flex flex-col items-start justify-center">
-            <p>Select a curate with images to fill this template book.</p>
-            <Link href="/photographer-admin/curate" className="mt-2 inline-block text-[#b10e6b] underline text-xs font-semibold">
-              Go to Curate
-            </Link>
-          </div>
-        )}
-      </div>
-    </div>
-  ) : (
-    <div className="bg-white rounded-2xl border border-dashed border-gray-200 px-6 py-5 min-h-32 flex flex-col items-start justify-center text-left">
-      <p className="text-sm font-medium text-gray-500">Select a template to open the book view</p>
-      <p className="text-xs text-gray-400 mt-1">Curate images will map into template slots from the database</p>
-    </div>
-  )}
-
+  {/* Modals */}
   {isBookModalOpen && selectedTemplateData && (
     <FullscreenBook
       template={selectedTemplateData}
@@ -1112,7 +1119,6 @@ const CreateAlbum: React.FC = () => {
       </div>
     </div>
   )}
-</div>
         </div>
       </div>
 
