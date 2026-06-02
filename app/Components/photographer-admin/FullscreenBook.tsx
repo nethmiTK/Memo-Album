@@ -1,15 +1,17 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, X } from 'lucide-react';
 import { TemplateRecord, TemplatePage, TemplateMediaAsset, getTemplatePages, buildSlotMediaMap, toTemplateMedia, CurateMediaInput } from '@/lib/template-book-media';
 import HTMLFlipBook from 'react-pageflip';
+import JSZip from 'jszip';
 
 const FlipBook = HTMLFlipBook as any;
 
 interface FullscreenBookProps {
   template: TemplateRecord;
   mediaItems: CurateMediaInput[];
+  mediaTransforms?: Record<string, { zoom: number; x: number; y: number }>;
   pageLayouts?: Array<{
     pageNumber?: number;
     slotAssignments?: Array<{
@@ -147,6 +149,7 @@ function BookPage({
   pageLabel,
   variant,
   mediaMap,
+  mediaTransforms,
   onMediaClick,
 }: {
   page: TemplatePage;
@@ -154,6 +157,7 @@ function BookPage({
   pageLabel: string;
   variant: 'inline' | 'fullscreen';
   mediaMap: Record<string, TemplateMediaAsset>;
+  mediaTransforms: Record<string, { zoom: number; x: number; y: number }>;
   onMediaClick: (media: TemplateMediaAsset) => void;
 }) {
   const usesAbsoluteLayout = page.slots.some((slot) => Number.isFinite(Number(slot.x)) || Number.isFinite(Number(slot.y)));
@@ -171,6 +175,7 @@ function BookPage({
             const colSpan = Math.max(1, Math.min(2, slot.width || 1));
             const rowSpan = Math.max(1, Math.min(3, slot.height || 1));
             const media = mediaMap[slot.id];
+            const mediaTransform = media ? mediaTransforms[media.sourceId || media.id] : undefined;
             const isAbsolute = usesAbsoluteLayout;
             const left = Number.isFinite(Number(slot.x)) ? Number(slot.x) : 0;
             const top = Number.isFinite(Number(slot.y)) ? Number(slot.y) : 0;
@@ -196,7 +201,14 @@ function BookPage({
                   media.mediaKind === 'video' ? (
                     <video src={media.src} playsInline preload="metadata" controls className="absolute inset-0 h-full w-full object-cover" />
                   ) : (
-                    <img src={media.src} alt={media.label} className="absolute inset-0 h-full w-full object-cover" />
+                    <img
+                      src={media.src}
+                      alt={media.label}
+                      className="absolute inset-0 h-full w-full object-cover"
+                      style={{
+                        transform: mediaTransform ? `translate(${mediaTransform.x}px, ${mediaTransform.y}px) scale(${mediaTransform.zoom})` : undefined,
+                      }}
+                    />
                   )
                 ) : (
                   <div className="absolute inset-0 bg-linear-to-br from-gray-100 to-gray-200" />
@@ -212,20 +224,26 @@ function BookPage({
 
 function ScrollFeedItem({
   media,
+  mediaTransforms,
+  onDownload,
   onMediaClick,
 }: {
   media: TemplateMediaAsset;
+  mediaTransforms: Record<string, { zoom: number; x: number; y: number }>;
+  onDownload: (media: TemplateMediaAsset) => void;
   onMediaClick: (media: TemplateMediaAsset) => void;
 }) {
+  const mediaTransform = mediaTransforms[media.sourceId || media.id];
   return (
-    <button
-      type="button"
-      onClick={() => onMediaClick(media)}
-      className="group flex w-full items-stretch justify-center rounded-3xl border border-[#f0e1e7] bg-white/90 p-3 text-left shadow-[0_14px_30px_rgba(0,0,0,0.06)] transition-transform duration-300 hover:-translate-y-1 hover:shadow-[0_18px_38px_rgba(0,0,0,0.1)]"
-    >
+    <div className="group relative flex w-full items-stretch justify-center p-0 text-left">
+      <button
+        type="button"
+        onClick={() => onMediaClick(media)}
+        className="flex w-full items-stretch justify-center p-0 text-left"
+      >
       <div
-        className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-2xl bg-[#120b0d]"
-        style={{ minHeight: 'clamp(320px, 42vh, 430px)' }}
+        className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-xl"
+        style={{ minHeight: 'clamp(220px, 32vh, 300px)' }}
       >
         {media.mediaKind === 'video' ? (
           <video
@@ -235,28 +253,46 @@ function ScrollFeedItem({
             loop
             playsInline
             controls
-            className="max-h-full max-w-full object-cover"
+            className="max-h-full max-w-full object-contain"
           />
         ) : (
           <img
             src={media.src}
             alt={media.label}
-            className="max-h-full max-w-full object-cover"
+            className="max-h-full max-w-full object-contain"
+            style={{
+              transform: mediaTransform ? `translate(${mediaTransform.x}px, ${mediaTransform.y}px) scale(${mediaTransform.zoom})` : undefined,
+            }}
           />
         )}
-
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/70 via-black/20 to-transparent p-4 text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-          <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/75">Media Preview</p>
-          <p className="mt-1 text-sm font-medium text-white">{media.label}</p>
-        </div>
       </div>
-    </button>
+      </button>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onDownload(media);
+        }}
+        className="absolute right-2 top-2 rounded-full bg-black/50 p-2 text-white opacity-0 transition-opacity group-hover:opacity-100"
+        aria-label="Download media"
+      >
+        <Download size={14} />
+      </button>
+    </div>
   );
 }
 
 type FullscreenViewMode = 'book' | 'scroll';
 
-export function FullscreenBook({ template, mediaItems, coverPhoto, coverPhotoName, coverWeddingDate, onClose }: FullscreenBookProps) {
+export function FullscreenBook({
+  template,
+  mediaItems,
+  mediaTransforms,
+  coverPhoto,
+  coverPhotoName,
+  coverWeddingDate,
+  onClose,
+}: FullscreenBookProps) {
   const bookRef = useRef<any>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const lastPointerMoveRef = useRef(0);
@@ -271,6 +307,7 @@ export function FullscreenBook({ template, mediaItems, coverPhoto, coverPhotoNam
   const [mediaZoom, setMediaZoom] = useState(100);
   const [bookSize, setBookSize] = useState({ width: 600, height: 800 });
   const [bookScale, setBookScale] = useState(80);
+  const normalizedTransforms = useMemo(() => mediaTransforms || {}, [mediaTransforms]);
   const isMobileLayout = bookSize.width < 520;
   const isScrollMode = viewMode === 'scroll';
 
@@ -310,6 +347,66 @@ export function FullscreenBook({ template, mediaItems, coverPhoto, coverPhotoNam
     return fallback;
   }, [pages, draftedMedia, template]);
   const accent = template.accent || '#b10e6b';
+  const downloadBlob = (blob: Blob, filename: string) => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const urlToBlob = async (url: string) => {
+    if (url.startsWith('data:')) {
+      const response = await fetch(url);
+      return response.blob();
+    }
+    const response = await fetch(url, { mode: 'cors' });
+    if (!response.ok) throw new Error('Failed to fetch media');
+    return response.blob();
+  };
+
+  const extensionFromMedia = (media: TemplateMediaAsset, fallback = 'jpg') => {
+    if (media.fileType?.includes('/')) return media.fileType.split('/')[1];
+    const byUrl = media.src.split('.').pop()?.split('?')[0];
+    return byUrl || fallback;
+  };
+
+  const handleDownloadMedia = async (media: TemplateMediaAsset) => {
+    try {
+      const blob = await urlToBlob(media.src);
+      const ext = extensionFromMedia(media, media.mediaKind === 'video' ? 'mp4' : 'jpg');
+      const fileName = `${(media.label || 'media').replace(/[^\w\-]+/g, '_')}.${ext}`;
+      downloadBlob(blob, fileName);
+    } catch (error) {
+      console.error('Failed to download media:', error);
+    }
+  };
+
+  const handleDownloadAlbum = async () => {
+    try {
+      const zip = new JSZip();
+      const entries = scrollMediaItems.filter((item, index, arr) => arr.findIndex((x) => x.src === item.src) === index);
+      for (let i = 0; i < entries.length; i += 1) {
+        const media = entries[i];
+        try {
+          const blob = await urlToBlob(media.src);
+          const ext = extensionFromMedia(media, media.mediaKind === 'video' ? 'mp4' : 'jpg');
+          const name = `${String(i + 1).padStart(3, '0')}_${(media.label || 'media').replace(/[^\w\-]+/g, '_')}.${ext}`;
+          zip.file(name, blob);
+        } catch (error) {
+          console.error('Skipping media in album zip:', media.src, error);
+        }
+      }
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      downloadBlob(zipBlob, `${(template.name || 'album').replace(/[^\w\-]+/g, '_')}_media.zip`);
+    } catch (error) {
+      console.error('Failed to download album:', error);
+    }
+  };
+
   const goToPreviousPage = () => bookRef.current?.pageFlip?.()?.flipPrev?.();
   const goToNextPage = () => bookRef.current?.pageFlip?.()?.flipNext?.();
 
@@ -364,7 +461,7 @@ export function FullscreenBook({ template, mediaItems, coverPhoto, coverPhotoNam
       }
 
       bookRef.current?.pageFlip?.()?.flipNext?.();
-    }, 2600);
+    }, 60000);
   };
 
   useEffect(() => {
@@ -425,7 +522,7 @@ export function FullscreenBook({ template, mediaItems, coverPhoto, coverPhotoNam
     if (!container || !isScrollMode) return;
 
     let frame = 0;
-    const speed = 0.35;
+    const speed = 0.2;
     const idleThresholdMs = 700;
 
     const autoScroll = () => {
@@ -569,6 +666,15 @@ export function FullscreenBook({ template, mediaItems, coverPhoto, coverPhotoNam
           <div className="flex items-center gap-3">
             <button
               type="button"
+              onClick={handleDownloadAlbum}
+              className="inline-flex items-center gap-2 rounded-lg border border-[#e1bec4] bg-white px-3 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[#9b0044] transition-colors hover:bg-[#fff0f4]"
+            >
+              <Download size={14} />
+              Download Album
+            </button>
+
+            <button
+              type="button"
               onClick={() => setViewMode((prev) => (prev === 'book' ? 'scroll' : 'book'))}
               className="inline-flex items-center gap-2 rounded-lg border border-[#e1bec4] bg-white px-3 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[#9b0044] transition-colors hover:bg-[#fff0f4]"
             >
@@ -624,17 +730,19 @@ export function FullscreenBook({ template, mediaItems, coverPhoto, coverPhotoNam
         onMouseLeave={() => setIsPointerInsideScroll(false)}
       >
         {isScrollMode ? (
-          <div className="mx-auto flex min-h-full w-full max-w-4xl flex-col gap-4 px-4 pb-12 pt-24 sm:px-6 lg:px-8">
+          <div className="mx-auto flex min-h-full w-full max-w-6xl flex-col gap-4 px-4 pb-12 pt-24 sm:px-6 lg:px-8">
             <div className="rounded-3xl border border-[#f0e1e7] bg-white px-6 py-5 shadow-sm">
               <h3 className="text-[10px] font-bold uppercase tracking-[0.26em] text-[#9a8a8e]">Live Content Feed</h3>
-              <p className="mt-1 text-xs text-[#9a8a8e]">Images and video run as one centered stream. Move the cursor inside to pause, leave the screen to resume auto scroll.</p>
+              <p className="mt-1 text-xs text-[#9a8a8e]">Three media per row. Move cursor inside to pause; leave to resume auto scroll.</p>
             </div>
 
-            {scrollMediaItems.map((media, index) => (
-              <div key={`${media.id || media.sourceId || media.src}-${index}`} className="mx-auto w-full snap-start">
-                <ScrollFeedItem media={media} onMediaClick={setSelectedMedia} />
-              </div>
-            ))}
+            <div className="grid grid-cols-1 gap-0.5 md:grid-cols-2 lg:grid-cols-3">
+              {scrollMediaItems.map((media, index) => (
+                <div key={`${media.id || media.sourceId || media.src}-${index}`} className="w-full snap-start">
+                  <ScrollFeedItem media={media} mediaTransforms={normalizedTransforms} onDownload={handleDownloadMedia} onMediaClick={setSelectedMedia} />
+                </div>
+              ))}
+            </div>
 
             {scrollMediaItems.length === 0 ? (
               <div className="flex min-h-[56vh] items-center justify-center rounded-3xl border border-dashed border-[#ecd8e0] bg-white text-sm text-[#9a8a8e]">
@@ -677,6 +785,7 @@ export function FullscreenBook({ template, mediaItems, coverPhoto, coverPhotoNam
                       pageLabel={page.pageLabel || `Page ${page.pageNumber}`}
                       variant="fullscreen"
                       mediaMap={mediaMap}
+                      mediaTransforms={normalizedTransforms}
                       onMediaClick={setSelectedMedia}
                     />
                   </div>

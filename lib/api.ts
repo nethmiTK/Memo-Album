@@ -56,7 +56,7 @@ export const handleAuthError = (res: Response) => {
   if (res.status === 401) {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    window.location.href = '/auth/login';
+    window.location.href = '/login';
   }
 };
 

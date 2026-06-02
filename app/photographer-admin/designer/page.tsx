@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { apiFetch, getUser, handleAuthError } from '@/lib/api';
-import { Eye, Trash2, Upload, ChevronLeft, ChevronRight, Maximize2, X } from 'lucide-react';
+import { Eye, Trash2, Upload, Maximize2, X } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { toast } from 'react-toastify';
@@ -85,6 +85,21 @@ interface MediaItem {
   order?: number;
 }
 
+interface MediaTransform {
+  zoom: number;
+  x: number;
+  y: number;
+}
+
+interface SlotConfig {
+  index: number;
+  pageIndex: number;
+  pageNumber: number;
+  pageLabel: string;
+  slotId: string;
+  slotLabel: string;
+}
+
 const albumTypeOptions = ['Wedding', 'Engagement'] as const;
 
 const CreateAlbum: React.FC = () => {
@@ -109,6 +124,7 @@ const CreateAlbum: React.FC = () => {
   const [isTemplateDropdownOpen, setIsTemplateDropdownOpen] = useState(false);
   const albumRef = useRef<HTMLDivElement | null>(null);
   const templateRef = useRef<HTMLDivElement | null>(null);
+  const slotUploadInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (albumRef.current && !albumRef.current.contains(e.target as Node)) {
@@ -122,13 +138,17 @@ const CreateAlbum: React.FC = () => {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
-  const [isDragging, setIsDragging] = useState(false);
   const [bookAlbumId, setBookAlbumId] = useState<string | null>(null);
   const [isSyncingBook, setIsSyncingBook] = useState(false);
-  const [currentMediaPage, setCurrentMediaPage] = useState(0);
   const [draggedItem, setDraggedItem] = useState<MediaItem | null>(null);
   const [isBookModalOpen, setIsBookModalOpen] = useState(false);
   const [previewMedia, setPreviewMedia] = useState<MediaItem | null>(null);
+  const [mediaTransforms, setMediaTransforms] = useState<Record<string, MediaTransform>>({});
+  const [cropMedia, setCropMedia] = useState<MediaItem | null>(null);
+  const [cropDraft, setCropDraft] = useState<MediaTransform>({ zoom: 1, x: 0, y: 0 });
+  const [selectedPreviewPage, setSelectedPreviewPage] = useState(0);
+  const [isCropPanning, setIsCropPanning] = useState(false);
+  const [cropPanStart, setCropPanStart] = useState({ x: 0, y: 0, baseX: 0, baseY: 0 });
   const lastAlbumNoMatchToastRef = useRef('');
   const lastTemplateNoMatchToastRef = useRef('');
   const routeSelectionAppliedRef = useRef('');
@@ -254,7 +274,6 @@ const CreateAlbum: React.FC = () => {
         setSelectedTemplate('');
         setSelectedTemplateData(null);
         setMediaItems([]);
-        setCurrentMediaPage(0);
         if (filtered.length === 0 && lastAlbumNoMatchToastRef.current !== value) {
           lastAlbumNoMatchToastRef.current = value;
           toast.error(`No curates found matching "${value}"`, toastStyle);
@@ -266,7 +285,6 @@ const CreateAlbum: React.FC = () => {
       setSelectedTemplate('');
       setSelectedTemplateData(null);
       setMediaItems([]);
-      setCurrentMediaPage(0);
       setAlbumSuggestions([]);
       setIsAlbumDropdownOpen(false);
       lastAlbumNoMatchToastRef.current = '';
@@ -313,7 +331,6 @@ const CreateAlbum: React.FC = () => {
   const applyCurateMedia = (album: Album): MediaItem[] => {
     if (!Array.isArray(album.mediaItems) || album.mediaItems.length === 0) {
       setMediaItems([]);
-      setCurrentMediaPage(0);
       return [];
     }
 
@@ -328,7 +345,6 @@ const CreateAlbum: React.FC = () => {
     }));
 
     setMediaItems(normalizedMedia);
-    setCurrentMediaPage(0);
     toast.success('Media loaded from curate', toastStyle);
     return normalizedMedia;
   };
@@ -340,7 +356,11 @@ const CreateAlbum: React.FC = () => {
     try {
       const response = await apiFetch('/book-albums', {
         method: 'POST',
-        body: JSON.stringify({ curateId, templateId }),
+        body: JSON.stringify({
+          curateId,
+          templateId,
+          mediaTransforms,
+        }),
       });
 
       if (response.status === 401) {
@@ -372,6 +392,7 @@ const CreateAlbum: React.FC = () => {
     lastAlbumNoMatchToastRef.current = '';
     setAlbumSuggestions([]);
     setIsAlbumDropdownOpen(false);
+    setSelectedPreviewPage(0);
     const loaded = applyCurateMedia(album);
     if (selectedTemplate && loaded.length > 0) {
       void syncBookAlbum(album._id, selectedTemplate);
@@ -384,96 +405,173 @@ const CreateAlbum: React.FC = () => {
     lastTemplateNoMatchToastRef.current = '';
     setSelectedTemplateData(template);
     setIsTemplateDropdownOpen(false);
+    setSelectedPreviewPage(0);
     if (selectedAlbum && mediaItems.length > 0) {
       void syncBookAlbum(selectedAlbum, template._id);
     }
   };
   
   const templatePages = selectedTemplateData?.pages || [];
-  
-  const pageConfigs = useMemo(() => {
+
+  const slotConfigs = useMemo<SlotConfig[]>(() => {
     if (templatePages.length > 0) {
-      let startIndex = 0;
-  
-      return templatePages.map((page, index) => {
-        const slotCount = Math.max(1, page.slots?.length || 1);
-        const isLastPage = index === templatePages.length - 1;
-        const endIndex = isLastPage ? Math.max(startIndex + slotCount, mediaItems.length) : startIndex + slotCount;
-  
-        const config = {
-          pageNumber: index + 1,
-          label: page.pageLabel || `Page ${page.pageNumber}`,
-          slots: slotCount,
-          startIndex,
-          endIndex,
-          items: mediaItems.slice(startIndex, endIndex),
-        };
-  
-        startIndex += slotCount;
-        return config;
-      });
+      return templatePages
+        .flatMap((page, pageIndex) =>
+          (page.slots || []).map((slot, slotIndex) => ({
+            pageIndex,
+            pageNumber: Number(page.pageNumber) || pageIndex + 1,
+            pageLabel: page.pageLabel || `Spread ${pageIndex + 1}`,
+            slotId: slot.id || `slot-${pageIndex + 1}-${slotIndex + 1}`,
+            slotLabel: slot.label || `Slot ${slotIndex + 1}`,
+          }))
+        )
+        .map((slot, index) => ({
+          ...slot,
+          index,
+        }));
     }
-  
-    const itemsPerPage = 12;
-    const totalPages = Math.max(1, Math.ceil(mediaItems.length / itemsPerPage));
-  
-    return Array.from({ length: totalPages }, (_, index) => ({
-      pageNumber: index + 1,
-      label: `Page ${index + 1}`,
-      slots: itemsPerPage,
-      startIndex: index * itemsPerPage,
-      endIndex: (index + 1) * itemsPerPage,
-      items: mediaItems.slice(index * itemsPerPage, (index + 1) * itemsPerPage),
+
+    const fallbackSlots = Math.max(12, mediaItems.length);
+    return Array.from({ length: fallbackSlots }, (_, index) => ({
+      index,
+      pageIndex: Math.floor(index / 6),
+      pageNumber: Math.floor(index / 6) + 1,
+      pageLabel: 'Auto Layout',
+      slotId: `auto-slot-${index + 1}`,
+      slotLabel: `Slot ${index + 1}`,
     }));
-  }, [templatePages, mediaItems]);
-  
-  const currentPageConfig = pageConfigs[currentMediaPage] || pageConfigs[0] || null;
-  const totalMediaPages = pageConfigs.length || 1;
-  const currentPageItems = currentPageConfig?.items || [];
-  
+  }, [templatePages, mediaItems.length]);
+
+  const pagePreviewConfigs = useMemo(() => {
+    const pageMap = new Map<number, { pageIndex: number; pageLabel: string; slots: SlotConfig[] }>();
+    slotConfigs.forEach((slot) => {
+      if (!pageMap.has(slot.pageIndex)) {
+        pageMap.set(slot.pageIndex, { pageIndex: slot.pageIndex, pageLabel: slot.pageLabel, slots: [] });
+      }
+      pageMap.get(slot.pageIndex)?.slots.push(slot);
+    });
+
+    return Array.from(pageMap.values()).sort((a, b) => a.pageIndex - b.pageIndex);
+  }, [slotConfigs]);
+
+  const pageSlotBounds = useMemo(() => {
+    const map = new Map<number, { usesAbsoluteLayout: boolean; minX: number; maxX: number; minY: number; maxY: number }>();
+    pagePreviewConfigs.forEach((page) => {
+      const rawSlots = (templatePages[page.pageIndex]?.slots || []) as Array<{ x?: number; y?: number; width?: number; height?: number }>;
+      const usesAbsoluteLayout = rawSlots.some((slot) => Number.isFinite(Number(slot.x)) || Number.isFinite(Number(slot.y)));
+      if (!usesAbsoluteLayout) {
+        map.set(page.pageIndex, { usesAbsoluteLayout: false, minX: 0, maxX: 100, minY: 0, maxY: 100 });
+        return;
+      }
+      const xValues = rawSlots.map((slot) => Number(slot.x) || 0);
+      const yValues = rawSlots.map((slot) => Number(slot.y) || 0);
+      const rightValues = rawSlots.map((slot) => (Number(slot.x) || 0) + Math.max(1, Number(slot.width) || 20));
+      const bottomValues = rawSlots.map((slot) => (Number(slot.y) || 0) + Math.max(1, Number(slot.height) || 20));
+      map.set(page.pageIndex, {
+        usesAbsoluteLayout: true,
+        minX: Math.min(...xValues, 0),
+        maxX: Math.max(...rightValues, 100),
+        minY: Math.min(...yValues, 0),
+        maxY: Math.max(...bottomValues, 100),
+      });
+    });
+    return map;
+  }, [pagePreviewConfigs, templatePages]);
+
+  const activePreviewPage =
+    pagePreviewConfigs.find((page) => page.pageIndex === selectedPreviewPage) || pagePreviewConfigs[0];
+
   useEffect(() => {
-    if (currentMediaPage > totalMediaPages - 1) {
-      setCurrentMediaPage(Math.max(0, totalMediaPages - 1));
+    if (!pagePreviewConfigs.some((page) => page.pageIndex === selectedPreviewPage)) {
+      setSelectedPreviewPage(0);
     }
-  }, [currentMediaPage, totalMediaPages]);
-  
-  const moveMediaToPage = (targetPageIndex: number, mediaId: string) => {
-    if (targetPageIndex < 0 || targetPageIndex >= pageConfigs.length) return;
-  
+  }, [selectedPreviewPage, pagePreviewConfigs]);
+
+  const persistSlotMedia = async (slot: SlotConfig, item: MediaItem | null) => {
+    if (!bookAlbumId) return;
+    try {
+      await apiFetch(`/book-albums/${bookAlbumId}/slot`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          pageNumber: slot.pageNumber,
+          slotId: slot.slotId,
+          mediaItem: item
+            ? {
+                ...item,
+                cropTransform: mediaTransforms[item.id] || { zoom: 1, x: 0, y: 0 },
+              }
+            : null,
+        }),
+      });
+    } catch (error) {
+      console.error('Failed to persist slot media:', error);
+    }
+  };
+
+  const moveMediaToSlot = (targetSlotIndex: number, mediaId: string) => {
+    if (targetSlotIndex < 0) return;
+
     const sourceIndex = mediaItems.findIndex((item) => item.id === mediaId);
     if (sourceIndex === -1) return;
-  
-    const sourceItem = mediaItems[sourceIndex];
-    const updated = [...mediaItems];
-    updated.splice(sourceIndex, 1);
-  
-    const targetStart = pageConfigs[targetPageIndex]?.startIndex ?? 0;
-    const insertionIndex = sourceIndex < targetStart ? Math.max(0, targetStart - 1) : targetStart;
-  
-    updated.splice(insertionIndex, 0, sourceItem);
-  
-    const reordered = updated.map((item, index) => ({
-      ...item,
-      order: index + 1,
-    }));
-  
-    setMediaItems(reordered);
-    setCurrentMediaPage(targetPageIndex);
-  };
 
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(e.type === 'dragenter' || e.type === 'dragover');
-  };
+    const reordered = [...mediaItems];
+    const [moved] = reordered.splice(sourceIndex, 1);
+    const insertionIndex = sourceIndex < targetSlotIndex ? Math.max(0, targetSlotIndex - 1) : targetSlotIndex;
+    reordered.splice(insertionIndex, 0, moved);
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-    if (e.dataTransfer.files) {
-      handleFiles(Array.from(e.dataTransfer.files));
+    const normalized = reordered.map((item, index) => ({
+        ...item,
+        order: index + 1,
+      }));
+    setMediaItems(normalized);
+    const slot = slotConfigs[targetSlotIndex];
+    const mediaAtTarget = normalized[targetSlotIndex] || null;
+    if (slot) {
+      void persistSlotMedia(slot, mediaAtTarget);
     }
+  };
+
+  const moveMediaToPage = (targetPageIndex: number, mediaId: string) => {
+    const targetPage = pagePreviewConfigs.find((page) => page.pageIndex === targetPageIndex);
+    if (!targetPage || targetPage.slots.length === 0) return;
+    moveMediaToSlot(targetPage.slots[0].index, mediaId);
+    setSelectedPreviewPage(targetPageIndex);
+  };
+
+  const handleUploadToSlot = (slotIndex: number, files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const file = files[0];
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = String(reader.result || '');
+      if (!dataUrl) return;
+
+      setMediaItems((prev) => {
+        const next = [...prev];
+        const newMedia: MediaItem = {
+          id: `media-${Date.now()}-${Math.random()}`,
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+          mediaKind: file.type.startsWith('video') ? 'video' : 'image',
+          dataUrl,
+          order: slotIndex + 1,
+        };
+
+        if (slotIndex >= next.length) {
+          next.push(newMedia);
+        } else {
+          next.splice(slotIndex, 0, newMedia);
+        }
+
+        return next.map((item, index) => ({
+          ...item,
+          order: index + 1,
+        }));
+      });
+      toast.success('Media uploaded to slot', toastStyle);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -509,46 +607,87 @@ const CreateAlbum: React.FC = () => {
 
   const clearAllMedia = () => {
     setMediaItems([]);
-    setCurrentMediaPage(0);
     toast.success('All images cleared', toastStyle);
-  };
-
-  const handleMediaPageChange = (direction: 'prev' | 'next') => {
-    if (direction === 'prev' && currentMediaPage > 0) {
-      setCurrentMediaPage(currentMediaPage - 1);
-    } else if (direction === 'next' && currentMediaPage < totalMediaPages - 1) {
-      setCurrentMediaPage(currentMediaPage + 1);
-    }
   };
 
   const handleDragStart = (item: MediaItem) => {
     setDraggedItem(item);
-  };
-
-  const handleDragOver = (e: React.DragEvent, targetItem: MediaItem) => {
-    e.preventDefault();
-    if (!draggedItem || draggedItem.id === targetItem.id) return;
-
-    const draggedIndex = mediaItems.findIndex(item => item.id === draggedItem.id);
-    const targetIndex = mediaItems.findIndex(item => item.id === targetItem.id);
-
-    if (draggedIndex === -1 || targetIndex === -1) return;
-
-    const newMediaItems = [...mediaItems];
-    newMediaItems.splice(draggedIndex, 1);
-    newMediaItems.splice(targetIndex, 0, draggedItem);
-
-    // Update order property
-    const reordered = newMediaItems.map((item, index) => ({
-      ...item,
-      order: index + 1,
-    }));
-
-    setMediaItems(reordered);
+    try {
+      window.sessionStorage.setItem('designerDraggedMediaId', item.id);
+    } catch {
+      // ignore
+    }
   };
 
   const handleDragEnd = () => {
     setDraggedItem(null);
+    try {
+      window.sessionStorage.removeItem('designerDraggedMediaId');
+    } catch {
+      // ignore
+    }
+  };
+
+  const openCropEditor = (item: MediaItem) => {
+    const current = mediaTransforms[item.id] || { zoom: 1, x: 0, y: 0 };
+    setCropMedia(item);
+    setCropDraft(current);
+  };
+
+  const applyCropChanges = () => {
+    if (!cropMedia) return;
+    const nextTransforms = {
+      ...mediaTransforms,
+      [cropMedia.id]: cropDraft,
+    };
+    setMediaTransforms((prev) => ({
+      ...prev,
+      [cropMedia.id]: cropDraft,
+    }));
+    const slotIndex = mediaItems.findIndex((item) => item.id === cropMedia.id);
+    const slot = slotIndex >= 0 ? slotConfigs[slotIndex] : null;
+    if (slot && bookAlbumId) {
+      void apiFetch(`/book-albums/${bookAlbumId}/slot`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          pageNumber: slot.pageNumber,
+          slotId: slot.slotId,
+          mediaItem: {
+            ...cropMedia,
+            cropTransform: nextTransforms[cropMedia.id],
+          },
+        }),
+      }).catch((error) => {
+        console.error('Failed to persist crop:', error);
+      });
+    }
+    setCropMedia(null);
+  };
+
+  const handleCropPointerDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsCropPanning(true);
+    setCropPanStart({
+      x: e.clientX,
+      y: e.clientY,
+      baseX: cropDraft.x,
+      baseY: cropDraft.y,
+    });
+  };
+
+  const handleCropPointerMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isCropPanning) return;
+    const dx = e.clientX - cropPanStart.x;
+    const dy = e.clientY - cropPanStart.y;
+    setCropDraft((prev) => ({
+      ...prev,
+      x: cropPanStart.baseX + dx,
+      y: cropPanStart.baseY + dy,
+    }));
+  };
+
+  const stopCropPanning = () => {
+    setIsCropPanning(false);
   };
 
   const handleDiscard = () => {
@@ -560,7 +699,6 @@ const CreateAlbum: React.FC = () => {
     setAlbumSearch('');
     setTemplateSearch('');
     setMediaItems([]);
-    setCurrentMediaPage(0);
     setBookAlbumId(null);
     setAlbumSuggestions([]);
     setTemplateSuggestions([]);
@@ -568,6 +706,7 @@ const CreateAlbum: React.FC = () => {
     setIsTemplateDropdownOpen(false);
     setIsBookModalOpen(false);
     setPreviewMedia(null);
+    setSelectedPreviewPage(0);
     sessionStorage.removeItem('bookAlbumId');
   };
 
@@ -587,6 +726,7 @@ const CreateAlbum: React.FC = () => {
           templateId: selectedTemplate,
           albumType,
           mainSiteShowStatus: showOnMainSite,
+          mediaTransforms,
         }),
       });
 
@@ -650,7 +790,7 @@ const CreateAlbum: React.FC = () => {
           {/* Top Row - Selection Panel and Book Panel side by side */}
           <div className="flex gap-6">
           {/* SELECTION PANEL - Left Side */}
-          <div className="w-80 shrink-0">
+          <div className="w-72 shrink-0">
             <div className="w-full p-5 rounded-2xl shadow-lg bg-white border-l-4 border-[#b10e6b] h-fit sticky top-6">
               <h3 className="text-[11px] tracking-widest uppercase text-[#b10e6b] font-bold mb-4">SELECTION PANEL</h3>
               
@@ -777,7 +917,7 @@ const CreateAlbum: React.FC = () => {
           </div>
 
         {/* BOOK PANEL - Right Side */}
-        <div className="w-80 shrink-0">
+        <div className="min-w-104 flex-1">
   {/* Template Book Preview (flip book with curate images in slots) */}
   {selectedTemplateData ? (
     <div className="bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col border border-gray-100 h-fit">
@@ -806,6 +946,7 @@ const CreateAlbum: React.FC = () => {
             <TemplateBookFlip
               template={selectedTemplateData}
               mediaItems={mediaItems}
+              activeContentPage={activePreviewPage?.pageIndex || 0}
               coverPhoto={selectedAlbumData?.coverPhoto}
               coverPhotoName={selectedAlbumData?.albumName}
               coverWeddingDate={selectedAlbumData?.weddingDate}
@@ -910,150 +1051,232 @@ const CreateAlbum: React.FC = () => {
       ) : (
         <div className="w-full">
           <div className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#f0e2e6] bg-[#fff8f7] p-3">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-[#8d7d81]">Page Flow</p>
-                <p className="text-sm font-semibold text-[#211A1B]">
-                  {currentPageConfig?.label || `Page ${currentMediaPage + 1}`}
-                  <span className="text-[#7a6268]"> · {currentPageItems.length} item{currentPageItems.length !== 1 ? 's' : ''}</span>
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handleMediaPageChange('prev')}
-                  disabled={currentMediaPage === 0}
-                  className="group inline-flex items-center gap-2 rounded-xl border border-[#e1bec4] bg-white px-3 py-2 text-xs font-bold uppercase tracking-wider text-[#7a6268] transition-all hover:border-[#b10e6b] hover:text-[#b10e6b] disabled:cursor-not-allowed disabled:opacity-30"
-                >
-                  <ChevronLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
-                  Prev
-                </button>
-                <button
-                  onClick={() => handleMediaPageChange('next')}
-                  disabled={currentMediaPage >= totalMediaPages - 1}
-                  className="group inline-flex items-center gap-2 rounded-xl border border-[#e1bec4] bg-white px-3 py-2 text-xs font-bold uppercase tracking-wider text-[#7a6268] transition-all hover:border-[#b10e6b] hover:text-[#b10e6b] disabled:cursor-not-allowed disabled:opacity-30"
-                >
-                  Next
-                  <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
-                </button>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              {pageConfigs.map((page, index) => {
-                const isActive = index === currentMediaPage;
-                return (
-                  <button
-                    key={`${page.pageNumber}-${page.label}`}
-                    onClick={() => setCurrentMediaPage(index)}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      if (draggedItem) {
-                        moveMediaToPage(index, draggedItem.id);
-                      }
-                    }}
-                    className={`rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] transition-all ${
-                      isActive
-                        ? 'border-[#b10e6b] bg-[#fff0f4] text-[#b10e6b] shadow-sm'
-                        : 'border-[#e1bec4] bg-white text-[#7a6268] hover:border-[#b10e6b] hover:text-[#b10e6b]'
-                    }`}
-                    title={`Move dragged item to ${page.label}`}
-                  >
-                    {page.label}
-                    <span className="ml-2 text-[9px] font-semibold normal-case tracking-normal text-current/70">
-                      {page.items.length}/{page.slots}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="rounded-2xl border border-[#f0e2e6] bg-linear-to-br from-[#fff8f7] to-[#fef6f6] p-6 shadow-inner">
-              {currentPageItems.length === 0 ? (
-                <div className="flex min-h-60 items-center justify-center rounded-xl border border-dashed border-[#e1bec4] bg-white/60 text-center text-sm text-[#594045]">
-                  No media on this page yet.
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,2.2fr)_minmax(280px,1fr)]">
+              <div className="rounded-2xl border border-[#f0e2e6] bg-linear-to-br from-[#fff8f7] to-[#fef6f6] p-4 shadow-inner">
+                <div className="mb-3 flex items-center justify-between">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#8d7d81]">Template</p>
+                  <p className="text-xs font-semibold text-[#54474d]">
+                    {Math.min(mediaItems.length, slotConfigs.length)} / {slotConfigs.length} filled
+                  </p>
                 </div>
-              ) : (
-                <div className="grid w-full grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
-                  {currentPageItems.map((item) => (
-                    <div
-                      key={item.id}
-                      className="group relative cursor-move overflow-hidden rounded-xl bg-white shadow-md transition-all duration-300 hover:scale-[1.02] hover:shadow-xl"
-                      draggable
-                      onDragStart={() => handleDragStart(item)}
-                      onDragOver={(e) => handleDragOver(e, item)}
-                      onDragEnd={handleDragEnd}
-                    >
-                      {item.mediaKind === 'image' && hasMediaSrc(item.dataUrl) ? (
-                        <div className="relative h-32 bg-[#f7ecef]">
-                          <img src={item.dataUrl} alt={item.fileName} className="h-full w-full object-cover" />
-                          <div className="absolute inset-0 bg-linear-to-t from-black/50 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-                        </div>
-                      ) : (
-                        <div className="relative h-32 bg-black">
-                          {hasMediaSrc(item.dataUrl) ? (
-                            <video
-                              src={item.dataUrl}
-                              className="h-full w-full object-cover"
-                              muted
-                              playsInline
-                              preload="metadata"
-                              controls={false}
+                <div
+                  className={`relative min-h-96 rounded-2xl border border-[#e9d8df] bg-white p-3 ${
+                    pageSlotBounds.get(activePreviewPage?.pageIndex || 0)?.usesAbsoluteLayout
+                      ? 'overflow-hidden'
+                      : 'grid gap-3 sm:grid-cols-2 lg:grid-cols-3'
+                  }`}
+                >
+                  {(activePreviewPage?.slots || []).map((slot) => {
+                    const item = mediaItems[slot.index];
+                    const transform = item ? mediaTransforms[item.id] || { zoom: 1, x: 0, y: 0 } : { zoom: 1, x: 0, y: 0 };
+                    const rawSlot = templatePages[slot.pageIndex]?.slots?.find((candidate) => (candidate.id || '') === slot.slotId);
+                    const rawPage = templatePages[slot.pageIndex] as { accent?: string; pageColor?: string } | undefined;
+                    const bounds = pageSlotBounds.get(slot.pageIndex);
+                    const usesAbsolute = Boolean(bounds?.usesAbsoluteLayout && rawSlot);
+                    const leftPct = usesAbsolute
+                      ? (((Number(rawSlot?.x) || 0) - (bounds?.minX || 0)) / Math.max(1, (bounds?.maxX || 100) - (bounds?.minX || 0))) * 100
+                      : 0;
+                    const topPct = usesAbsolute
+                      ? (((Number(rawSlot?.y) || 0) - (bounds?.minY || 0)) / Math.max(1, (bounds?.maxY || 100) - (bounds?.minY || 0))) * 100
+                      : 0;
+                    const widthPct = usesAbsolute
+                      ? (Math.max(1, Number(rawSlot?.width) || 10) / Math.max(1, (bounds?.maxX || 100) - (bounds?.minX || 0))) * 100
+                      : undefined;
+                    const heightPct = usesAbsolute
+                      ? (Math.max(1, Number(rawSlot?.height) || 10) / Math.max(1, (bounds?.maxY || 100) - (bounds?.minY || 0))) * 100
+                      : undefined;
+
+                    return (
+                      <div
+                        key={`${slot.pageLabel}-${slot.slotLabel}-${slot.index}`}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          const transferId =
+                            e.dataTransfer.getData('text/plain') ||
+                            e.dataTransfer.getData('application/x-media-id') ||
+                            draggedItem?.id ||
+                            (() => {
+                              try {
+                                return window.sessionStorage.getItem('designerDraggedMediaId') || '';
+                              } catch {
+                                return '';
+                              }
+                            })();
+                          if (transferId) {
+                            moveMediaToSlot(slot.index, transferId);
+                          }
+                        }}
+                        className={`group overflow-hidden rounded-xl border border-[#e1bec4] bg-white ${
+                          usesAbsolute ? 'absolute' : 'relative'
+                        }`}
+                        title={`${slot.pageLabel} · ${slot.slotLabel}`}
+                        style={
+                          usesAbsolute
+                            ? {
+                                left: `${leftPct}%`,
+                                top: `${topPct}%`,
+                                width: `${Math.max(8, widthPct || 20)}%`,
+                                height: `${Math.max(12, heightPct || 20)}%`,
+                              }
+                            : undefined
+                        }
+                      >
+                        {!item ? (
+                          <div className="m-2 flex h-32 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-[#e1bec4] text-[10px] font-semibold uppercase tracking-wider text-[#9f8a90]" style={{ backgroundColor: rawPage?.pageColor || rawPage?.accent || '#fff8fb' }}>
+                            <button
+                              type="button"
+                              onClick={() => slotUploadInputRefs.current[slot.slotId]?.click()}
+                              className="inline-flex items-center gap-1 rounded-full border border-[#e1bec4] bg-white/90 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.14em] text-[#7a6268] hover:border-[#b10e6b] hover:text-[#b10e6b]"
+                            >
+                              <Upload size={12} />
+                              Upload
+                            </button>
+                            <input
+                              ref={(el) => {
+                                slotUploadInputRefs.current[slot.slotId] = el;
+                              }}
+                              type="file"
+                              accept="image/*,video/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                handleUploadToSlot(slot.index, e.target.files);
+                                e.target.value = '';
+                              }}
                             />
-                          ) : (
-                            <div className="flex h-full items-center justify-center bg-linear-to-br from-gray-100 to-gray-300">
-                              <span className="text-[10px] font-bold tracking-widest text-gray-600">VIDEO</span>
-                            </div>
-                          )}
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 transition-opacity group-hover:opacity-100">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-[#211A1B] shadow-lg">
-                              <Eye size={16} />
+                          </div>
+                        ) : (
+                          <div
+                            className="relative m-2 h-32 cursor-move overflow-hidden rounded-lg bg-[#f7ecef]"
+                            draggable
+                            onDragStart={(e) => {
+                              handleDragStart(item);
+                              e.dataTransfer.setData('text/plain', item.id);
+                              e.dataTransfer.setData('application/x-media-id', item.id);
+                              e.dataTransfer.effectAllowed = 'move';
+                            }}
+                            onDragEnd={handleDragEnd}
+                          >
+                            {item.mediaKind === 'image' && hasMediaSrc(item.dataUrl) ? (
+                              <img
+                                src={item.dataUrl}
+                                alt={item.fileName}
+                                className="h-full w-full object-contain transition-transform duration-200"
+                                style={{ transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.zoom})` }}
+                              />
+                            ) : hasMediaSrc(item.dataUrl) ? (
+                              <video src={item.dataUrl} className="h-full w-full object-contain" muted playsInline preload="metadata" controls={false} />
+                            ) : (
+                              <div className="flex h-full items-center justify-center bg-linear-to-br from-gray-100 to-gray-300">
+                                <span className="text-[10px] font-bold tracking-widest text-gray-600">VIDEO</span>
+                              </div>
+                            )}
+                            <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/55 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPreviewMedia(item);
+                                }}
+                                className="rounded-full bg-white/90 p-2 shadow-lg transition hover:scale-105"
+                                title="View"
+                              >
+                                <Eye size={14} className="text-[#211A1B]" />
+                              </button>
+                              {item.mediaKind === 'image' && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openCropEditor(item);
+                                  }}
+                                  className="rounded-full bg-white/90 px-2.5 py-2 text-[10px] font-bold uppercase tracking-wider text-[#211A1B] shadow-lg transition hover:scale-105"
+                                  title="Crop"
+                                >
+                                  Crop
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeMedia(item.id);
+                                }}
+                                className="rounded-full bg-red-500/90 p-2 shadow-lg transition hover:scale-105 hover:bg-red-600"
+                                title="Remove"
+                              >
+                                <Trash2 size={14} className="text-white" />
+                              </button>
                             </div>
                           </div>
-                        </div>
-                      )}
-                      <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/60 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setPreviewMedia(item);
-                          }}
-                          className="rounded-full bg-white/90 p-2 shadow-lg transition-all hover:scale-110 hover:bg-white"
-                          title="View"
-                        >
-                          <Eye size={14} className="text-[#211A1B]" />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeMedia(item.id);
-                          }}
-                          className="rounded-full bg-red-500/90 p-2 shadow-lg transition-all hover:scale-110 hover:bg-red-600"
-                          title="Remove"
-                        >
-                          <Trash2 size={14} className="text-white" />
-                        </button>
+                        )}
                       </div>
-                      <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/70 to-transparent p-2">
-                        <p className="truncate text-[9px] font-medium text-white">{item.fileName}</p>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-[#f0e2e6] bg-white p-4">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-[#8d7d81]">Pages</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {pagePreviewConfigs.map((page) => (
+                    <button
+                      key={`preview-page-${page.pageIndex}`}
+                      type="button"
+                      onClick={() => setSelectedPreviewPage(page.pageIndex)}
+                      className={`rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] transition-all ${
+                        selectedPreviewPage === page.pageIndex
+                          ? 'border-[#b10e6b] bg-[#fff0f4] text-[#b10e6b] shadow-sm'
+                          : 'border-[#e1bec4] bg-white text-[#7a6268] hover:border-[#b10e6b] hover:text-[#b10e6b]'
+                      }`}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        const transferId =
+                          e.dataTransfer.getData('text/plain') ||
+                          e.dataTransfer.getData('application/x-media-id') ||
+                          draggedItem?.id ||
+                          (() => {
+                            try {
+                              return window.sessionStorage.getItem('designerDraggedMediaId') || '';
+                            } catch {
+                              return '';
+                            }
+                          })();
+                        if (transferId) {
+                          moveMediaToPage(page.pageIndex, transferId);
+                        }
+                      }}
+                    >{page.pageLabel}</button>
+                  ))}
+                </div>
+                <div className="mt-4 space-y-2">
+                  {pagePreviewConfigs.map((page) => (
+                    <div key={`page-row-${page.pageIndex}`} className="rounded-xl border border-[#ecdbe2] bg-[#fff8f9] p-3">
+                      <div className="mb-2 flex items-center justify-between">
+                        <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#8d7d81]">{page.pageLabel}</p>
+                        <p className="text-[9px] text-[#9f8a90]">{page.slots.filter((slot) => Boolean(mediaItems[slot.index])).length}/{page.slots.length}</p>
+                      </div>
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {page.slots.slice(0, 8).map((slot) => {
+                          const item = mediaItems[slot.index];
+                          return (
+                            <div key={`preview-${page.pageIndex}-${slot.slotId}`} className="aspect-square overflow-hidden rounded-md border border-[#ecdbe2] bg-white">
+                              {item?.dataUrl ? (
+                                item.mediaKind === 'video' ? (
+                                  <video src={item.dataUrl} className="h-full w-full object-cover" muted playsInline preload="metadata" />
+                                ) : (
+                                  <img src={item.dataUrl} alt={item.fileName} className="h-full w-full object-cover" />
+                                )
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center text-[8px] font-bold uppercase tracking-[0.12em] text-[#c1aeb3]">Empty</div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   ))}
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center justify-center gap-3">
-              <div className="flex items-center gap-3 rounded-xl border border-[#f0e2e6] bg-white px-5 py-3 shadow-sm">
-                <div className="text-center">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#8d7d81]">Page</p>
-                  <p className="text-xl font-bold text-[#b10e6b]">{currentMediaPage + 1}</p>
-                </div>
-                <div className="h-10 w-px bg-[#e1bec4]"></div>
-                <div className="text-center">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#8d7d81]">of {totalMediaPages}</p>
-                  <p className="text-xs font-semibold text-[#54474d]">{mediaItems.length} images</p>
                 </div>
               </div>
             </div>
@@ -1065,9 +1288,7 @@ const CreateAlbum: React.FC = () => {
     {mediaItems.length > 0 && (
       <div className="p-3 border-t bg-[#fef6f6] text-xs text-[#211A1B] flex items-center justify-between">
         <span className="font-semibold">{mediaItems.length} item{mediaItems.length !== 1 ? 's' : ''} total</span>
-        {totalMediaPages > 1 && (
-          <span className="text-[10px] text-[#54474d]">Showing page {currentMediaPage + 1} of {totalMediaPages}</span>
-        )}
+        <span className="text-[10px] text-[#54474d]"></span>
       </div>
     )}
   </div>
@@ -1078,6 +1299,7 @@ const CreateAlbum: React.FC = () => {
     <FullscreenBook
       template={selectedTemplateData}
       mediaItems={mediaItems}
+      mediaTransforms={mediaTransforms}
       coverPhoto={selectedAlbumData?.coverPhoto}
       coverPhotoName={selectedAlbumData?.albumName}
       coverWeddingDate={selectedAlbumData?.weddingDate}
@@ -1115,6 +1337,100 @@ const CreateAlbum: React.FC = () => {
               Preview unavailable
             </div>
           )}
+        </div>
+      </div>
+    </div>
+  )}
+
+  {cropMedia && cropMedia.mediaKind === 'image' && hasMediaSrc(cropMedia.dataUrl) && (
+    <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
+      <div className="relative w-full max-w-3xl overflow-hidden rounded-3xl bg-white shadow-2xl">
+        <div className="flex items-center justify-between border-b border-[#ead5dc] px-4 py-3">
+          <div>
+            <p className="text-sm font-bold uppercase tracking-widest text-[#211A1B]">Adjust Crop</p>
+            <p className="max-w-[70vw] truncate text-xs text-[#7a6268]">{cropMedia.fileName}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setCropMedia(null)}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#e1bec4] text-[#7a6268] transition hover:border-[#b10e6b] hover:text-[#b10e6b]"
+            aria-label="Close crop editor"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="grid gap-4 p-4 md:grid-cols-[minmax(0,1fr)_260px]">
+          <div className="overflow-hidden rounded-xl border border-[#ead5dc] bg-[#111]">
+            <div
+              className={`relative h-88 overflow-hidden ${isCropPanning ? 'cursor-grabbing' : 'cursor-grab'}`}
+              onMouseDown={handleCropPointerDown}
+              onMouseMove={handleCropPointerMove}
+              onMouseUp={stopCropPanning}
+              onMouseLeave={stopCropPanning}
+            >
+              <img
+                src={cropMedia.dataUrl}
+                alt={cropMedia.fileName}
+                className="h-full w-full object-contain select-none"
+                draggable={false}
+                style={{ transform: `translate(${cropDraft.x}px, ${cropDraft.y}px) scale(${cropDraft.zoom})` }}
+              />
+            </div>
+          </div>
+          <div className="space-y-4">
+            <label className="block text-xs font-semibold text-[#54474d]">
+              Zoom
+              <input
+                type="range"
+                min="1"
+                max="2.5"
+                step="0.01"
+                value={cropDraft.zoom}
+                onChange={(e) => setCropDraft((prev) => ({ ...prev, zoom: Number(e.target.value) }))}
+                className="mt-1 w-full"
+              />
+            </label>
+            <label className="block text-xs font-semibold text-[#54474d]">
+              Horizontal (drag image too)
+              <input
+                type="range"
+                min="-140"
+                max="140"
+                step="1"
+                value={cropDraft.x}
+                onChange={(e) => setCropDraft((prev) => ({ ...prev, x: Number(e.target.value) }))}
+                className="mt-1 w-full"
+              />
+            </label>
+            <label className="block text-xs font-semibold text-[#54474d]">
+              Vertical
+              <input
+                type="range"
+                min="-140"
+                max="140"
+                step="1"
+                value={cropDraft.y}
+                onChange={(e) => setCropDraft((prev) => ({ ...prev, y: Number(e.target.value) }))}
+                className="mt-1 w-full"
+              />
+            </label>
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setCropDraft({ zoom: 1, x: 0, y: 0 })}
+                className="rounded-lg border border-[#e1bec4] px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-[#7a6268]"
+              >
+                Reset
+              </button>
+              <button
+                type="button"
+                onClick={applyCropChanges}
+                className="rounded-lg bg-[#b10e6b] px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-white"
+              >
+                Apply
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

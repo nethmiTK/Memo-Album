@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState, useRef } from 'react';
-import { Plus, ChevronDown, Folder, FileText, BookOpen, Trash2, Edit2 } from 'lucide-react';
+import { Plus, ChevronDown, Folder, FileText, BookOpen, Trash2, Edit2, Search } from 'lucide-react';
 import { apiFetch, handleAuthError } from '@/lib/api';
 import { FullscreenBook } from '@/app/Components/photographer-admin/FullscreenBook';
 
@@ -100,6 +100,7 @@ export default function ArchivePage() {
   const [isLoadingArchiveBooks, setIsLoadingArchiveBooks] = useState(false);
   const [addAlbumId, setAddAlbumId] = useState('');
   const [editingFolderName, setEditingFolderName] = useState('');
+  const [folderSearch, setFolderSearch] = useState('');
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
   const selectedAlbums = useMemo(
@@ -116,7 +117,7 @@ export default function ArchivePage() {
       groups.set(key, next);
     });
 
-    return Array.from(groups.entries())
+    const allGroups = Array.from(groups.entries())
       .map(([folderName, folderArchives]) => ({
         folderName,
         folderArchives,
@@ -126,7 +127,13 @@ export default function ArchivePage() {
         }, 0),
       }))
       .sort((a, b) => b.latestAt - a.latestAt);
-  }, [archives]);
+    const query = folderSearch.trim().toLowerCase();
+    if (!query) return allGroups;
+    return allGroups.filter((group) =>
+      group.folderName.toLowerCase().includes(query) ||
+      group.folderArchives.some((archive) => (archive.albumTitle || '').toLowerCase().includes(query))
+    );
+  }, [archives, folderSearch]);
 
   const persistArchiveCache = (nextAlbums: CurateAlbum[], nextArchives: ArchiveItem[]) => {
     writeSessionCache(ARCHIVE_PAGE_CACHE_KEY, {
@@ -546,6 +553,18 @@ export default function ArchivePage() {
           <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#b10e6b]">{archives.length} Records</span>
         </div>
 
+        <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="relative w-full max-w-md">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#b10e6b]/70" />
+            <input
+              value={folderSearch}
+              onChange={(event) => setFolderSearch(event.target.value)}
+              placeholder="Search folders or album names..."
+              className="w-full rounded-xl border border-[#e9dddd] bg-[#fff8f7] py-2.5 pl-10 pr-3 text-sm text-[#211a1b] outline-none transition-colors focus:border-[#b10e6b]"
+            />
+          </div>
+        </div>
+
         <div className="mt-6 space-y-5">
           {groupedArchives.map((group) => {
             const isExpanded = expandedArchiveId === group.folderName;
@@ -753,6 +772,10 @@ export default function ArchivePage() {
           {archives.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-[#d7ccc4] p-8 text-center text-sm text-[#6b5d60]">
               No archive records yet.
+            </div>
+          ) : groupedArchives.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-[#d7ccc4] p-8 text-center text-sm text-[#6b5d60]">
+              No folders match your search.
             </div>
           ) : null}
         </div>

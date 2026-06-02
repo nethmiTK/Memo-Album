@@ -36,6 +36,13 @@ type TemplateBookFlipProps = {
   /** inline = designer panel, fullscreen = dedicated book route */
   variant?: 'inline' | 'fullscreen';
   className?: string;
+  activeContentPage?: number;
+};
+
+type FlipBookInstance = {
+  flip?: (page: number) => void;
+  flipNext?: () => void;
+  flipPrev?: () => void;
 };
 
 function CoverPage({ template, accent, coverPhoto, coverPhotoName, coverWeddingDate, variant }: { template: TemplateRecord; accent: string; coverPhoto?: string; coverPhotoName?: string; coverWeddingDate?: string | Date; variant: 'inline' | 'fullscreen' }) {
@@ -186,8 +193,9 @@ export function TemplateBookFlip({
   coverWeddingDate,
   variant = 'inline',
   className = '',
+  activeContentPage,
 }: TemplateBookFlipProps) {
-  const bookRef = useRef<{ pageFlip?: () => { flipNext?: () => void; flipPrev?: () => void } } | null>(null);
+  const bookRef = useRef<{ pageFlip?: () => FlipBookInstance } | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [bookSize, setBookSize] = useState(
     variant === 'fullscreen' ? { width: 560, height: 760 } : { width: 260, height: 360 }
@@ -228,15 +236,25 @@ export function TemplateBookFlip({
 
   useEffect(() => {
     setCurrentPage(0);
-    const id = window.setTimeout(() => {
-      try {
-        bookRef.current?.pageFlip?.()?.flipNext?.();
-      } catch {
-        // ignore flip init errors
-      }
-    }, 280);
-    return () => window.clearTimeout(id);
   }, [template._id, mediaItems.length]);
+
+  useEffect(() => {
+    if (!Number.isFinite(Number(activeContentPage))) return;
+    if (!pages.length) return;
+    const contentPage = Math.max(0, Number(activeContentPage) || 0);
+    const timeoutId = window.setTimeout(() => {
+      try {
+        const instance = bookRef.current?.pageFlip?.();
+        if (instance?.flip) {
+          const targetBookPage = Math.min(contentPage + 1, pages.length);
+          instance.flip(targetBookPage);
+        }
+      } catch {
+        // ignore flip jumps
+      }
+    }, 120);
+    return () => window.clearTimeout(timeoutId);
+  }, [activeContentPage, pages.length]);
 
   const flipNext = () => bookRef.current?.pageFlip?.()?.flipNext?.();
   const flipPrev = () => bookRef.current?.pageFlip?.()?.flipPrev?.();
