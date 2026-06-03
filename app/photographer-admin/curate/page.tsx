@@ -108,6 +108,20 @@ export default function NewCollectionPage() {
     });
   };
 
+  const normalizePersistedMediaItem = (item: PersistedMediaItem): PersistedMediaItem => ({
+    ...item,
+    dataUrl: item.dataUrl || (item as any).url || (item as any).src || '',
+    mediaKind:
+      item.mediaKind === 'video'
+        ? 'video'
+        : item.mediaKind === 'other'
+          ? 'other'
+          : (item.fileType?.startsWith('video') ? 'video' : 'image'),
+  });
+
+  const normalizePersistedMediaItems = (items: PersistedMediaItem[]) =>
+    Array.isArray(items) ? items.map(normalizePersistedMediaItem) : [];
+
   const toastStyle = {
     style: {
       background: '#FDF3F2',
@@ -122,10 +136,12 @@ export default function NewCollectionPage() {
       return rawText ? JSON.parse(rawText) : {};
     } catch {
       const htmlResponse = rawText.trim().startsWith('<!DOCTYPE') || rawText.trim().startsWith('<html');
+      const statusInfo = `${response.status} ${response.statusText}`;
+      const requestUrl = response.url || 'unknown URL';
       throw new Error(
         htmlResponse
-          ? 'Server returned HTML instead of JSON. Check API URL/backend server and login session.'
-          : 'Invalid API response format.'
+          ? `Server returned HTML instead of JSON at ${requestUrl} (${statusInfo}). Check API URL/backend server and login session.`
+          : `Invalid API response format from ${requestUrl} (${statusInfo}).`
       );
     }
   };
@@ -164,7 +180,7 @@ export default function NewCollectionPage() {
           const restoredFiles = await Promise.all((cachedDraft.files || []).map((item) => dataUrlToFile(item)));
 
           setFormData(cachedDraft.formData || { albumName: '', weddingDate: '', accessControl: 'public' });
-          setPersistedMediaItems(Array.isArray(cachedDraft.persistedMediaItems) ? cachedDraft.persistedMediaItems : []);
+          setPersistedMediaItems(normalizePersistedMediaItems(Array.isArray(cachedDraft.persistedMediaItems) ? cachedDraft.persistedMediaItems : []));
           setCurateId(cachedDraft.curateId || '');
           setUploadProgress(Number.isFinite(Number(cachedDraft.uploadProgress)) ? Number(cachedDraft.uploadProgress) : 0);
           setCoverPreview(cachedDraft.coverPreview || null);
@@ -207,7 +223,7 @@ export default function NewCollectionPage() {
           weddingDate: curate.weddingDate ? String(curate.weddingDate).slice(0, 10) : '',
           accessControl: curate.accessControl === 'private' ? 'private' : 'public',
         });
-        setPersistedMediaItems(Array.isArray(curate.mediaItems) ? curate.mediaItems : []);
+        setPersistedMediaItems(normalizePersistedMediaItems(Array.isArray(curate.mediaItems) ? curate.mediaItems : []));
         setUploadProgress(Number.isFinite(Number(curate.progress)) ? Number(curate.progress) : 0);
         setCoverPreview(curate.coverPhoto || null);
         clearDraftCache();
@@ -358,7 +374,7 @@ export default function NewCollectionPage() {
           fileType: file.type,
           fileSize: file.size,
           mediaKind: file.type.startsWith('video') ? 'video' : 'image',
-          dataUrl: file.type.startsWith('image') ? await fileToDataUrl(file) : '',
+          dataUrl: await fileToDataUrl(file),
         }))
       );
 
@@ -401,7 +417,7 @@ export default function NewCollectionPage() {
       }
 
       if (result.curate?.mediaItems && Array.isArray(result.curate.mediaItems)) {
-        setPersistedMediaItems(result.curate.mediaItems);
+        setPersistedMediaItems(normalizePersistedMediaItems(result.curate.mediaItems));
       }
       if (result.curate?._id) {
         setCurateId(result.curate._id);

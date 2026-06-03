@@ -14,22 +14,25 @@ export default function LiveContentFeed(props) {
   const [isPointerInside, setIsPointerInside] = useState(false);
 
   useEffect(() => {
-    const persistedItems = persistedMediaItems
-      .filter((item) => item?.dataUrl)
-      .map((item, index) => ({
+    const persistedItems = persistedMediaItems.map((item, index) => {
+      const url = item.dataUrl || item.url || item.src || '';
+      return {
         key: `persisted-${index + 1}`,
         id: item.id || `persisted-${index + 1}`,
-        url: item.dataUrl,
+        url,
         // Detect video by mediaKind OR fileType (with fallback)
         type: (item.mediaKind === 'video' || (item.fileType && item.fileType.startsWith('video'))) ? 'video' : 'image',
         persisted: true,
-      }));
+        sourceIndex: index,
+      };
+    });
 
     const uploadedItems = files.map((file, index) => ({
       key: `upload-${index + 1}`,
       url: URL.createObjectURL(file),
       type: file.type.startsWith('video') ? 'video' : 'image',
       persisted: false,
+      sourceIndex: index,
     }));
 
     setMediaItems([...persistedItems, ...uploadedItems]);
@@ -89,10 +92,16 @@ export default function LiveContentFeed(props) {
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
           {mediaItems.map((media, index) => (
             <div key={`${media.key}-${index}`} className="relative rounded-2xl overflow-hidden bg-[#fdf1f3] border border-[#f3e4ea]">
-              {media.type === 'video' ? (
-                <video src={media.url} autoPlay muted loop playsInline style={{ height: '220px' }} className="w-full object-cover" />
+              {media.url ? (
+                media.type === 'video' ? (
+                  <video src={media.url} autoPlay muted loop playsInline style={{ height: '220px' }} className="w-full object-cover" />
+                ) : (
+                  <img src={media.url} alt="Uploaded media" style={{ height: '220px' }} className="w-full object-cover" />
+                )
               ) : (
-                <img src={media.url} alt="Uploaded media" style={{ height: '220px' }} className="w-full object-cover" />
+                <div className="flex h-55 items-center justify-center bg-[#f7f0f3] text-center px-4 py-3 text-sm text-[#7a5b66]">
+                  Preview unavailable for this asset
+                </div>
               )}
               <button
                 type="button"
@@ -100,7 +109,7 @@ export default function LiveContentFeed(props) {
                   if (media.persisted) {
                     onRemovePersisted?.(media.id);
                   } else {
-                    onRemoveUpload?.(index);
+                    onRemoveUpload?.(media.sourceIndex);
                   }
                 }}
                 className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-black/75"

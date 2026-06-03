@@ -82,11 +82,13 @@ const parseApiJson = async (response: Response) => {
     return JSON.parse(rawText);
   } catch {
     const htmlResponse = rawText.trim().startsWith('<!DOCTYPE') || rawText.trim().startsWith('<html');
+    const statusInfo = `${response.status} ${response.statusText}`;
+    const requestUrl = response.url || 'unknown URL';
     return {
       success: false,
       message: htmlResponse
-        ? 'Server returned HTML instead of JSON. Check API URL/backend server and login session.'
-        : rawText || 'Invalid API response format.',
+        ? `Server returned HTML instead of JSON at ${requestUrl} (${statusInfo}). Check API URL/backend server and login session.`
+        : `Invalid API response format from ${requestUrl} (${statusInfo}).`,
     };
   }
 };
@@ -95,10 +97,12 @@ const hasMediaSrc = (value?: string) => Boolean(value && value.trim());
 
 type SlotMediaArray = Array<MediaItem | null>;
 
-const getSlotMediaItem = (items: SlotMediaArray, slotIndex: number): MediaItem | null => {
-  const item = items[slotIndex];
-  return item && hasMediaSrc(item.dataUrl) ? item : null;
-};
+const getMediaSrc = (item?: MediaItem | null) => item?.dataUrl || (item as any)?.src || (item as any)?.url || '';
+
+  const getSlotMediaItem = (items: SlotMediaArray, slotIndex: number): MediaItem | null => {
+    const item = items[slotIndex];
+    return item && hasMediaSrc(getMediaSrc(item)) ? item : null;
+  };
 
 const padSlotMediaArray = (items: SlotMediaArray, slotCount: number): SlotMediaArray => {
   const next = items.map((item) => item ?? null);
@@ -110,7 +114,7 @@ const countFilledSlots = (items: SlotMediaArray, slots: SlotConfig[]) =>
   slots.filter((slot) => Boolean(getSlotMediaItem(items, slot.index))).length;
 
 const compactMediaItems = (items: SlotMediaArray): MediaItem[] =>
-  items.filter((item): item is MediaItem => Boolean(item && hasMediaSrc(item.dataUrl)));
+  items.filter((item): item is MediaItem => Boolean(item && hasMediaSrc(getMediaSrc(item))));
 
 interface MediaItem {
   id: string;
@@ -478,8 +482,7 @@ const CreateAlbum: React.FC = () => {
           template._id
         );
       });
-      // show suggestions when typing
-      setTemplateSuggestions(filtered.slice(0, 20));
+       setTemplateSuggestions(filtered.slice(0, 20));
       setIsTemplateDropdownOpen(filtered.length > 0);
       if (filtered.length === 1) {
         handleSelectTemplate(filtered[0]);
@@ -512,11 +515,10 @@ const CreateAlbum: React.FC = () => {
       fileName: item.fileName || '',
       fileType: item.fileType || '',
       fileSize: item.fileSize || 0,
-      // Detect video by mediaKind OR fileType as fallback
-      mediaKind: item.mediaKind === 'video' 
-        ? 'video' 
+      mediaKind: item.mediaKind === 'video'
+        ? 'video'
         : (item.fileType?.startsWith('video') ? 'video' : (item.mediaKind || 'image')),
-      dataUrl: item.dataUrl || '',
+      dataUrl: item.dataUrl || (item as any).src || (item as any).url || '',
       order: item.order ?? index + 1,
     }));
 
