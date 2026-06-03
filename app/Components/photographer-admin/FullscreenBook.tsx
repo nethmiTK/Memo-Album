@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, Download, X } from 'lucide-react';
 import { TemplateRecord, TemplatePage, TemplateMediaAsset, getTemplatePages, buildSlotMediaMap, toTemplateMedia, CurateMediaInput } from '@/lib/template-book-media';
 import HTMLFlipBook from 'react-pageflip';
 import JSZip from 'jszip';
+import { EndPage } from './endpage';
 
 const FlipBook = HTMLFlipBook as any;
 
@@ -33,6 +34,11 @@ interface FullscreenBookProps {
   coverPhoto?: string;
   coverPhotoName?: string;
   coverWeddingDate?: string | Date;
+  endPhoto?: string;
+  endPhotoName?: string;
+  photographerName?: string;
+  photographerStudio?: string;
+  photographerWebsite?: string;
   onClose: () => void;
 }
 
@@ -118,7 +124,7 @@ function CoverPage({ template, accent, coverPhoto, coverPhotoName, coverWeddingD
 
   return (
     <div className="h-full w-full p-2" style={{ background: `linear-gradient(180deg, ${hexToRgba(accent, 0.20)} 0%, ${hexToRgba(accent, 0.08)} 100%)` }}>
-      <div className="relative h-full w-full overflow-hidden rounded-[1.15rem] border bg-white shadow-[0_16px_38px_rgba(0,0,0,0.08)]" style={{ borderColor: hexToRgba(accent, 0.24) }}>
+      <div className="relative h-full w-full overflow-hidden rounded-[1.15rem] border bg-linear-to-b from-[#fff0f5] via-[#ffe5f0] to-[#fbe7f2] shadow-[0_16px_38px_rgba(0,0,0,0.08)]" style={{ borderColor: hexToRgba(accent, 0.24) }}>
         {coverImage ? (
           <>
             <img src={coverImage} alt={coverTitle} className="h-full w-full object-cover" />
@@ -161,11 +167,12 @@ function BookPage({
   onMediaClick: (media: TemplateMediaAsset) => void;
 }) {
   const usesAbsoluteLayout = page.slots.some((slot) => Number.isFinite(Number(slot.x)) || Number.isFinite(Number(slot.y)));
+  const pageBgColor = (page as any).pageColor || '#ffffff';
   const pageSurface = `linear-gradient(180deg, ${hexToRgba(accent, 0.16)} 0%, #fffdfd 24%, #fff8fb 72%, ${hexToRgba(accent, 0.10)} 100%)`;
 
   return (
     <div className="h-full w-full p-2" style={{ background: pageSurface }}>
-      <div className="flex h-full flex-col overflow-hidden rounded-[1.1rem] border bg-white p-4 shadow-[0_14px_35px_rgba(0,0,0,0.06)]" style={{ borderColor: hexToRgba(accent, 0.26) }}>
+      <div className="flex h-full flex-col overflow-hidden rounded-[1.1rem] border p-4 shadow-[0_14px_35px_rgba(0,0,0,0.06)]" style={{ borderColor: hexToRgba(accent, 0.26), backgroundColor: pageBgColor }}>
         <div className={`flex items-center justify-between border-b border-[#f2e8ec] pb-2 ${variant === 'fullscreen' ? 'hidden' : ''}`}>
           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#8d7d81]">{pageLabel}</p>
         </div>
@@ -197,9 +204,9 @@ function BookPage({
                 }}
                 onClick={() => media && onMediaClick(media)}
               >
-                {media?.src ? (
+                  {media?.src ? (
                   media.mediaKind === 'video' ? (
-                    <video src={media.src} playsInline preload="metadata" controls className="absolute inset-0 h-full w-full object-cover" />
+                    <video src={media.src} playsInline preload="metadata" controls autoPlay muted loop className="absolute inset-0 h-full w-full object-cover" />
                   ) : (
                     <img
                       src={media.src}
@@ -225,12 +232,10 @@ function BookPage({
 function ScrollFeedItem({
   media,
   mediaTransforms,
-  onDownload,
   onMediaClick,
 }: {
   media: TemplateMediaAsset;
   mediaTransforms: Record<string, { zoom: number; x: number; y: number }>;
-  onDownload: (media: TemplateMediaAsset) => void;
   onMediaClick: (media: TemplateMediaAsset) => void;
 }) {
   const mediaTransform = mediaTransforms[media.sourceId || media.id];
@@ -267,17 +272,6 @@ function ScrollFeedItem({
         )}
       </div>
       </button>
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onDownload(media);
-        }}
-        className="absolute right-2 top-2 rounded-full bg-black/50 p-2 text-white opacity-0 transition-opacity group-hover:opacity-100"
-        aria-label="Download media"
-      >
-        <Download size={14} />
-      </button>
     </div>
   );
 }
@@ -291,6 +285,11 @@ export function FullscreenBook({
   coverPhoto,
   coverPhotoName,
   coverWeddingDate,
+  endPhoto,
+  endPhotoName,
+  photographerName,
+  photographerStudio,
+  photographerWebsite,
   onClose,
 }: FullscreenBookProps) {
   const bookRef = useRef<any>(null);
@@ -333,8 +332,23 @@ export function FullscreenBook({
         }]
       : [];
 
-    return [...coverItem, ...orderedDraftedMedia].filter((item, index, array) => array.findIndex((entry) => entry.src === item.src) === index);
-  }, [draftedMedia, coverPhoto, coverPhotoName, template.coverImage, template.name]);
+    const items = [...coverItem, ...orderedDraftedMedia].filter((item, index, array) => array.findIndex((entry) => entry.src === item.src) === index);
+
+    // Add end photo to scroll view if available
+    if (endPhoto) {
+      items.push({
+        id: 'end-photo-media',
+        sourceId: 'end-photo-media',
+        src: endPhoto,
+        label: endPhotoName || 'End Photo',
+        order: orderedDraftedMedia.length + 1,
+        mediaKind: 'image' as const,
+        fileType: 'image/jpeg',
+      });
+    }
+
+    return items;
+  }, [draftedMedia, coverPhoto, coverPhotoName, template.coverImage, template.name, endPhoto, endPhotoName]);
 
   const mediaMap = useMemo(() => {
     const fallback = buildSlotMediaMap(pages, draftedMedia);
@@ -346,6 +360,12 @@ export function FullscreenBook({
     }
     return fallback;
   }, [pages, draftedMedia, template]);
+
+  const visiblePages = useMemo(
+    () => pages.filter((page) => page.slots.some((slot) => Boolean(mediaMap[slot.id]?.src))),
+    [pages, mediaMap]
+  );
+
   const accent = template.accent || '#b10e6b';
   const downloadBlob = (blob: Blob, filename: string) => {
     const url = URL.createObjectURL(blob);
@@ -521,20 +541,30 @@ export function FullscreenBook({
     const container = scrollRef.current;
     if (!container || !isScrollMode) return;
 
+    container.scrollTop = 0;
+
     let frame = 0;
-    const speed = 0.2;
-    const idleThresholdMs = 700;
+    const speed = 1.2; // Smooth scrolling speed
+    const idleThresholdMs = 500; // Auto-play threshold
+    let lastScrollTime = Date.now();
 
     const autoScroll = () => {
-      const isIdle = Date.now() - lastPointerMoveRef.current > idleThresholdMs;
-      const shouldAutoScroll = !isPointerInsideScroll || isIdle;
+      const now = Date.now();
+      const isIdle = now - lastPointerMoveRef.current > idleThresholdMs;
+      const shouldAutoScroll = isIdle && !isPointerInsideScroll;
 
-      if (shouldAutoScroll) {
-        container.scrollTop += speed;
-      }
+      if (shouldAutoScroll && now - lastScrollTime > 16) { // ~60fps
+        const scrollTop = container.scrollTop;
+        const nextScroll = scrollTop + speed;
+        const maxScroll = container.scrollHeight - container.clientHeight;
 
-      if (container.scrollTop >= container.scrollHeight - container.clientHeight) {
-        container.scrollTop = 0;
+        if (nextScroll >= maxScroll) {
+          // Smooth loop - fade to beginning
+          container.scrollTop = 0;
+        } else {
+          container.scrollTop = nextScroll;
+        }
+        lastScrollTime = now;
       }
 
       frame = window.requestAnimationFrame(autoScroll);
@@ -576,6 +606,65 @@ export function FullscreenBook({
     setIsFooterVisible(isBottomZone);
     bookHoverRef.current = isCenterZone;
   };
+
+  const bookChildren = useMemo(() => {
+    const children: React.ReactNode[] = [];
+
+    // Always add cover page
+    children.push(
+      <div key="cover-page">
+        <CoverPage template={template} accent={accent} coverPhoto={coverPhoto} coverPhotoName={coverPhotoName} coverWeddingDate={coverWeddingDate} />
+      </div>
+    );
+
+    // Add content pages or fallback
+    if (visiblePages.length > 0) {
+      visiblePages.forEach((page) => {
+        children.push(
+          <div key={`${page.pageNumber}-${page.pageLabel || 'page'}`}>
+            <BookPage 
+              page={page} 
+              accent={accent} 
+              pageLabel={page.pageLabel || `Page ${page.pageNumber}`}
+              variant="fullscreen"
+              mediaMap={mediaMap}
+              mediaTransforms={normalizedTransforms}
+              onMediaClick={setSelectedMedia}
+            />
+          </div>
+        );
+      });
+    } else {
+      children.push(
+        <div key="no-content" className="flex h-full w-full items-center justify-center bg-[#faf8f9]">
+          <div className="text-center">
+            <p className="text-sm font-semibold text-[#8d7d81]">No media items to display</p>
+            <p className="mt-1 text-xs text-[#a89a9e]">Add photos to see them in the book preview</p>
+          </div>
+        </div>
+      );
+    }
+
+    // Add end page if available
+    if (endPhoto) {
+      children.push(
+        <div key="end-page">
+          <EndPage
+            endPhoto={endPhoto}
+            endPhotoName={endPhotoName}
+            photographerName={photographerName}
+            photographerStudio={photographerStudio}
+            photographerWebsite={photographerWebsite}
+            accent={accent}
+            albumName={coverPhotoName}
+            weddingDate={coverWeddingDate}
+          />
+        </div>
+      );
+    }
+
+    return children;
+  }, [template, accent, coverPhoto, coverPhotoName, coverWeddingDate, visiblePages, mediaMap, normalizedTransforms, endPhoto, endPhotoName, photographerName, photographerStudio, photographerWebsite]);
 
   return (
     <div
@@ -730,16 +819,16 @@ export function FullscreenBook({
         onMouseLeave={() => setIsPointerInsideScroll(false)}
       >
         {isScrollMode ? (
-          <div className="mx-auto flex min-h-full w-full max-w-6xl flex-col gap-4 px-4 pb-12 pt-24 sm:px-6 lg:px-8">
+          <div className="mx-auto flex min-h-full w-full max-w-7xl flex-col gap-8 px-4 pb-16 pt-24 sm:px-6 lg:px-8">
             <div className="rounded-3xl border border-[#f0e1e7] bg-white px-6 py-5 shadow-sm">
-              <h3 className="text-[10px] font-bold uppercase tracking-[0.26em] text-[#9a8a8e]">Live Content Feed</h3>
+              <h3 className="text-[10px] font-bold uppercase tracking-[0.26em] text-[#9a8a8e]">Live Content Feed - Auto Playing</h3>
               <p className="mt-1 text-xs text-[#9a8a8e]">Three media per row. Move cursor inside to pause; leave to resume auto scroll.</p>
             </div>
 
-            <div className="grid grid-cols-1 gap-0.5 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3" onMouseEnter={() => setIsPointerInsideScroll(true)} onMouseLeave={() => setIsPointerInsideScroll(false)}>
               {scrollMediaItems.map((media, index) => (
                 <div key={`${media.id || media.sourceId || media.src}-${index}`} className="w-full snap-start">
-                  <ScrollFeedItem media={media} mediaTransforms={normalizedTransforms} onDownload={handleDownloadMedia} onMediaClick={setSelectedMedia} />
+                  <ScrollFeedItem media={media} mediaTransforms={normalizedTransforms} onMediaClick={setSelectedMedia} />
                 </div>
               ))}
             </div>
@@ -773,23 +862,7 @@ export function FullscreenBook({
                   playFlipSound();
                 }}
               >
-                <div>
-                  <CoverPage template={template} accent={accent} coverPhoto={coverPhoto} coverPhotoName={coverPhotoName} coverWeddingDate={coverWeddingDate} />
-                </div>
-
-                {pages.map((page) => (
-                  <div key={`${page.pageNumber}-${page.pageLabel || 'page'}`}>
-                    <BookPage 
-                      page={page} 
-                      accent={accent} 
-                      pageLabel={page.pageLabel || `Page ${page.pageNumber}`}
-                      variant="fullscreen"
-                      mediaMap={mediaMap}
-                      mediaTransforms={normalizedTransforms}
-                      onMediaClick={setSelectedMedia}
-                    />
-                  </div>
-                ))}
+                {bookChildren}
               </FlipBook>
             </div>
           </div>
@@ -857,6 +930,18 @@ export function FullscreenBook({
             <X size={32} className="text-white" />
           </button>
 
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDownloadMedia(selectedMedia);
+            }}
+            className="absolute bottom-4 right-4 p-3 rounded-full bg-[#b10e6b] hover:bg-[#9a0c59] transition-colors z-10 flex items-center gap-2 text-white font-semibold"
+            aria-label="Download media"
+          >
+            <Download size={20} />
+            <span className="text-sm">Download</span>
+          </button>
+
           {/* Zoom Controls */}
           <div className="absolute top-4 left-4 flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 backdrop-blur z-10">
             <button
@@ -899,6 +984,8 @@ export function FullscreenBook({
                 src={selectedMedia.src} 
                 controls 
                 autoPlay
+                muted
+                loop
                 playsInline 
                 className="max-w-full max-h-[90vh] rounded-lg shadow-2xl"
               />

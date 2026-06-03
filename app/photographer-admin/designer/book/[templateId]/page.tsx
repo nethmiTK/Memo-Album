@@ -11,10 +11,15 @@ import type { TemplateRecord } from '@/lib/template-book-media';
 
 const parseApiJson = async (response: Response) => {
   const rawText = await response.text();
+  if (response.status === 401) {
+    return { success: false, message: 'Unauthorized. Please login.' };
+  }
+  if (!rawText) return {};
   try {
-    return rawText ? JSON.parse(rawText) : {};
+    return JSON.parse(rawText);
   } catch {
-    throw new Error('Invalid API response');
+    const htmlResponse = rawText.trim().startsWith('<!DOCTYPE') || rawText.trim().startsWith('<html');
+    return { success: false, message: htmlResponse ? 'Server returned HTML' : rawText };
   }
 };
 
@@ -28,6 +33,7 @@ export default function DesignerTemplateBookPage() {
   const [albumTitle, setAlbumTitle] = useState('Album Book');
   const [mediaItems, setMediaItems] = useState<Array<{ id?: string; order?: number; fileName?: string; fileType?: string; fileSize?: number; mediaKind?: string; dataUrl?: string }>>([]);
   const [coverPhoto, setCoverPhoto] = useState<string | undefined>();
+  const [endPhoto, setEndPhoto] = useState<string | undefined>();
   const [isLoading, setIsLoading] = useState(true);
 
   const loadData = async () => {
@@ -67,8 +73,26 @@ export default function DesignerTemplateBookPage() {
 
       if (curate) {
         setAlbumTitle(curate.albumName || foundTemplate.name);
-        setMediaItems(curate.mediaItems || []);
+
+        // Preserve DB order and avoid mutating original array
+        type DBItem = { id?: string; order?: number; fileName?: string; fileType?: string; fileSize?: number; mediaKind?: string; dataUrl?: string };
+        const dbItems: DBItem[] = Array.isArray(curate.mediaItems) ? (curate.mediaItems as DBItem[]).slice() : [];
+        // Sort by explicit order if available (preserve DB ordering semantics)
+        dbItems.sort((a: DBItem, b: DBItem) => (Number(a.order) || 0) - (Number(b.order) || 0));
+        // Exclude any item that exactly matches the coverPhoto dataUrl (cover is separate page)
+        const filtered = dbItems
+          .filter((it: DBItem) => !(curate.coverPhoto && it?.dataUrl === curate.coverPhoto))
+          // Normalize mediaKind: ensure videos are detected by mediaKind OR fileType
+          .map((item: DBItem) => ({
+            ...item,
+            mediaKind: item.mediaKind === 'video' 
+              ? 'video' 
+              : (item.fileType?.startsWith('video') ? 'video' : (item.mediaKind || 'image')),
+          }));
+        setMediaItems(filtered);
+
         setCoverPhoto(curate.coverPhoto);
+        if ((curate as any).endPhoto) setEndPhoto((curate as any).endPhoto);
       } else {
         setAlbumTitle(foundTemplate.name);
       }
@@ -120,6 +144,7 @@ export default function DesignerTemplateBookPage() {
             template={template}
             mediaItems={mediaItems}
             coverPhoto={coverPhoto}
+            endPhoto={endPhoto}
             variant="fullscreen"
           />
         )}

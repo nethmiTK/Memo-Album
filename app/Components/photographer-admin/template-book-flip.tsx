@@ -32,6 +32,8 @@ type TemplateBookFlipProps = {
   mediaItems?: CurateMediaInput[];
   coverPhoto?: string;
   coverPhotoName?: string;
+  endPhoto?: string;
+  endPhotoName?: string;
   coverWeddingDate?: string | Date;
   /** inline = designer panel, fullscreen = dedicated book route */
   variant?: 'inline' | 'fullscreen';
@@ -94,12 +96,13 @@ function BookPage({
 }) {
   const showChrome = variant !== 'fullscreen';
   const usesAbsoluteLayout = page.slots.some((slot) => Number.isFinite(Number(slot.x)) || Number.isFinite(Number(slot.y)));
+  const pageBgColor = page.pageColor || '#ffffff';
   const pageSurface = `linear-gradient(180deg, ${hexToRgba(accent, 0.14)} 0%, #fffdfd 24%, #fff8fb 72%, ${hexToRgba(accent, 0.1)} 100%)`;
 
   return (
     <div className={`h-full w-full ${variant === 'fullscreen' ? 'p-1' : 'bg-[#FFF8F7] p-1'}`} style={{ background: pageSurface }}>
-      <div className={`flex h-full flex-col overflow-hidden ${showChrome ? 'rounded-2xl border border-[#ede5e8] bg-white p-2 shadow-[0_10px_28px_rgba(0,0,0,0.06)]' : 'rounded-[1.1rem] border border-[#ede5e8] bg-white p-0 shadow-[0_10px_28px_rgba(0,0,0,0.06)]'}`} style={{ borderColor: `${accent}33` }}>
-        <div className={`relative flex-1 ${usesAbsoluteLayout ? 'mt-2 overflow-hidden' : `grid gap-0 ${variant === 'fullscreen' ? 'auto-rows-[minmax(80px,1fr)] grid-cols-2' : 'auto-rows-[minmax(64px,1fr)] grid-cols-2 gap-2 md:grid-cols-3'}`}`}>
+      <div className={`flex h-full flex-col overflow-hidden ${showChrome ? 'rounded-2xl border border-[#ede5e8] p-2 shadow-[0_10px_28px_rgba(0,0,0,0.06)]' : 'rounded-[1.1rem] border border-[#ede5e8] p-0 shadow-[0_10px_28px_rgba(0,0,0,0.06)]'}`} style={{ borderColor: `${accent}33`, backgroundColor: pageBgColor }}>
+        <div className={`relative flex-1 ${usesAbsoluteLayout ? 'mt-2 overflow-visible' : `grid gap-0 ${variant === 'fullscreen' ? 'auto-rows-[minmax(80px,1fr)] grid-cols-2' : 'auto-rows-[minmax(64px,1fr)] grid-cols-2 gap-2 md:grid-cols-3'}`}`}>
           {page.slots.map((slot) => {
             const colSpan = Math.max(1, Math.min(3, slot.width || 1));
             const rowSpan = Math.max(1, Math.min(3, slot.height || 1));
@@ -169,7 +172,7 @@ function BookPage({
               >
                 {media?.src ? (
                   isVideoMedia(media.fileType, media.mediaKind) ? (
-                    <video src={media.src} controls playsInline preload="metadata" className="absolute inset-0 h-full w-full object-cover" />
+                    <video src={media.src} controls playsInline preload="metadata" autoPlay muted loop className="absolute inset-0 h-full w-full object-cover" />
                   ) : (
                     <img src={media.src} alt={media.label} className="absolute inset-0 h-full w-full object-cover" />
                   )
@@ -185,11 +188,27 @@ function BookPage({
   );
 }
 
+function EndPage({ endPhoto, endPhotoName, variant }: { endPhoto?: string; endPhotoName?: string; variant: 'inline' | 'fullscreen' }) {
+  return (
+    <div className={`h-full w-full ${variant === 'fullscreen' ? 'p-1' : 'p-1'}`}>
+      <div className="relative h-full w-full overflow-hidden rounded-[1.15rem] border border-[#ead7dc] bg-white shadow-[0_16px_38px_rgba(0,0,0,0.08)]">
+        {endPhoto ? (
+          <img src={endPhoto} alt={endPhotoName || 'End photo'} className="h-full w-full object-cover" />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-[#fff4f7] text-[10px] font-bold uppercase tracking-[0.28em] text-[#8f7b81]">End Photo</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function TemplateBookFlip({
   template,
   mediaItems = [],
   coverPhoto,
   coverPhotoName,
+  endPhoto,
+  endPhotoName,
   coverWeddingDate,
   variant = 'inline',
   className = '',
@@ -214,7 +233,7 @@ export function TemplateBookFlip({
   const [overrideMediaMap, setOverrideMediaMap] = useState<Record<string, TemplateMediaAsset>>({});
 
   const accent = template.accent || '#b10e6b';
-  const totalFlipPages = pages.length + 1;
+  const totalFlipPages = pages.length + 2; // cover + pages + end
 
   useEffect(() => {
     const computeSize = () => {
@@ -317,6 +336,9 @@ export function TemplateBookFlip({
                 />
               </div>
             ))}
+            <div>
+              <EndPage endPhoto={endPhoto} endPhotoName={endPhotoName} variant={variant} />
+            </div>
           </FlipBook>
         </div>
       </div>

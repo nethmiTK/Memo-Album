@@ -47,6 +47,8 @@ type FullscreenBookData = {
   coverPhoto?: string;
   coverPhotoName?: string;
   coverWeddingDate?: string;
+  endPhoto?: string;
+  endPhotoName?: string;
   template: {
     _id?: string;
     name?: string;
@@ -184,6 +186,8 @@ export default function GalleryPage() {
         coverPhoto: curateSource.coverPhoto || album.coverPhoto || '',
         coverPhotoName: curateSource.coverPhotoName || curateSource.albumName || album.albumName || '',
         coverWeddingDate: curateSource.weddingDate || album.weddingDate || '',
+        endPhoto: book.endPhoto || '',
+        endPhotoName: book.endPhotoName || '',
         template: {
           _id: templateSource._id || '',
           name: templateSource.name || book.templateName || book.albumName || 'Album Book',
@@ -471,6 +475,11 @@ export default function GalleryPage() {
           coverPhoto={selectedFullscreenBook.coverPhoto}
           coverPhotoName={selectedFullscreenBook.coverPhotoName}
           coverWeddingDate={selectedFullscreenBook.coverWeddingDate}
+          endPhoto={selectedFullscreenBook.endPhoto}
+          endPhotoName={selectedFullscreenBook.endPhotoName}
+          photographerName="Lumina Editorial"
+          photographerStudio="Lumina Editorial"
+          photographerWebsite="luminaeditorial.com"
           onClose={() => setSelectedFullscreenBook(null)}
         />
       ) : null}

@@ -20,7 +20,8 @@ export default function LiveContentFeed(props) {
         key: `persisted-${index + 1}`,
         id: item.id || `persisted-${index + 1}`,
         url: item.dataUrl,
-        type: item.mediaKind === 'video' ? 'video' : 'image',
+        // Detect video by mediaKind OR fileType (with fallback)
+        type: (item.mediaKind === 'video' || (item.fileType && item.fileType.startsWith('video'))) ? 'video' : 'image',
         persisted: true,
       }));
 

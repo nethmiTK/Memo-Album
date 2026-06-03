@@ -14,6 +14,7 @@ export type TemplatePage = {
   pageNumber: number;
   pageLabel?: string;
   slots: TemplateSlot[];
+  pageColor?: string;
 };
 
 export type TemplateRecord = {
@@ -61,6 +62,8 @@ export const toTemplateMedia = (
   coverPhoto?: string,
   coverPhotoName?: string
 ): TemplateMediaAsset[] => {
+  // Normalize items, preserve DB order if provided, filter out any item
+  // that is the same as the coverPhoto so cover remains a separate page.
   const normalized = (items || [])
     .filter((item) => item && typeof item === 'object')
     .map((item, index) => ({
@@ -69,25 +72,17 @@ export const toTemplateMedia = (
       src: item.dataUrl || '',
       label: item.fileName || `Media ${index + 1}`,
       order: Number.isFinite(Number(item.order)) ? Number(item.order) : index + 1,
-      mediaKind: (item.mediaKind === 'video' ? 'video' : item.mediaKind === 'other' ? 'other' : 'image') as TemplateMediaAsset['mediaKind'],
+      // Detect video by mediaKind OR fileType as fallback
+      mediaKind: (item.mediaKind === 'video' || (item.fileType && item.fileType.startsWith('video'))) 
+        ? 'video' 
+        : (item.mediaKind === 'other' ? 'other' : 'image') as TemplateMediaAsset['mediaKind'],
       fileType: item.fileType || '',
     }))
     .filter((item) => item.src)
+    // Exclude any item whose src matches the coverPhoto to avoid placing
+    // the cover inside template slots.
+    .filter((item) => (coverPhoto ? item.src !== coverPhoto : true))
     .sort((a, b) => a.order - b.order);
-
-  if (normalized.length === 0 && coverPhoto) {
-    return [
-      {
-        id: 'cover-photo',
-        sourceId: 'cover-photo',
-        src: coverPhoto,
-        label: coverPhotoName || 'Cover photo',
-        order: 1,
-        mediaKind: 'image',
-        fileType: 'image/jpeg',
-      },
-    ];
-  }
 
   return normalized;
 };
@@ -102,8 +97,8 @@ export const buildSlotMediaMap = (pages: TemplatePage[], mediaItems: TemplateMed
   );
 
   return orderedSlots.reduce<Record<string, TemplateMediaAsset>>((accumulator, entry, index) => {
-    const media = mediaItems[index % mediaItems.length];
-    if (media) {
+    const media = mediaItems[index];
+    if (media?.src) {
       accumulator[entry.slot.id] = media;
     }
     return accumulator;
