@@ -22,21 +22,37 @@ export default function SplashPage() {
   const router = useRouter();
   const [progress, setProgress] = useState(0);
   const [isHolding, setIsHolding] = useState(false);
+  const [ready, setReady] = useState(false); // prevents flash before redirect
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // ── One-time splash guard ──────────────────────────────────────────
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const splashSeen = localStorage.getItem('splashSeen');
+
+    if (token || splashSeen) {
+      router.replace('/home');
+    } else {
+      setReady(true); // only show splash if it's truly a first visit
+    }
+  }, [router]);
+  // ──────────────────────────────────────────────────────────────────
 
   const handleMouseDown = () => setIsHolding(true);
   const handleMouseUp = () => setIsHolding(false);
-
   const handleTouchStart = () => setIsHolding(true);
   const handleTouchEnd = () => setIsHolding(false);
 
   useEffect(() => {
+    if (!ready) return; // don't run intervals until we know we should show
+
     if (isHolding) {
       intervalRef.current = setInterval(() => {
         setProgress((prev) => {
           const newProgress = Math.min(prev + 1.1, 100);
           if (newProgress >= 100) {
             clearInterval(intervalRef.current!);
+            localStorage.setItem('splashSeen', 'true'); // ← mark as seen
             setTimeout(() => router.push('/home'), 400);
             return 100;
           }
@@ -58,7 +74,10 @@ export default function SplashPage() {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [isHolding, router]);
+  }, [isHolding, router, ready]);
+
+  // Render nothing while checking localStorage to avoid flash
+  if (!ready) return null;
 
   return (
     <main
@@ -79,43 +98,24 @@ export default function SplashPage() {
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
         >
-          {/* Main Progress Container */}
           <motion.div
-            animate={{
-              scale: isHolding ? 1.03 : 1,
-            }}
+            animate={{ scale: isHolding ? 1.03 : 1 }}
             transition={{ duration: 0.4 }}
             className="relative w-80 h-80 md:w-[380px] md:h-[380px]"
           >
             <svg className="w-full h-full -rotate-90" viewBox="0 0 200 200">
-              {/* Background Circle */}
-              <circle
-                cx="100"
-                cy="100"
-                r="92"
-                fill="none"
-                stroke="#f3e5e6"
-                strokeWidth="9"
-              />
-              {/* Progress Circle with animation */}
+              <circle cx="100" cy="100" r="92" fill="none" stroke="#f3e5e6" strokeWidth="9" />
               <motion.circle
-                cx="100"
-                cy="100"
-                r="92"
-                fill="none"
-                stroke="#890051"
-                strokeWidth="9"
+                cx="100" cy="100" r="92"
+                fill="none" stroke="#890051" strokeWidth="9"
                 strokeDasharray="578"
                 strokeDashoffset={578 - (progress / 100) * 578}
                 strokeLinecap="round"
-                animate={{
-                  strokeDashoffset: 578 - (progress / 100) * 578,
-                }}
-                transition={{ ease: "linear", duration: 0.05 }}
+                animate={{ strokeDashoffset: 578 - (progress / 100) * 578 }}
+                transition={{ ease: 'linear', duration: 0.05 }}
               />
             </svg>
 
-            {/* Logo with animations */}
             <motion.div
               className="absolute inset-0 flex items-center justify-center"
               animate={{
@@ -138,25 +138,21 @@ export default function SplashPage() {
               </div>
             </motion.div>
 
-            {/* Glow Effect */}
             <motion.div
               className="absolute inset-0 rounded-full"
               animate={{
                 boxShadow: isHolding
-                  ? "0 0 60px 20px rgba(137, 0, 81, 0.25)"
-                  : "0 0 30px 8px rgba(137, 0, 81, 0.1)",
+                  ? '0 0 60px 20px rgba(137, 0, 81, 0.25)'
+                  : '0 0 30px 8px rgba(137, 0, 81, 0.1)',
               }}
               transition={{ duration: 0.6 }}
             />
           </motion.div>
 
-          {/* Percentage with bounce animation */}
           <motion.p
             className="mt-8 text-4xl font-semibold tabular-nums tracking-tight text-[#8c0053]"
             style={{ fontFamily: 'var(--font-newsreader)' }}
-            animate={{
-              scale: progress > 0 ? [1, 1.12, 1] : 1,
-            }}
+            animate={{ scale: progress > 0 ? [1, 1.12, 1] : 1 }}
             transition={{ duration: 0.4 }}
             key={Math.floor(progress)}
           >
@@ -167,12 +163,11 @@ export default function SplashPage() {
             className="mt-4 text-sm text-[#534345]"
             animate={{ opacity: isHolding ? 0.9 : 0.5 }}
           >
-            {isHolding ? "Releasing the archive..." : "Hold the logo to enter the archive"}
+            {isHolding ? 'Releasing the archive...' : 'Hold the logo to enter the archive'}
           </motion.p>
         </motion.div>
       </div>
 
-      {/* Instruction Text */}
       <AnimatePresence>
         {progress < 12 && (
           <motion.p
