@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Calendar, ChevronLeft, ChevronRight, ExternalLink, Plus } from 'lucide-react';
 import { apiFetch, handleAuthError } from '@/lib/api';
 import { FullscreenBook } from '@/app/Components/photographer-admin/FullscreenBook';
+import { toast } from 'react-toastify';
 
 type AlbumItem = {
   _id: string;
@@ -109,7 +110,6 @@ export default function CuratePage() {
   const [selectedAlbumId, setSelectedAlbumId] = useState('');
   const [primaryEmail, setPrimaryEmail] = useState('');
   const [secondaryEmail, setSecondaryEmail] = useState('');
-  const [sharedPassword, setSharedPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState('');
   const [toastMessage, setToastMessage] = useState('');
@@ -224,9 +224,9 @@ export default function CuratePage() {
     setIsSubmitting(true);
     setMessage('');
 
-    if (!primaryEmail.trim() || !secondaryEmail.trim() || !sharedPassword.trim()) {
-      setMessage('Please enter both email addresses and a shared password.');
-      showToast('Enter both emails and password');
+    if (!primaryEmail.trim() || !secondaryEmail.trim()) {
+      setMessage('Please enter both email addresses.');
+      showToast('Enter both email addresses');
       setIsSubmitting(false);
       return;
     }
@@ -237,7 +237,6 @@ export default function CuratePage() {
         body: JSON.stringify({
           albumId: selectedAlbumId,
           clientEmails: [primaryEmail, secondaryEmail],
-          password: sharedPassword,
         }),
       });
 
@@ -253,8 +252,9 @@ export default function CuratePage() {
 
       setPrimaryEmail('');
       setSecondaryEmail('');
-      setSharedPassword('');
-      setMessage('Invitation sent and saved to the invite table.');
+      toast(result.generatedPassword
+        ? `Invitation sent and saved. Generated password: ${result.generatedPassword}`
+        : 'Invitation sent and saved to the invite table.');
       showToast('Invite sent');
       await loadInvites();
     } catch (error) {
@@ -346,19 +346,6 @@ export default function CuratePage() {
                       <option key={album._id} value={album._id}>{album.albumName}</option>
                     ))}
                   </select>
-                </div>
-
-                <div className="mb-6">
-                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider" htmlFor="sharedPassword">Shared Password</label>
-                  <input
-                    type="text"
-                    id="sharedPassword"
-                    value={sharedPassword}
-                    onChange={(event) => setSharedPassword(event.target.value)}
-                    placeholder="Create a shared login password"
-                    className="w-full mt-2 p-3 bg-[#F7F2F3] rounded-lg border border-transparent focus:ring-2 focus:ring-[#b10e6b] focus:border-[#b10e6b] transition text-sm"
-                    style={{ color: '#211a1b' }}
-                  />
                 </div>
 
                 <button

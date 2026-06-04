@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState, useRef } from 'react';
-import { Plus, ChevronDown, Folder, FileText, BookOpen, Trash2, Edit2, Search } from 'lucide-react';
+import { Plus, ChevronDown, Folder, FileText, BookOpen, Trash2, Edit2, Search, Image as ImageIcon, Upload, X, Calendar, Zap } from 'lucide-react';
 import { apiFetch, handleAuthError } from '@/lib/api';
 import { FullscreenBook } from '@/app/Components/photographer-admin/FullscreenBook';
 
@@ -447,44 +447,68 @@ export default function ArchivePage() {
     }
   };
 
+  // Recent media uploads mock data (in production, fetch from API)
+  const recentUploads = useMemo(() => {
+    const allArchives = archives.slice(0, 8);
+    return allArchives.map((archive) => ({
+      id: archive._id,
+      title: archive.archiveFolderName,
+      image: archiveCover(archive),
+      date: archive.archivedAt,
+    }));
+  }, [archives]);
+
   return (
-    <div className="min-h-screen bg-[#fff8f7] px-4 py-8 md:px-8 lg:px-12">
+    <div className="min-h-screen bg-gradient-to-br from-[#fff8f7] via-white to-[#fff0f4]">
       <Toast message={message} />
 
-      <div className="mx-auto max-w-7xl space-y-8">
-        <div>
-          <span className="mb-2 block text-[10px] font-bold uppercase tracking-[0.2em] text-[#b10e6b]">Archive Studio</span>
-          <h1 className="text-4xl text-black" style={{ fontFamily: "'Newsreader', serif" }}>Create Archive</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[#5a4c4f]">
-            Pick a curate album, group it into a named archive folder, and save it to the archive collection.
-          </p>
+      {/* Header Section */}
+      <div className="sticky top-0 z-40 backdrop-blur-md bg-white/30 border-b border-white/20">
+        <div className="mx-auto max-w-7xl px-4 py-6 md:px-8 lg:px-12">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <span className="mb-2 block text-[10px] font-bold uppercase tracking-[0.2em] text-[#b10e6b]">✨ Wedding Gallery</span>
+              <h1 className="text-3xl md:text-4xl text-black font-serif font-semibold">Archive Studio</h1>
+              <p className="mt-2 text-sm text-[#6b5d60]">Organize and preserve your wedding memories in elegant collections</p>
+            </div>
+            <div className="hidden md:flex items-center gap-2 px-4 py-2 rounded-full bg-white/40 backdrop-blur border border-white/50">
+              <Zap size={16} className="text-[#b10e6b]" />
+              <span className="text-sm font-medium text-[#211a1b]">{groupedArchives.length} Collections</span>
+            </div>
+          </div>
         </div>
+      </div>
 
-        <div className="grid gap-8 lg:grid-cols-12">
-          <section className="rounded-[1.35rem] bg-white p-6 shadow-sm lg:col-span-4">
-            <h2 className="text-xl font-semibold text-[#211a1b]">New Archive Card</h2>
-            <p className="mt-2 text-sm text-[#6b5d60]">Select an album and define the archive folder name.</p>
+      <div className="mx-auto max-w-7xl px-4 py-12 md:px-8 lg:px-12">
+        {/* Create Archive Section */}
+        <div className="mb-16">
+          <div className="rounded-3xl overflow-hidden bg-gradient-to-br from-white/60 to-white/40 backdrop-blur-xl border border-white/50 shadow-xl p-8 md:p-10">
+            <div className="mb-8">
+              <h2 className="text-2xl font-serif font-semibold text-[#211a1b] mb-2">Create New Collection</h2>
+              <p className="text-sm text-[#6b5d60]">Select albums and organize them into named archive folders</p>
+            </div>
 
-            <div className="mt-6 space-y-4">
+            <div className="grid gap-6 md:grid-cols-3">
+              {/* Album Selector */}
               <div>
-                <label className="mb-3 block text-[10px] font-bold uppercase tracking-wider text-[#6b5d60]">Select Albums (Multiple)</label>
+                <label className="mb-3 block text-[10px] font-bold uppercase tracking-wider text-[#6b5d60]">📸 Select Albums</label>
                 <div className="relative" ref={dropdownRef}>
                   <button
                     type="button"
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                    className="w-full rounded-[0.85rem] border border-[#e9dddd] bg-[#fff8f7] px-4 py-3 text-sm text-[#211a1b] outline-none flex items-center justify-between hover:border-[#b10e6b] transition-colors"
+                    className="w-full rounded-2xl border border-[#e9dddd] bg-white/50 backdrop-blur px-4 py-3 text-sm text-[#211a1b] outline-none flex items-center justify-between hover:border-[#b10e6b] hover:bg-white/70 transition-all"
                   >
-                    <span>{selectedAlbumIds.length > 0 ? `${selectedAlbumIds.length} selected` : 'Choose albums'}</span>
+                    <span className="font-medium">{selectedAlbumIds.length > 0 ? `${selectedAlbumIds.length} selected` : 'Choose albums'}</span>
                     <ChevronDown size={16} className={`transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
                   
                   {isDropdownOpen && (
-                    <div className="absolute z-50 left-0 right-0 mt-2 rounded-lg border border-[#e9dddd] bg-white shadow-lg max-h-60 overflow-y-auto">
+                    <div className="absolute z-50 left-0 right-0 mt-2 rounded-2xl border border-[#e9dddd] bg-white shadow-2xl max-h-60 overflow-y-auto">
                       {albums.length > 0 ? (
                         albums.map((album) => (
                           <label
                             key={album._id}
-                            className="flex items-center gap-3 px-4 py-2 hover:bg-[#f7ecef] cursor-pointer border-b border-[#f0e8e6] last:border-b-0"
+                            className="flex items-center gap-3 px-4 py-3 hover:bg-[#f7ecef] cursor-pointer border-b border-[#f0e8e6] last:border-b-0 transition-colors"
                           >
                             <input
                               type="checkbox"
@@ -498,8 +522,8 @@ export default function ArchivePage() {
                               }}
                               className="w-4 h-4 rounded cursor-pointer accent-[#b10e6b]"
                             />
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-[#211a1b]">{album.albumName}</p>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-[#211a1b] truncate">{album.albumName}</p>
                               <p className="text-xs text-[#6b5d60]">{album.status || 'draft'}</p>
                             </div>
                           </label>
@@ -512,277 +536,412 @@ export default function ArchivePage() {
                 </div>
               </div>
 
+              {/* Folder Name Input */}
               <div>
-                <label className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-[#6b5d60]">Archive Folder Name</label>
+                <label className="mb-3 block text-[10px] font-bold uppercase tracking-wider text-[#6b5d60]">📁 Folder Name</label>
                 <input
                   value={archiveFolderName}
                   onChange={(event) => setArchiveFolderName(event.target.value)}
-                  placeholder="Past Collections / 2023 / Wedding"
-                  className="w-full rounded-[0.85rem] border border-[#e9dddd] bg-[#fff8f7] px-4 py-3 text-sm text-[#211a1b] outline-none"
+                  placeholder="e.g., 2024 Summer Weddings"
+                  className="w-full rounded-2xl border border-[#e9dddd] bg-white/50 backdrop-blur px-4 py-3 text-sm text-[#211a1b] outline-none focus:border-[#b10e6b] focus:bg-white/70 transition-all placeholder:text-[#b10e6b]/30"
                 />
               </div>
 
-              {selectedAlbums.length > 0 ? (
-                <div className="rounded-[0.85rem] bg-[#f7ecef] px-4 py-3 text-xs text-[#6b5d60] space-y-1">
-                  <p className="font-semibold">Selected: {selectedAlbums.length} album(s)</p>
-                  <ul className="text-[10px] space-y-0.5">
-                    {selectedAlbums.map((album) => (
-                      <li key={album._id}>• {album.albumName}</li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
-
-              <button
-                type="button"
-                onClick={handleCreateArchive}
-                disabled={selectedAlbumIds.length === 0 || !archiveFolderName.trim()}
-                className="flex w-full items-center justify-center gap-2 rounded-[0.9rem] bg-[#b10e6b] px-6 py-3 text-sm font-bold uppercase tracking-[0.14em] text-white disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Plus size={16} /> Create Archive
-              </button>
+              {/* Submit Button */}
+              <div className="flex flex-col justify-end">
+                <button
+                  type="button"
+                  onClick={handleCreateArchive}
+                  disabled={selectedAlbumIds.length === 0 || !archiveFolderName.trim()}
+                  className="flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#b10e6b] to-[#951254] px-6 py-3 text-sm font-bold uppercase tracking-[0.14em] text-white disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg hover:scale-105 transition-all duration-300"
+                >
+                  <Plus size={18} /> Create
+                </button>
+              </div>
             </div>
-          </section>
 
-          <section className="rounded-[1.35rem] bg-white p-6 shadow-sm lg:col-span-8">
-        <div className="flex items-center justify-between gap-4 border-b border-[#efe7e4] pb-4">
-          <div>
-            <h2 className="text-xl font-semibold text-[#211a1b]">Saved Archive Records</h2>
-            <p className="text-xs text-[#6b5d60]">Open a folder to reveal the books inside, like a file explorer.</p>
-          </div>
-          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#b10e6b]">{archives.length} Records</span>
-        </div>
-
-        <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="relative w-full max-w-md">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#b10e6b]/70" />
-            <input
-              value={folderSearch}
-              onChange={(event) => setFolderSearch(event.target.value)}
-              placeholder="Search folders or album names..."
-              className="w-full rounded-xl border border-[#e9dddd] bg-[#fff8f7] py-2.5 pl-10 pr-3 text-sm text-[#211a1b] outline-none transition-colors focus:border-[#b10e6b]"
-            />
+            {selectedAlbums.length > 0 ? (
+              <div className="mt-6 rounded-2xl bg-white/40 backdrop-blur px-4 py-3 text-sm text-[#6b5d60]">
+                <p className="font-semibold text-[#211a1b]">✓ {selectedAlbums.length} album(s) selected</p>
+              </div>
+            ) : null}
           </div>
         </div>
 
-        <div className="mt-6 space-y-5">
-          {groupedArchives.map((group) => {
-            const isExpanded = expandedArchiveId === group.folderName;
-            const representativeArchive = group.folderArchives[0];
+        {/* Collections Grid */}
+        <div className="mb-16">
+          <div className="flex items-center justify-between gap-4 mb-8">
+            <div>
+              <h2 className="text-2xl font-serif font-semibold text-[#211a1b] mb-1">Collections</h2>
+              <p className="text-sm text-[#6b5d60]">Your archived wedding galleries</p>
+            </div>
+            <div className="relative w-full max-w-md hidden sm:block">
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#b10e6b]/70" />
+              <input
+                value={folderSearch}
+                onChange={(event) => setFolderSearch(event.target.value)}
+                placeholder="Search collections..."
+                className="w-full rounded-full border border-[#e9dddd] bg-white/50 backdrop-blur py-3 pl-12 pr-4 text-sm text-[#211a1b] outline-none transition-all focus:border-[#b10e6b] focus:bg-white/70"
+              />
+            </div>
+          </div>
 
-            return (
-              <article key={group.folderName} className="overflow-hidden rounded-3xl border border-[#e9dddd] bg-white shadow-sm transition-shadow hover:shadow-md">
-                <div className="flex w-full items-center justify-between gap-4 px-5 py-4">
-                  <button
-                    type="button"
+          {/* Folder Cards Grid */}
+          {groupedArchives.length > 0 ? (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {groupedArchives.map((group) => {
+                const representativeArchive = group.folderArchives[0];
+                const isExpanded = expandedArchiveId === group.folderName;
+
+                return (
+                  <div
+                    key={group.folderName}
                     onClick={() => {
                       setExpandedArchiveId(isExpanded ? null : group.folderName);
                       setSelectedFullscreenBook(null);
-                      setEditingFolderName('');
                     }}
-                    className="flex flex-1 items-center gap-4 text-left"
+                    className="group cursor-pointer"
                   >
-                    <div className="relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-[#f7e3ec] text-[#9b0044]">
-                      <img src={archiveCover(representativeArchive)} alt={group.folderName} className="absolute inset-0 h-full w-full object-cover" />
-                      <div className="absolute inset-0 bg-black/15" />
-                      <Folder size={22} className="relative z-10" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-3">
-                        <h3 className="text-lg text-black" style={{ fontFamily: "'Newsreader', serif" }}>
-                          {group.folderName}
-                        </h3>
-                        <span className="rounded-full bg-[#f7ecef] px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.18em] text-[#b10e6b]">
-                          {group.folderArchives.length} albums
-                        </span>
+                    <div className="relative h-80 rounded-3xl overflow-hidden bg-gradient-to-br from-white/60 to-white/30 backdrop-blur-xl border border-white/50 shadow-xl hover:shadow-2xl transition-all duration-500 hover:scale-105 hover:border-[#b10e6b]/30">
+                      {/* Cover Image */}
+                      <img
+                        src={archiveCover(representativeArchive)}
+                        alt={group.folderName}
+                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                      />
+                      
+                      {/* Overlay Gradient */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+
+                      {/* Content */}
+                      <div className="absolute inset-0 p-6 flex flex-col justify-between">
+                        {/* Top Section */}
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3 bg-white/30 backdrop-blur-md rounded-full px-4 py-2 border border-white/50">
+                            <Folder size={18} className="text-[#b10e6b]" />
+                            <span className="text-xs font-bold uppercase tracking-wider text-white">Collection</span>
+                          </div>
+                        </div>
+
+                        {/* Bottom Section */}
+                        <div>
+                          <h3 className="text-2xl font-serif font-semibold text-white mb-2 line-clamp-2">
+                            {group.folderName}
+                          </h3>
+                          
+                          <div className="flex items-center gap-4 flex-wrap">
+                            <div className="flex items-center gap-2 bg-white/30 backdrop-blur-md rounded-full px-3 py-1.5 border border-white/50">
+                              <ImageIcon size={14} className="text-white" />
+                              <span className="text-xs font-semibold text-white">{group.folderArchives.length} Albums</span>
+                            </div>
+                            <div className="flex items-center gap-2 bg-white/30 backdrop-blur-md rounded-full px-3 py-1.5 border border-white/50">
+                              <Calendar size={14} className="text-white" />
+                              <span className="text-xs font-semibold text-white">{new Date(group.latestAt || Date.now()).toLocaleDateString()}</span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <p className="text-xs text-[#6b5d60]">File folder · {new Date(group.latestAt || Date.now()).toLocaleDateString()}</p>
+
+                      {/* Hover Indicator */}
+                      <div className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/30 backdrop-blur-md border border-white/50 flex items-center justify-center group-hover:bg-[#b10e6b]/30 transition-all">
+                        <ChevronDown size={20} className="text-white group-hover:rotate-180 transition-transform" />
+                      </div>
                     </div>
-                    <ChevronDown size={18} className={`text-[#9b0044] transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                  </button>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        setEditingFolderName(group.folderName);
-                        setExpandedArchiveId(group.folderName);
-                      }}
-                      className="inline-flex items-center gap-1 rounded-full border border-[#edd6df] bg-[#fff5f8] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#b10e6b] transition-colors hover:bg-[#ffe7ef]"
-                    >
-                      <Edit2 size={12} />
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        void handleDeleteFolder(group.folderName);
-                      }}
-                      className="inline-flex items-center gap-1 rounded-full border border-[#edd6df] bg-[#fff5f8] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#b10e6b] transition-colors hover:bg-[#ffe7ef]"
-                    >
-                      <Trash2 size={12} />
-                      Remove
-                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="rounded-3xl border-2 border-dashed border-[#e9dddd] py-16 text-center">
+              <Folder size={48} className="mx-auto text-[#b10e6b]/20 mb-4" />
+              <p className="text-lg text-[#6b5d60] font-medium">No collections yet</p>
+              <p className="text-sm text-[#b10e6b]/60">Create your first collection above</p>
+            </div>
+          )}
+        </div>
+
+        {/* Recent Media Uploads Section */}
+        {recentUploads.length > 0 && (
+          <div className="mb-16">
+            <div className="flex items-center gap-3 mb-8">
+              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-[#b10e6b]/20 to-[#951254]/20">
+                <ImageIcon size={24} className="text-[#b10e6b]" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-serif font-semibold text-[#211a1b]">Recent Media</h2>
+                <p className="text-sm text-[#6b5d60]">Latest uploads from your collections</p>
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              {recentUploads.map((upload) => (
+                <div
+                  key={upload.id}
+                  className="group relative h-48 rounded-2xl overflow-hidden bg-gradient-to-br from-white/60 to-white/30 backdrop-blur-xl border border-white/50 shadow-lg hover:shadow-xl hover:border-[#b10e6b]/30 transition-all duration-500 hover:scale-105 cursor-pointer"
+                >
+                  <img
+                    src={upload.image}
+                    alt={upload.title}
+                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                  
+                  <div className="absolute inset-0 p-4 flex flex-col justify-between">
+                    <div />
+                    <div>
+                      <p className="text-sm font-semibold text-white line-clamp-2 mb-2">{upload.title}</p>
+                      <p className="text-xs text-white/70">{new Date(upload.date || Date.now()).toLocaleDateString()}</p>
+                    </div>
                   </div>
                 </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
 
-                {isExpanded ? (
-                  <div className="border-t border-[#efe7e4] bg-[#fcfbfb] px-5 py-5">
-                    <div className="mb-4 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[#b10e6b]">
-                      <FileText size={14} />
-                      Books in Folder
+      {/* Folder Details Modal */}
+      {expandedArchiveId && (
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto bg-black/40 backdrop-blur-sm"
+          onClick={() => {
+            setExpandedArchiveId(null);
+            setSelectedFullscreenBook(null);
+          }}
+        >
+          <div
+            className="min-h-screen flex items-center justify-center p-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-full max-w-6xl max-h-[95vh] overflow-hidden rounded-3xl bg-gradient-to-br from-white/95 to-white/90 backdrop-blur-xl border border-white/50 shadow-2xl flex flex-col">
+              {/* Modal Header with Cover Image */}
+              <div className="relative h-64 md:h-80 bg-gradient-to-br from-[#fff8f7] to-[#fff0f4] overflow-hidden group">
+                {groupedArchives.find(g => g.folderName === expandedArchiveId)?.folderArchives[0] && (
+                  <img
+                    src={archiveCover(groupedArchives.find(g => g.folderName === expandedArchiveId)!.folderArchives[0])}
+                    alt={expandedArchiveId}
+                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                  />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/40" />
+
+                {/* Close Button */}
+                <button
+                  onClick={() => {
+                    setExpandedArchiveId(null);
+                    setSelectedFullscreenBook(null);
+                  }}
+                  className="absolute top-6 right-6 z-10 flex items-center justify-center w-12 h-12 rounded-full bg-white/30 backdrop-blur-md border border-white/50 text-white hover:bg-white/50 transition-all"
+                >
+                  <X size={24} />
+                </button>
+
+                {/* Cover Actions */}
+                <div className="absolute bottom-6 left-6 right-6 flex gap-3 flex-wrap">
+                  <label className="flex items-center gap-2 rounded-full bg-white/30 backdrop-blur-md border border-white/50 px-4 py-2.5 text-sm font-bold uppercase tracking-wider text-white hover:bg-white/50 transition-all cursor-pointer group/upload">
+                    <Upload size={16} className="group-hover/upload:scale-110 transition-transform" />
+                    Change Cover
+                    <input type="file" accept="image/*" className="hidden" />
+                  </label>
+                  
+                  <button className="flex items-center gap-2 rounded-full bg-white/30 backdrop-blur-md border border-white/50 px-4 py-2.5 text-sm font-bold uppercase tracking-wider text-white hover:bg-white/50 transition-all">
+                    <Edit2 size={16} />
+                    Rename
+                  </button>
+
+                  <button
+                    onClick={() => void handleDeleteFolder(expandedArchiveId)}
+                    className="flex items-center gap-2 rounded-full bg-red-500/30 backdrop-blur-md border border-red-300/50 px-4 py-2.5 text-sm font-bold uppercase tracking-wider text-white hover:bg-red-500/50 transition-all ml-auto"
+                  >
+                    <Trash2 size={16} />
+                    Delete
+                  </button>
+                </div>
+
+                {/* Title Overlay */}
+                <div className="absolute bottom-20 left-6 right-6">
+                  <h2 className="text-3xl md:text-4xl font-serif font-semibold text-white drop-shadow-lg mb-2">
+                    {expandedArchiveId}
+                  </h2>
+                  <p className="text-white/90 text-sm drop-shadow">
+                    {groupedArchives.find(g => g.folderName === expandedArchiveId)?.folderArchives.length || 0} albums · {
+                      new Date(groupedArchives.find(g => g.folderName === expandedArchiveId)?.latestAt || Date.now()).toLocaleDateString()
+                    }
+                  </p>
+                </div>
+              </div>
+
+              {/* Modal Content - Scrollable */}
+              <div className="flex-1 overflow-y-auto">
+                <div className="p-6 md:p-10 space-y-8">
+                  {/* Add Album Section */}
+                  <div className="rounded-2xl bg-gradient-to-r from-white/60 to-white/40 backdrop-blur border border-white/50 p-6">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Plus size={20} className="text-[#b10e6b]" />
+                      <h3 className="text-lg font-semibold text-[#211a1b]">Add Album to Collection</h3>
+                    </div>
+                    <div className="flex flex-col gap-3 md:flex-row">
+                      <select
+                        value={addAlbumId}
+                        onChange={(event) => setAddAlbumId(event.target.value)}
+                        className="flex-1 rounded-xl border border-[#e9dddd] bg-white px-4 py-3 text-sm text-[#211a1b] outline-none focus:border-[#b10e6b] focus:ring-2 focus:ring-[#b10e6b]/20"
+                      >
+                        <option value="">Choose an album</option>
+                        {albums
+                          .filter((album) => {
+                            const alreadyArchived = archives.some((archive) => {
+                              const archiveAlbumId = typeof archive.albumId === 'string' ? archive.albumId : archive.albumId._id;
+                              return archiveAlbumId === album._id;
+                            });
+                            return !alreadyArchived;
+                          })
+                          .map((album) => (
+                            <option key={album._id} value={album._id}>
+                              {album.albumName}
+                            </option>
+                          ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => void handleAddAlbumToFolder(expandedArchiveId)}
+                        className="rounded-xl bg-gradient-to-r from-[#b10e6b] to-[#951254] px-6 py-3 text-sm font-bold uppercase text-white hover:shadow-lg transition-all"
+                      >
+                        Add Album
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Recent Media Uploads Section */}
+                  <div>
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-[#b10e6b]/20 to-[#951254]/20">
+                        <ImageIcon size={24} className="text-[#b10e6b]" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-[#211a1b]">Recent Media Uploads</h3>
+                        <p className="text-xs text-[#6b5d60]">Latest photos and videos from this collection</p>
+                      </div>
                     </div>
 
-                    {editingFolderName === group.folderName ? (
-                      <div className="mb-5 rounded-2xl border border-[#f0e2e6] bg-white p-4 shadow-sm">
-                        <label className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-[#6b5d60]">Rename folder</label>
-                        <div className="flex flex-col gap-3 md:flex-row">
-                          <input
-                            value={editingFolderName}
-                            onChange={(event) => setEditingFolderName(event.target.value)}
-                            className="flex-1 rounded-[0.85rem] border border-[#e9dddd] bg-[#fff8f7] px-4 py-3 text-sm text-[#211a1b] outline-none"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => void handleRenameFolder(group.folderName)}
-                            className="rounded-[0.85rem] bg-[#b10e6b] px-4 py-3 text-sm font-bold uppercase tracking-[0.14em] text-white transition-colors hover:bg-[#951254]"
+                    {recentUploads.length > 0 ? (
+                      <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4 mb-8">
+                        {recentUploads.slice(0, 8).map((upload) => (
+                          <div
+                            key={upload.id}
+                            className="group relative h-32 rounded-lg overflow-hidden bg-gradient-to-br from-white/60 to-white/30 backdrop-blur-xl border border-white/50 shadow-lg hover:shadow-xl hover:border-[#b10e6b]/30 transition-all duration-500 hover:scale-105 cursor-pointer"
                           >
-                            Save
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setEditingFolderName('')}
-                            className="rounded-[0.85rem] border border-[#e9dddd] bg-white px-4 py-3 text-sm font-bold uppercase tracking-[0.14em] text-[#6b5d60] transition-colors hover:bg-[#faf6f7]"
-                          >
-                            Cancel
-                          </button>
-                        </div>
+                            <img
+                              src={upload.image}
+                              alt={upload.title}
+                              className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+                            
+                            <div className="absolute inset-0 p-2 flex flex-col justify-between">
+                              <div className="flex items-center gap-1 bg-white/30 backdrop-blur-md rounded px-2 py-1 w-fit text-white text-xs font-semibold">
+                                <ImageIcon size={12} />
+                                Media
+                              </div>
+                              <p className="text-white text-xs font-medium line-clamp-1 drop-shadow">{upload.title}</p>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ) : null}
+                    ) : (
+                      <div className="rounded-2xl border-2 border-dashed border-[#e9dddd] py-8 text-center mb-8">
+                        <ImageIcon size={32} className="mx-auto text-[#b10e6b]/20 mb-3" />
+                        <p className="text-sm text-[#6b5d60]">No media uploaded yet</p>
+                      </div>
+                    )}
+                  </div>
 
-                    <div className="mb-5 rounded-2xl border border-[#f0e2e6] bg-[#fff8f7] p-4">
-                      <div className="flex flex-col gap-3 md:flex-row md:items-end">
-                        <div className="flex-1">
-                          <label className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-[#6b5d60]">Add album to this folder</label>
-                          <select
-                            value={addAlbumId}
-                            onChange={(event) => setAddAlbumId(event.target.value)}
-                            className="w-full rounded-[0.85rem] border border-[#e9dddd] bg-white px-4 py-3 text-sm text-[#211a1b] outline-none"
-                          >
-                            <option value="">Choose an album</option>
-                            {albums
-                              .filter((album) => {
-                                const alreadyArchived = archives.some((archive) => {
-                                  const archiveAlbumId = typeof archive.albumId === 'string' ? archive.albumId : archive.albumId._id;
-                                  return archiveAlbumId === album._id;
-                                });
-                                return !alreadyArchived;
-                              })
-                              .map((album) => (
-                                <option key={album._id} value={album._id}>
-                                  {album.albumName}
-                                </option>
-                              ))}
-                          </select>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => void handleAddAlbumToFolder(group.folderName)}
-                          className="rounded-[0.85rem] bg-[#b10e6b] px-4 py-3 text-sm font-bold uppercase tracking-[0.14em] text-white transition-colors hover:bg-[#951254]"
-                        >
-                          Add Album
-                        </button>
-                      </div>
+                  {/* Albums/Books Section */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-6">
+                      <BookOpen size={22} className="text-[#b10e6b]" />
+                      <h3 className="text-lg font-semibold text-[#211a1b]">Albums in Collection</h3>
+                      <span className="ml-auto text-sm font-bold text-[#b10e6b] bg-[#f7ecef] px-3 py-1 rounded-full">
+                        {archiveBooks.length} Albums
+                      </span>
                     </div>
 
                     {isLoadingArchiveBooks ? (
-                      <div className="rounded-2xl border border-dashed border-[#d7ccc4] py-8 text-center text-sm text-[#6b5d60]">
-                        Loading books...
+                      <div className="text-center py-12">
+                        <div className="inline-flex items-center gap-2 text-[#6b5d60]">
+                          <div className="w-2 h-2 rounded-full bg-[#b10e6b] animate-bounce" />
+                          <div className="w-2 h-2 rounded-full bg-[#b10e6b] animate-bounce" style={{ animationDelay: '0.2s' }} />
+                          <div className="w-2 h-2 rounded-full bg-[#b10e6b] animate-bounce" style={{ animationDelay: '0.4s' }} />
+                          <span className="ml-2">Loading albums...</span>
+                        </div>
                       </div>
                     ) : archiveBooks.length > 0 ? (
                       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                         {archiveBooks.map((book) => {
                           const bookTemplateName = typeof book.templateId === 'string' ? book.templateName || 'Book' : book.templateId?.name || book.templateName || 'Book';
-                          const matchedArchive = group.folderArchives.find((archive) => {
+                          const group = groupedArchives.find(g => g.folderName === expandedArchiveId);
+                          const matchedArchive = (group?.folderArchives || []).find((archive) => {
                             const archiveAlbumId = typeof archive.albumId === 'string' ? archive.albumId : archive.albumId._id;
                             const bookCurateId = typeof book.curateId === 'string' ? book.curateId : book.curateId?._id;
                             return archiveAlbumId === bookCurateId;
-                          }) || representativeArchive;
+                          }) || group?.folderArchives[0];
+
+                          if (!matchedArchive) return null;
 
                           return (
-                            <article
+                            <div
                               key={book._id}
-                              className="group overflow-hidden rounded-[1.1rem] border border-[#e1bec4] bg-white text-left transition-all hover:border-[#b10e6b] hover:shadow-md"
+                              className="group relative rounded-2xl overflow-hidden bg-gradient-to-br from-white/60 to-white/30 backdrop-blur-xl border border-white/50 shadow-lg hover:shadow-xl hover:border-[#b10e6b]/30 transition-all duration-500 hover:scale-105 cursor-pointer"
+                              onClick={() => void openFullscreenBook(book._id)}
                             >
-                              <button
-                                type="button"
-                                onClick={() => void openFullscreenBook(book._id)}
-                                className="block w-full text-left"
-                              >
-                                <div className="relative overflow-hidden bg-[#f7ecef]">
-                                  <img
-                                    src={archiveCover(matchedArchive)}
-                                    alt={group.folderName}
-                                    className="h-32 w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                  />
-                                  <div className="absolute left-3 top-3 rounded-full bg-black/55 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.18em] text-white backdrop-blur">
-                                    {bookTemplateName}
-                                  </div>
+                              <div className="relative h-56">
+                                <img
+                                  src={archiveCover(matchedArchive)}
+                                  alt={book.albumName}
+                                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                                
+                                <div className="absolute left-4 top-4 rounded-full bg-black/50 backdrop-blur px-3 py-1 text-xs font-bold uppercase tracking-wider text-white border border-white/30">
+                                  {bookTemplateName}
                                 </div>
-                                <div className="p-4">
-                                  <div className="mb-3 flex items-center gap-3">
-                                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#fff0f4] text-[#b10e6b] group-hover:bg-[#fde5ee]">
-                                      <BookOpen size={18} />
-                                    </div>
-                                    <div className="min-w-0">
-                                      <p className="truncate text-sm font-semibold text-[#211a1b]">{book.albumName}</p>
-                                      <p className="truncate text-[9px] uppercase tracking-[0.18em] text-[#6b5d60]">{bookTemplateName}</p>
-                                    </div>
-                                  </div>
-                                  <p className="text-[10px] text-[#6b5d60]">Click to open fullscreen view</p>
-                                </div>
-                              </button>
-                              <div className="flex items-center justify-between border-t border-[#f0e8e6] px-4 py-3">
-                                <span className="text-[10px] font-medium text-[#6b5d60]">{matchedArchive.archiveFolderName}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => void handleDeleteArchive(matchedArchive._id)}
-                                  className="inline-flex items-center gap-1 rounded-full border border-[#edd6df] bg-[#fff5f8] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#b10e6b] transition-colors hover:bg-[#ffe7ef]"
-                                >
-                                  <Trash2 size={12} />
-                                  Remove
-                                </button>
                               </div>
-                            </article>
+                              
+                              <div className="p-4">
+                                <p className="text-sm font-semibold text-[#211a1b] mb-1 line-clamp-2">{book.albumName}</p>
+                                <p className="text-xs text-[#6b5d60] mb-4">Click to view fullscreen</p>
+                                
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs font-medium text-[#6b5d60]">{bookTemplateName}</span>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      void handleDeleteArchive(matchedArchive._id);
+                                    }}
+                                    className="rounded-full border border-[#edd6df] bg-[#fff5f8] p-2 text-[#b10e6b] hover:bg-[#ffe7ef] transition-all"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
                           );
                         })}
                       </div>
                     ) : (
-                      <div className="rounded-2xl border border-dashed border-[#d7ccc4] py-8 text-center text-sm text-[#6b5d60]">
-                        No books found in this folder.
+                      <div className="rounded-2xl border-2 border-dashed border-[#e9dddd] py-12 text-center">
+                        <BookOpen size={32} className="mx-auto text-[#b10e6b]/20 mb-4" />
+                        <p className="text-sm text-[#6b5d60]">No albums in this collection yet</p>
+                        <p className="text-xs text-[#b10e6b]/60 mt-2">Add one using the form above</p>
                       </div>
                     )}
                   </div>
-                ) : null}
-              </article>
-            );
-          })}
-
-          {archives.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-[#d7ccc4] p-8 text-center text-sm text-[#6b5d60]">
-              No archive records yet.
+                </div>
+              </div>
             </div>
-          ) : groupedArchives.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-[#d7ccc4] p-8 text-center text-sm text-[#6b5d60]">
-              No folders match your search.
-            </div>
-          ) : null}
+          </div>
         </div>
-      </section>
-
-        </div>
-      </div>
+      )}
 
       {/* Fullscreen Book Viewer */}
 

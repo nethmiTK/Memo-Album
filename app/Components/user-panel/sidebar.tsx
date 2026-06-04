@@ -26,7 +26,10 @@ export default function UserSidebar({ isMobileOpen, onClose }: UserSidebarProps)
   const mainMenuItems: MenuItem[] = [
     { label: 'My Albums', href: '/user-panel/albums', icon: <Image size={20} /> },
     { label: 'Favorites', href: '/user-panel/favorites', icon: <Heart size={20} /> },
+            { label: 'Gallery', href: '/user-panel/gallery', icon: <Image size={20} /> },
+
     { label: 'Profile', href: '/user-panel/profile', icon: <User size={20} /> },
+
   ];
 
   const bottomMenuItems: MenuItem[] = [

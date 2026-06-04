@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { apiFetch, getUser, handleAuthError } from '@/lib/api';
-import { Eye, Trash2, Upload, Maximize2, X, Edit3, ImagePlus } from 'lucide-react';
+import { Eye, Trash2, Upload, Maximize2, X, Edit3, ImagePlus, Clipboard } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { toast } from 'react-toastify';
@@ -124,6 +124,7 @@ interface MediaItem {
   mediaKind: string;
   dataUrl?: string;
   order?: number;
+  caption?: string;
   finalized?: boolean;
 }
 
@@ -188,10 +189,13 @@ const CreateAlbum: React.FC = () => {
   const [previewMedia, setPreviewMedia] = useState<MediaItem | null>(null);
   const [mediaTransforms, setMediaTransforms] = useState<Record<string, MediaTransform>>({});
   const [cropMedia, setCropMedia] = useState<MediaItem | null>(null);
+  const [cropSlot, setCropSlot] = useState<SlotConfig | null>(null);
   const [cropDraft, setCropDraft] = useState<MediaTransform>({ zoom: 1, x: 0, y: 0 });
   const [selectedPreviewPage, setSelectedPreviewPage] = useState(0);
+  const [pageCarouselIndex, setPageCarouselIndex] = useState(0);
   const [isCropPanning, setIsCropPanning] = useState(false);
   const [cropPanStart, setCropPanStart] = useState({ x: 0, y: 0, baseX: 0, baseY: 0 });
+  const [pasteSlotIndex, setPasteSlotIndex] = useState<number | null>(null);
   const [coverPhotoPreview, setCoverPhotoPreview] = useState<string | null>(null);
   const [endPhotoPreview, setEndPhotoPreview] = useState<string | null>(null);
   const coverPhotoInputRef = useRef<HTMLInputElement | null>(null);
@@ -404,6 +408,48 @@ const CreateAlbum: React.FC = () => {
     setIsBookModalOpen(true);
   }, [shouldOpenFullscreenBook, selectedTemplateData, selectedAlbum]);
 
+  // Prevent background page scrolling when fullscreen book modal is open
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    if (isBookModalOpen) {
+      const scrollY = window.scrollY || window.pageYOffset || 0;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.left = '0';
+      document.body.style.right = '0';
+      document.body.style.overflow = 'hidden';
+    } else {
+      const top = document.body.style.top;
+      if (top) {
+        const restored = -parseInt(top || '0', 10) || 0;
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.left = '';
+        document.body.style.right = '';
+        document.body.style.overflow = '';
+        window.scrollTo(0, restored);
+      } else {
+        document.body.style.overflow = '';
+      }
+    }
+
+    return () => {
+      const top = document.body.style.top;
+      if (top) {
+        const restored = -parseInt(top || '0', 10) || 0;
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.left = '';
+        document.body.style.right = '';
+        document.body.style.overflow = '';
+        window.scrollTo(0, restored);
+      } else {
+        document.body.style.overflow = '';
+      }
+    };
+  }, [isBookModalOpen]);
+
   // Save designer state to sessionStorage
   useEffect(() => {
     try {
@@ -519,6 +565,7 @@ const CreateAlbum: React.FC = () => {
         ? 'video'
         : (item.fileType?.startsWith('video') ? 'video' : (item.mediaKind || 'image')),
       dataUrl: item.dataUrl || (item as any).src || (item as any).url || '',
+      caption: (item as any).caption || '',
       order: item.order ?? index + 1,
     }));
 
@@ -695,6 +742,58 @@ const CreateAlbum: React.FC = () => {
   );
 
   const templateAccent = selectedTemplateData?.accent || '#b10e6b';
+  const activeCropSlotSpec = cropSlot
+    ? templatePages[cropSlot.pageIndex]?.slots?.find((slot) => (slot.id || '') === cropSlot.slotId) || null
+    : null;
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const resolveTargetSlot = () => {
+      if (pasteSlotIndex !== null && pasteSlotIndex >= 0 && pasteSlotIndex < slotConfigs.length) {
+        return pasteSlotIndex;
+      }
+      const emptySlot = slotConfigs.find((slot) => !getSlotMediaItem(mediaItems, slot.index));
+      return emptySlot ? emptySlot.index : slotConfigs[0]?.index ?? 0;
+    };
+
+    const handlePaste = async (event: ClipboardEvent) => {
+      if (!event.clipboardData) return;
+      const items = Array.from(event.clipboardData.items || []);
+      const imageItem = items.find((item) => item.type.startsWith('image/'));
+      let file: File | null = null;
+
+      if (imageItem) {
+        const blob = imageItem.getAsFile();
+        if (blob) {
+          file = new File([blob], `clipboard-${Date.now()}.${blob.type.split('/')[1] || 'png'}`, {
+            type: blob.type,
+          });
+        }
+      } else {
+        const text = event.clipboardData.getData('text/plain') || '';
+        if (text.startsWith('data:image/')) {
+          try {
+            const blob = await (await fetch(text)).blob();
+            file = new File([blob], `clipboard-${Date.now()}.png`, { type: blob.type || 'image/png' });
+          } catch {
+            // ignore unsupported clipboard format
+          }
+        }
+      }
+
+      if (!file) return;
+      event.preventDefault();
+
+      const targetSlot = resolveTargetSlot();
+      await uploadFileToSlot(targetSlot, file);
+      setPasteSlotIndex(null);
+      toast.success('✓ Pasted image into slot', toastStyle);
+    };
+
+    window.addEventListener('paste', handlePaste as any);
+    return () => window.removeEventListener('paste', handlePaste as any);
+  }, [pasteSlotIndex, mediaItems, slotConfigs, selectedAlbum, selectedTemplate]);
 
   useEffect(() => {
     if (!pagePreviewConfigs.some((page) => page.pageIndex === selectedPreviewPage)) {
@@ -761,9 +860,8 @@ const CreateAlbum: React.FC = () => {
     setSelectedPreviewPage(targetPageIndex);
   };
 
- const handleUploadToSlot = (slotIndex: number, files: FileList | null) => {
-  if (!files || files.length === 0) return;
-  const file = files[0];
+ const uploadFileToSlot = async (slotIndex: number, file: File) => {
+  if (!file) return;
   const reader = new FileReader();
 
   reader.onload = () => {
@@ -803,6 +901,11 @@ const CreateAlbum: React.FC = () => {
   };
 
   reader.readAsDataURL(file);
+};
+
+const handleUploadToSlot = (slotIndex: number, files: FileList | null) => {
+  if (!files || files.length === 0) return;
+  uploadFileToSlot(slotIndex, files[0]);
 };
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -905,6 +1008,8 @@ const CreateAlbum: React.FC = () => {
     const current = mediaTransforms[item.id] || { zoom: 1, x: 0, y: 0 };
     setCropMedia(item);
     setCropDraft(current);
+    const slotIndex = mediaItems.findIndex((entry) => entry?.id === item.id);
+    setCropSlot(slotIndex >= 0 ? slotConfigs[slotIndex] : null);
   };
 
   const applyCropChanges = () => {
@@ -915,6 +1020,10 @@ const CreateAlbum: React.FC = () => {
       [cropMedia.id]: cropDraft,
     };
     setMediaTransforms(nextTransforms);
+    setMediaItems((prev) => prev.map((item) => {
+      if (!item || item.id !== cropMedia.id) return item;
+      return { ...item, finalized: true };
+    }));
 
     const slotIndex = mediaItems.findIndex((item) => item?.id === cropMedia.id);
     const slot = slotIndex >= 0 ? slotConfigs[slotIndex] : null;
@@ -927,6 +1036,7 @@ const CreateAlbum: React.FC = () => {
           mediaItem: {
             ...cropMedia,
             cropTransform: nextTransforms[cropMedia.id],
+            finalized: true,
           },
         }),
       }).catch((error) => {
@@ -941,6 +1051,7 @@ const CreateAlbum: React.FC = () => {
     }
 
     setCropMedia(null);
+    setCropSlot(null);
     toast.success('✓ Crop applied (auto-saving...)', toastStyle);
   };
 
@@ -1239,10 +1350,10 @@ const CreateAlbum: React.FC = () => {
       <div className="flex-1 px-4 md:px-9 py-6 overflow-hidden">
         <div className="flex flex-col gap-6">
           {/* Top Row - Selection Panel and Book Panel side by side */}
-          <div className="flex gap-6">
+          <div className="flex flex-col xl:flex-row gap-6">
           {/* SELECTION PANEL - Left Side */}
-          <div className="w-72 shrink-0">
-            <div className="w-full p-5 rounded-2xl shadow-lg bg-white border-l-4 border-[#b10e6b] h-full">
+          <div className="w-full xl:w-72 shrink-0">
+            <div className="w-full p-5 rounded-2xl shadow-lg bg-white border-l-4 border-[#b10e6b] h-[1075px] overflow-hidden">
               <h3 className="text-[11px] tracking-widest uppercase text-[#b10e6b] font-bold mb-4">SELECTION PANEL</h3>
               
               <div className="space-y-4">
@@ -1363,15 +1474,114 @@ const CreateAlbum: React.FC = () => {
     </p>
   </div>
 
+  {/* COVER + END PHOTO (compact controls placed in selection panel) */}
+  <div className="mt-4">
+    <label className="block text-[11px] font-bold uppercase mb-3 text-[#54474d]">COVER & END</label>
+
+    <div className="grid grid-cols-1 gap-3">
+      <div className="flex items-center gap-3">
+        <div className="w-20 h-20 rounded-xl overflow-hidden border border-[#e5c5d4] bg-[#fff8fb] flex items-center justify-center">
+          {coverPhotoPreview || selectedAlbumData?.coverPhoto ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={coverPhotoPreview || selectedAlbumData?.coverPhoto || ''} alt="Cover" className="w-full h-full object-cover" />
+          ) : (
+            <div className="text-[10px] text-[#8d7d81] text-center px-2">No cover</div>
+          )}
+        </div>
+        <div className="flex-1">
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => coverPhotoInputRef.current?.click()}
+              className="rounded-lg border px-3 py-1 text-[11px] font-semibold bg-white"
+            >
+              Change Cover
+            </button>
+            <button
+              type="button"
+              onClick={clearCoverPhoto}
+              className="rounded-lg border px-3 py-1 text-[11px] font-semibold text-[#b10e6b] bg-white"
+            >
+              Remove
+            </button>
+          </div>
+          <input
+            ref={(el) => {
+              coverPhotoInputRef.current = el;
+            }}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleCoverPhotoChange}
+          />
+          <p className="mt-1 text-[10px] text-[#7a6268]">Cover shown in book preview</p>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <div className="w-20 h-20 rounded-xl overflow-hidden border border-[#e5c5d4] bg-[#fff8fb] flex items-center justify-center">
+          {endPhotoPreview ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={endPhotoPreview} alt="End" className="w-full h-full object-cover" />
+          ) : (
+            <div className="text-[10px] text-[#8d7d81] text-center px-2">No end photo</div>
+          )}
+        </div>
+        <div className="flex-1">
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => endPhotoInputRef.current?.click()}
+              className="rounded-lg border px-3 py-1 text-[11px] font-semibold bg-white"
+            >
+              Change End
+            </button>
+            <button
+              type="button"
+              onClick={clearEndPhoto}
+              className="rounded-lg border px-3 py-1 text-[11px] font-semibold text-[#b10e6b] bg-white"
+            >
+              Remove
+            </button>
+          </div>
+          <input
+            ref={(el) => {
+              endPhotoInputRef.current = el;
+            }}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleEndPhotoChange}
+          />
+          <p className="mt-1 text-[10px] text-[#7a6268]">Optional end page photo</p>
+        </div>
+      </div>
+
+      {/* Filled slots indicator */}
+      <div className="mt-2">
+        <div className="flex items-center justify-between text-[11px] font-semibold text-[#7a6268] mb-1">
+          <span>Slots filled</span>
+          <span className="text-sm text-[#211A1B] font-bold">{filledSlotCount} / {slotConfigs.length}</span>
+        </div>
+        <div className="w-full h-2 rounded-full bg-[#fdeff4] overflow-hidden">
+          <div
+            className="h-full bg-[#b10e6b]"
+            style={{ width: `${Math.min(100, Math.round((filledSlotCount / Math.max(1, slotConfigs.length)) * 100))}%` }}
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
             </div>
           </div>
 
         {/* BOOK PANEL - Right Side */}
-        <div className="min-w-104 flex-1">
+        <div className="min-w-0 flex-1">
   {/* Template Book Preview (flip book with curate images in slots) */}
   {selectedTemplateData ? (
-    <div className="bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col border border-gray-100 h-full">
+    <div className="bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col border border-gray-100 h-[1075px]">
       <div className="p-4 border-b border-gray-200 flex flex-wrap items-center justify-between gap-2">
         <div>
           <h3 className="text-sm font-bold uppercase tracking-widest text-[#211A1B]">TEMPLATE BOOK</h3>
@@ -1392,8 +1602,7 @@ const CreateAlbum: React.FC = () => {
 
       <div className="p-3 bg-[#FFF8F8]">
         {filledSlotCount > 0 || selectedAlbumData?.coverPhoto ? (
-          <div className="w-full max-w-md h-64 rounded-xl overflow-hidden mx-auto">
-            <div className="scale-50 origin-top-left" style={{ width: '200%', height: '200%' }}>
+            <div className="w-full h-[960px] rounded-xl overflow-hidden">
             <TemplateBookFlip
               template={selectedTemplateData}
               mediaItems={slotAlignedBookMedia}
@@ -1401,9 +1610,8 @@ const CreateAlbum: React.FC = () => {
               coverPhoto={selectedAlbumData?.coverPhoto}
               coverPhotoName={selectedAlbumData?.albumName}
               coverWeddingDate={selectedAlbumData?.weddingDate}
-              variant="inline"
+              variant="single"
             />
-            </div>
           </div>
         ) : (
           <div className="min-h-32 py-4 px-4 text-left text-sm text-[#594045] flex flex-col items-start justify-center">
@@ -1500,145 +1708,33 @@ const CreateAlbum: React.FC = () => {
           )}
         </div>
       ) : (
-        <div className="w-full space-y-4">
-            <div className="grid gap-4 xl:grid-cols-[auto_minmax(0,1fr)]">
-              <div className="flex w-full shrink-0 flex-col rounded-2xl border border-[#f0e2e6] bg-white p-3 xl:w-56">
-                <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.25em] text-[#8d7d81]">Cover Photo</div>
-                <div className="overflow-hidden rounded-3xl border-2 border-dashed border-[#e5c5d4] bg-[#fff8fb] p-1">
-                  <div className="relative h-64 w-full overflow-hidden rounded-2xl bg-[#fbf3f7]">
-                    {coverPhotoPreview || selectedAlbumData?.coverPhoto ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <>
-                        <img
-                          src={coverPhotoPreview || selectedAlbumData?.coverPhoto || ''}
-                          alt="Cover"
-                          className="h-full w-full object-cover"
-                        />
-                        <div className="absolute top-2 right-2 flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => coverPhotoInputRef.current?.click()}
-                            className="rounded-full bg-white/90 px-2 py-1 text-[10px] font-semibold text-[#5f4c56] shadow-sm hover:bg-white"
-                          >
-                            Change
-                          </button>
-                          <button
-                            type="button"
-                            onClick={clearCoverPhoto}
-                            className="rounded-full bg-white/90 px-2 py-1 text-[10px] font-semibold text-[#b10e6b] shadow-sm hover:bg-white"
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="flex h-full w-full flex-col items-center justify-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => coverPhotoInputRef.current?.click()}
-                          className="rounded-full border-2 border-dashed border-[#e5c5d4] bg-white px-4 py-2 text-[10px] font-semibold text-[#b10e6b] hover:border-[#b10e6b] hover:bg-[#fff0f4]"
-                        >
-                          Upload Cover
-                        </button>
-                        <p className="text-[9px] text-[#8d7d81]">Click to select photo</p>
-                      </div>
-                    )}
-                    <input
-                      ref={(el) => {
-                        coverPhotoInputRef.current = el;
-                      }}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleCoverPhotoChange}
-                    />
+        <div className="w-full">
+          <div className="grid gap-4 xl:grid-cols-[1fr_320px]">
+            <div className="rounded-2xl border border-[#ebe7e8] bg-[#fffdfd] p-3 shadow-sm h-full">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <div>
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.22em] text-[#7f6f74]">Template</p>
+                    <p className="text-[8px] text-[#a89094]">{selectedTemplateData?.name || 'Select template'}</p>
                   </div>
-                </div>
-                <div className="mt-3 text-xs text-[#7a6268]">
-                  <p className="font-semibold text-[#211A1B] truncate">{selectedAlbumData?.albumName || 'No album'}</p>
-                  <p className="text-[10px]" title={selectedAlbumData?._id}>ID: {selectedAlbumData?._id?.substring(0, 12) || compactMediaItems(mediaItems)[0]?.id?.substring(0, 12) || '-'}...</p>
-                </div>
-              </div>
-
-              {/* End Photo Section */}
-              <div className="flex w-full shrink-0 flex-col rounded-2xl border border-[#f0e2e6] bg-white p-3 xl:w-56">
-                <div className="mb-3 flex items-center gap-1">
-                  <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#8d7d81]">End Photo</span>
-                  <span className="text-[8px] font-semibold text-[#b10e6b]">(Optional)</span>
-                </div>
-                <div className="overflow-hidden rounded-3xl border-2 border-dashed border-[#e5c5d4] bg-[#fff8fb] p-1">
-                  <div className="relative h-64 w-full overflow-hidden rounded-2xl bg-[#fbf3f7]">
-                    {endPhotoPreview ? (
-                      <>
-                        <img
-                          src={endPhotoPreview}
-                          alt="End Photo"
-                          className="h-full w-full object-cover"
-                        />
-                        <div className="absolute top-2 right-2 flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => endPhotoInputRef.current?.click()}
-                            className="rounded-full bg-white/90 px-2 py-1 text-[10px] font-semibold text-[#5f4c56] shadow-sm hover:bg-white"
-                          >
-                            Change
-                          </button>
-                          <button
-                            type="button"
-                            onClick={clearEndPhoto}
-                            className="rounded-full bg-white/90 px-2 py-1 text-[10px] font-semibold text-[#b10e6b] shadow-sm hover:bg-white"
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="flex h-full w-full flex-col items-center justify-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => endPhotoInputRef.current?.click()}
-                          className="rounded-full border-2 border-dashed border-[#e5c5d4] bg-white px-4 py-2 text-[10px] font-semibold text-[#b10e6b] hover:border-[#b10e6b] hover:bg-[#fff0f4]"
-                        >
-                          Upload End Photo
-                        </button>
-                        <p className="text-[9px] text-[#8d7d81]">Click to select photo (optional)</p>
-                      </div>
-                    )}
-                    <input
-                      ref={(el) => {
-                        endPhotoInputRef.current = el;
-                      }}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleEndPhotoChange}
-                    />
-                  </div>
-                </div>
-                <div className="mt-3 text-xs text-[#7a6268]">
-                  <p className="font-semibold text-[#211A1B]">End Page</p>
-                  <p className="text-[10px]">Photographer details will appear here</p>
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-[#ebe7e8] bg-[#fffdfd] p-3 shadow-sm">
-                <div className="mb-2 flex items-center justify-between">
-                  <p className="text-[9px] font-semibold uppercase tracking-[0.22em] text-[#7f6f74]">Template</p>
                   <p className="text-[11px] font-medium text-[#7a6d72]">
                     {filledSlotCount} / {slotConfigs.length} filled
                   </p>
                 </div>
                 <div
-                  className="mx-auto w-full max-w-sm rounded-2xl border border-[#ece8e9] bg-white p-3 shadow-sm"
+                  className="mx-auto w-full rounded-2xl border border-[#ece8e9] bg-white p-3 shadow-sm h-full"
                   style={{
                     background: `linear-gradient(180deg, ${templateAccent}29 0%, #fffdfd 24%, #fff8fb 72%, ${templateAccent}1a 100%)`,
                   }}
                 >
+                  <div className="mb-2 text-xs text-[#7a6268]">
+                    <p className="font-semibold text-[#211A1B]">{activePreviewPage?.pageLabel || 'Page'}</p>
+                    <p className="text-[10px]">Slots: {activePreviewPage?.slots?.length || 0} available</p>
+                  </div>
                   <div
-                    className={`relative w-full rounded-[1.1rem] border border-[#f2e8ec] bg-white ${
+                    className={`relative w-full rounded-[1.1rem] border border-[#f2e8ec] bg-white h-full ${
                       pageSlotBounds.get(activePreviewPage?.pageIndex || 0)?.usesAbsoluteLayout
                         ? 'aspect-3/4 overflow-hidden'
-                        : 'min-h-48 grid auto-rows-[minmax(80px,1fr)] grid-cols-2 gap-2 p-2'
+                        : 'min-h-48 h-full grid auto-rows-[minmax(80px,1fr)] grid-cols-2 gap-2 p-2'
                     }`}
                     style={{ backgroundColor: templatePages[activePreviewPage?.pageIndex]?.pageColor || undefined }}
                   >
@@ -1655,6 +1751,7 @@ const CreateAlbum: React.FC = () => {
                       const top = Number.isFinite(Number(rawSlot?.y)) ? Number(rawSlot?.y) : 0;
                       const width = Math.max(1, Number.isFinite(Number(rawSlot?.width)) ? Number(rawSlot?.width) : 1);
                       const height = Math.max(1, Number.isFinite(Number(rawSlot?.height)) ? Number(rawSlot?.height) : 1);
+                      const slotSizeStr = width > 0 && height > 0 ? `${width}% × ${height}%` : 'Auto';
 
                       return (
                         <div
@@ -1680,7 +1777,7 @@ const CreateAlbum: React.FC = () => {
                           className={`group overflow-hidden rounded-2xl border bg-[#faf8f9] ${
                             usesAbsolute ? 'absolute cursor-pointer' : 'relative min-h-28'
                           }`}
-                          title={`${slot.pageLabel} · ${slot.slotLabel}`}
+                          title={`${slot.pageLabel} · ${slot.slotLabel} (${slotSizeStr})`}
                           style={{
                             borderColor: `${templateAccent}33`,
                             gridColumn: usesAbsolute ? undefined : `span ${colSpan}`,
@@ -1697,6 +1794,7 @@ const CreateAlbum: React.FC = () => {
                               className="absolute inset-0 flex flex-col items-center justify-center gap-2 border border-dashed border-[#e1bec4]/80 bg-[#fff8fb]"
                               style={{ backgroundColor: rawPage?.pageColor || '#fff8fb' }}
                             >
+                              <div className="absolute top-1 left-1 text-[8px] font-bold uppercase tracking-wider text-[#8d7d81]">{slotSizeStr}</div>
                               <ImagePlus size={22} className="text-[#c1aeb3]" />
                               <button
                                 type="button"
@@ -1705,6 +1803,17 @@ const CreateAlbum: React.FC = () => {
                               >
                                 <Upload size={14} />
                                 Upload
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setPasteSlotIndex(slot.index);
+                                  toast.info('Press Ctrl+V / Cmd+V to paste an image into this slot', toastStyle);
+                                }}
+                                className="inline-flex items-center gap-1.5 rounded-full border border-[#e1bec4] bg-white px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#7a6268] hover:border-[#b10e6b] hover:text-[#b10e6b]"
+                              >
+                                <Clipboard size={14} />
+                                Paste
                               </button>
                               <input
                                 ref={(el) => {
@@ -1745,6 +1854,11 @@ const CreateAlbum: React.FC = () => {
                                   <span className="text-[10px] font-bold tracking-widest text-gray-600">VIDEO</span>
                                 </div>
                               )}
+                              {item.caption ? (
+                                <div className="absolute left-2 bottom-2 rounded-full bg-black/70 px-2 py-1 text-[10px] text-white shadow-sm">
+                                  {item.caption}
+                                </div>
+                              ) : null}
                               <div className="absolute inset-0 flex items-center justify-center gap-2.5 bg-black/50 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
                                 <button
                                   type="button"
@@ -1790,74 +1904,93 @@ const CreateAlbum: React.FC = () => {
                   </div>
                 </div>
               </div>
-            </div>
-
-            <div className="rounded-2xl border border-[#f0e2e6] bg-white p-3">
-              <p className="mb-3 text-[10px] font-bold uppercase tracking-wider text-[#8d7d81]">Page templates</p>
-              <div className="flex gap-3 overflow-x-auto pb-1">
-                {pagePreviewConfigs.map((page) => {
-                  const pageUsesAbsolute = pageSlotBounds.get(page.pageIndex)?.usesAbsoluteLayout;
-                  const isActive = selectedPreviewPage === page.pageIndex;
-                  return (
-                    <button
-                      key={`filmstrip-${page.pageIndex}`}
-                      type="button"
-                      onClick={() => setSelectedPreviewPage(page.pageIndex)}
-                      className={`shrink-0 rounded-xl border p-2 transition-all ${
-                        isActive ? 'border-[#b10e6b] bg-[#fff0f4] shadow-sm' : 'border-[#ecdbe2] bg-[#fff8f9] hover:border-[#b10e6b]/50'
-                      }`}
-                    >
-                      <p className="mb-2 text-center text-[9px] font-bold uppercase tracking-[0.14em] text-[#8d7d81]">
-                        {page.pageLabel}
-                      </p>
-                      <div
-                        className={`relative h-16 w-14 overflow-hidden rounded-lg border border-[#ecdbe2] bg-white ${
-                          pageUsesAbsolute ? '' : 'grid grid-cols-2 gap-0.5 p-0.5'
-                        }`}
-                      >
-                        {page.slots.map((slot) => {
-                          const item = getSlotMediaItem(mediaItems, slot.index);
-                          const miniSlot = templatePages[slot.pageIndex]?.slots?.find((candidate) => candidate.id === slot.slotId);
-                          const miniAbsolute = pageUsesAbsolute && miniSlot;
-                          return (
-                            <div
-                              key={`mini-${page.pageIndex}-${slot.slotId}`}
-                              className={`overflow-hidden bg-[#f3e8ec] ${miniAbsolute ? 'absolute' : 'min-h-3'}`}
-                              style={
-                                miniAbsolute
-                                  ? {
-                                      left: `${Number(miniSlot?.x) || 0}%`,
-                                      top: `${Number(miniSlot?.y) || 0}%`,
-                                      width: `${Math.max(8, Number(miniSlot?.width) || 20)}%`,
-                                      height: `${Math.max(8, Number(miniSlot?.height) || 20)}%`,
-                                    }
-                                  : undefined
-                              }
-                            >
-                              {item?.dataUrl ? (
-                                item.mediaKind === 'video' ? (
-                                  <video src={item.dataUrl} className="h-full w-full object-cover" muted playsInline preload="metadata" />
-                                ) : (
-                                  <img src={item.dataUrl} alt="" className="h-full w-full object-cover" />
-                                )
-                              ) : null}
-                              {item?.finalized && (
-                                <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-green-500 flex items-center justify-center shadow-sm">
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <polyline points="20 6 9 17 4 12"></polyline>
-                                  </svg>
+              <div className="rounded-2xl border border-[#f0e2e6] bg-white p-3 h-full flex flex-col">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#8d7d81]">Page templates</p>
+                  <p className="text-[8px] text-[#a89094]">{pageCarouselIndex + 1}–{Math.min(pageCarouselIndex + 2, pagePreviewConfigs.length)} of {pagePreviewConfigs.length}</p>
+                </div>
+                <div className="flex-1 flex flex-col gap-3 overflow-hidden">
+                  <div className="grid grid-cols-2 gap-3 flex-1">
+                    {pagePreviewConfigs.slice(pageCarouselIndex, pageCarouselIndex + 2).map((page) => {
+                      const pageUsesAbsolute = pageSlotBounds.get(page.pageIndex)?.usesAbsoluteLayout;
+                      const isActive = selectedPreviewPage === page.pageIndex;
+                      return (
+                        <button
+                          key={`filmstrip-${page.pageIndex}`}
+                          type="button"
+                          onClick={() => setSelectedPreviewPage(page.pageIndex)}
+                          className={`rounded-xl border p-2 transition-all flex flex-col items-center justify-center ${
+                            isActive ? 'border-[#b10e6b] bg-[#fff0f4] shadow-sm' : 'border-[#ecdbe2] bg-[#fff8f9] hover:border-[#b10e6b]/50'
+                          }`}
+                        >
+                          <p className="mb-2 text-center text-[8px] font-bold uppercase tracking-[0.14em] text-[#8d7d81]">
+                            {page.pageLabel}
+                          </p>
+                          <div
+                            className={`relative h-24 w-20 overflow-hidden rounded-lg border border-[#ecdbe2] bg-white ${
+                              pageUsesAbsolute ? '' : 'grid grid-cols-2 gap-0.5 p-0.5'
+                            }`}
+                          >
+                            {page.slots.map((slot) => {
+                              const item = getSlotMediaItem(mediaItems, slot.index);
+                              const miniSlot = templatePages[slot.pageIndex]?.slots?.find((candidate) => candidate.id === slot.slotId);
+                              const miniAbsolute = pageUsesAbsolute && miniSlot;
+                              return (
+                                <div
+                                  key={`mini-${page.pageIndex}-${slot.slotId}`}
+                                  className={`overflow-hidden bg-[#f3e8ec] ${miniAbsolute ? 'absolute' : 'min-h-3'}`}
+                                  style={
+                                    miniAbsolute
+                                      ? {
+                                          left: `${Number(miniSlot?.x) || 0}%`,
+                                          top: `${Number(miniSlot?.y) || 0}%`,
+                                          width: `${Math.max(8, Number(miniSlot?.width) || 20)}%`,
+                                          height: `${Math.max(8, Number(miniSlot?.height) || 20)}%`,
+                                        }
+                                      : undefined
+                                  }
+                                >
+                                  {item?.dataUrl ? (
+                                    item.mediaKind === 'video' ? (
+                                      <video src={item.dataUrl} className="h-full w-full object-cover" muted playsInline preload="metadata" />
+                                    ) : (
+                                      <img src={item.dataUrl} alt="" className="h-full w-full object-cover" />
+                                    )
+                                  ) : null}
                                 </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </button>
-                  );
-                })}
+                              );
+                            })}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {pagePreviewConfigs.length > 2 && (
+                    <div className="flex gap-2 justify-center">
+                      <button
+                        type="button"
+                        onClick={() => setPageCarouselIndex(Math.max(0, pageCarouselIndex - 1))}
+                        disabled={pageCarouselIndex === 0}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#e1bec4] bg-white text-[#7a6268] transition hover:border-[#b10e6b] hover:text-[#b10e6b] disabled:opacity-40 disabled:cursor-not-allowed"
+                        title="Previous pages"
+                      >
+                        ←
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPageCarouselIndex(Math.min(pagePreviewConfigs.length - 2, pageCarouselIndex + 1))}
+                        disabled={pageCarouselIndex >= pagePreviewConfigs.length - 2}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#e1bec4] bg-white text-[#7a6268] transition hover:border-[#b10e6b] hover:text-[#b10e6b] disabled:opacity-40 disabled:cursor-not-allowed"
+                        title="Next pages"
+                      >
+                        →
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
           </div>
+        </div>
       )}
     </div>
 
@@ -1933,7 +2066,10 @@ const CreateAlbum: React.FC = () => {
           </div>
           <button
             type="button"
-            onClick={() => setCropMedia(null)}
+            onClick={() => {
+              setCropMedia(null);
+              setCropSlot(null);
+            }}
             className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#e1bec4] text-[#7a6268] transition hover:border-[#b10e6b] hover:text-[#b10e6b]"
             aria-label="Close crop editor"
           >
@@ -1943,33 +2079,60 @@ const CreateAlbum: React.FC = () => {
         <div className="grid gap-4 p-4 md:grid-cols-[minmax(0,1fr)_260px]">
           <div className="overflow-hidden rounded-xl border border-[#ead5dc] bg-[#111]">
             <div
-              className={`relative h-88 overflow-hidden ${isCropPanning ? 'cursor-grabbing' : 'cursor-grab'}`}
+              className={`relative h-88 overflow-hidden flex items-center justify-center ${isCropPanning ? 'cursor-grabbing' : 'cursor-grab'}`}
               onMouseDown={handleCropPointerDown}
               onMouseMove={handleCropPointerMove}
               onMouseUp={stopCropPanning}
               onMouseLeave={stopCropPanning}
             >
-              <img
-                src={cropMedia.dataUrl}
-                alt={cropMedia.fileName}
-                className="h-full w-full object-contain select-none"
-                draggable={false}
-                style={{ transform: `translate(${cropDraft.x}px, ${cropDraft.y}px) scale(${cropDraft.zoom})` }}
-              />
+              {/* Slot frame overlay container */}
+              <div className="absolute inset-0 flex items-center justify-center p-6">
+                {/* Dimmed outer area */}
+                <div className="absolute inset-0 bg-black/40 pointer-events-none" />
+                
+                {/* Bright slot frame area */}
+                <div className="relative w-full h-full max-w-xs max-h-sm rounded-3xl border-4 border-[#b10e6b]/80 overflow-hidden bg-black/10 pointer-events-none shadow-2xl">
+                  {/* Image displayed within slot frame */}
+                  <img
+                    src={cropMedia.dataUrl}
+                    alt={cropMedia.fileName}
+                    className="absolute inset-0 h-full w-full object-cover select-none"
+                    draggable={false}
+                    style={{ transform: `translate(${cropDraft.x}px, ${cropDraft.y}px) scale(${cropDraft.zoom})` }}
+                  />
+                  
+                  {/* Grid overlay on slot frame */}
+                  <div className="pointer-events-none absolute inset-0">
+                    <div className="absolute inset-y-0 left-1/3 w-px bg-white/40" />
+                    <div className="absolute inset-y-0 left-2/3 w-px bg-white/40" />
+                    <div className="absolute inset-x-0 top-1/3 h-px bg-white/40" />
+                    <div className="absolute inset-x-0 top-2/3 h-px bg-white/40" />
+                  </div>
+                  
+                  {/* Corner guides */}
+                  <div className="pointer-events-none absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-[#b10e6b]" />
+                  <div className="pointer-events-none absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-[#b10e6b]" />
+                  <div className="pointer-events-none absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-[#b10e6b]" />
+                  <div className="pointer-events-none absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-[#b10e6b]" />
+                </div>
+              </div>
             </div>
           </div>
           <div className="space-y-4">
             <label className="block text-xs font-semibold text-[#54474d]">
-              Zoom
-              <input
-                type="range"
-                min="1"
-                max="2.5"
-                step="0.01"
-                value={cropDraft.zoom}
-                onChange={(e) => setCropDraft((prev) => ({ ...prev, zoom: Number(e.target.value) }))}
-                className="mt-1 w-full"
-              />
+              Zoom / Resize
+              <div className="mt-1 flex items-center gap-3">
+                <input
+                  type="range"
+                  min="1"
+                  max="2.5"
+                  step="0.01"
+                  value={cropDraft.zoom}
+                  onChange={(e) => setCropDraft((prev) => ({ ...prev, zoom: Number(e.target.value) }))}
+                  className="w-full"
+                />
+                <span className="text-[10px] text-[#7a6268]">{cropDraft.zoom.toFixed(2)}x</span>
+              </div>
             </label>
             <label className="block text-xs font-semibold text-[#54474d]">
               Horizontal (drag image too)
@@ -1995,6 +2158,16 @@ const CreateAlbum: React.FC = () => {
                 className="mt-1 w-full"
               />
             </label>
+            <div className="rounded-2xl border border-[#e1bec4] bg-[#fff8fb] p-3 text-xs text-[#54474d]">
+              <p className="font-semibold text-[#211A1B] mb-2">Slot guidance</p>
+              <p>{cropSlot ? `${cropSlot.pageLabel} · ${cropSlot.slotLabel}` : 'Adjust image to fit the target slot.'}</p>
+              <p className="mt-2">
+                {activeCropSlotSpec
+                  ? `Slot size: ${activeCropSlotSpec.width || 'auto'} × ${activeCropSlotSpec.height || 'auto'}%`
+                  : 'Use the zoom and drag controls to fit the selected slot.'}
+              </p>
+              <p className="mt-2 text-[10px] text-[#7a6268]">Drag the image and use the slider to align the visible area with the slot frame.</p>
+            </div>
             <div className="flex gap-2 pt-2">
               <button
                 type="button"

@@ -238,7 +238,9 @@ export function TemplateBookFlip({
   useEffect(() => {
     const computeSize = () => {
       if (variant === 'inline') {
-        setBookSize({ width: 400, height: 540 });
+        const availableWidth = Math.max(320, window.innerWidth - 360);
+        const availableHeight = Math.max(520, window.innerHeight - 220);
+        setBookSize({ width: Math.min(900, availableWidth), height: Math.min(740, availableHeight) });
         return;
       }
 
@@ -311,10 +313,10 @@ export function TemplateBookFlip({
             ref={bookRef}
             width={bookSize.width}
             height={bookSize.height}
-            minWidth={variant === 'inline' ? 260 : 320}
-            minHeight={variant === 'inline' ? 360 : 520}
-            maxWidth={variant === 'inline' ? 360 : 1300}
-            maxHeight={variant === 'inline' ? 480 : 1200}
+            minWidth={variant === 'inline' ? 320 : 320}
+            minHeight={variant === 'inline' ? 460 : 520}
+            maxWidth={variant === 'inline' ? 900 : 1300}
+            maxHeight={variant === 'inline' ? 760 : 1200}
             showCover
             mobileScrollSupport
             className="mx-auto"

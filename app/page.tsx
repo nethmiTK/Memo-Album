@@ -132,6 +132,7 @@ export default function SplashPage() {
                   src="/images/logobg.png"
                   alt="The Vow of Silence"
                   fill
+                  sizes="(max-width: 768px) 160px, 192px"
                   className="object-contain drop-shadow-sm"
                   priority
                 />
