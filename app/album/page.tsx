@@ -394,17 +394,12 @@ function UniqueHero3D({ albums, videos, categories, heroOpacity, heroScale }: { 
             <div className="pt-4 flex flex-row gap-3 items-center justify-center md:justify-start">
               <button
                 onClick={() => document.getElementById('album-gallery')?.scrollIntoView({ behavior: 'smooth' })}
-                className="px-5 md:px-8 py-2.5 md:py-4 bg-gray-900 text-white rounded-lg md:rounded-xl font-black text-[10px] md:text-xs uppercase tracking-widest shadow-lg hover:bg-[#920857] transition-all flex items-center justify-center gap-1.5"
+                className="px-5 md:px-8 py-2.5 md:py-4 bg-[#94115E] text-black rounded-lg md:rounded-xl font-black text-[10px] md:text-xs uppercase tracking-widest shadow-lg hover:bg-[#920857] transition-all flex items-center justify-center gap-1.5"
               >
                 Albums
                 <span className="group-hover:translate-x-1 transition-transform">→</span>
               </button>
-              <button
-                onClick={() => document.getElementById('video-stories')?.scrollIntoView({ behavior: 'smooth' })}
-                className="px-5 md:px-8 py-2.5 md:py-4 bg-white/50 backdrop-blur-md text-gray-900 border border-gray-200 rounded-lg md:rounded-xl font-black text-[10px] md:text-xs uppercase tracking-widest shadow-md hover:bg-white transition-all flex items-center justify-center"
-              >
-                Videos
-              </button>
+              
             </div>
           </motion.div>
 
@@ -873,7 +868,7 @@ function VideoCard({ video, onClick }: { video: Video; onClick: () => void }) {
               whileHover={{ x: 5 }}
               className="text-[#920857] text-sm font-medium flex items-center gap-1"
             >
-              Watch Video <span>→</span>
+              {/* Watch Video <span>→</span> */}
             </motion.span>
           </div>
         </div>
@@ -1049,7 +1044,21 @@ export default function AlbumPage() {
                   <div>
                     <div className="grid gap-5 md:grid-cols-2">
                       {collectionAlbums.length > 0 ? (
-                        collectionAlbums.slice(0, 8).map((album, idx) => (
+                        collectionAlbums.slice(0, 8).map((album, idx) => {
+                          // Determine cover image with fallback chain
+                          let coverImg = '';
+                          if (album.curateId?.coverPhoto) {
+                            coverImg = getImageUrl(album.curateId.coverPhoto);
+                          } else if (Array.isArray(album.curateId?.mediaItems) && album.curateId.mediaItems.length > 0) {
+                            // Use first media item as fallback
+                            coverImg = getImageUrl(album.curateId.mediaItems[0].dataUrl || album.curateId.mediaItems[0].fileName || '');
+                          } else if (Array.isArray(album.pageLayouts) && album.pageLayouts.length > 0) {
+                            // Use first page layout slot
+                            const firstSlot = album.pageLayouts[0].slotAssignments?.[0];
+                            if (firstSlot?.dataUrl) coverImg = getImageUrl(firstSlot.dataUrl);
+                          }
+                          
+                          return (
                           <motion.div
                             key={album._id}
                             initial={{ opacity: 0, scale: 0.9 }}
@@ -1059,10 +1068,10 @@ export default function AlbumPage() {
                             className="relative overflow-hidden group bg-[#fdf8fa] shadow-[0_24px_44px_rgba(33,26,27,0.12)] transition-all duration-500 rounded-2xl h-[280px] md:h-[320px]"
                           >
                             <img
-                              src={album.curateId?.coverPhoto ? getImageUrl(album.curateId.coverPhoto) : '/images/placeholder-album.jpg'}
+                              src={coverImg || 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800'}
                               alt={album.albumName || album.curateId?.albumName || 'Album book'}
                               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                              onError={(e) => { e.currentTarget.src = '/images/placeholder-album.jpg'; }}
+                              onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800'; }}
                             />
                             <button
                               type="button"
@@ -1086,7 +1095,8 @@ export default function AlbumPage() {
                               </div>
                             </button>
                           </motion.div>
-                        ))
+                          );
+                        })
                       ) : (
                         <div className="col-span-full py-20 text-center text-gray-500 font-serif italic">No published book albums found yet.</div>
                       )}
@@ -1096,7 +1106,7 @@ export default function AlbumPage() {
               </div>
             </motion.section>
 
-            {/* ═══ SECTION 3: Cinematic Stories (Videos) ═══ */}
+            {/* ═══ SECTION 3: Cinematic Stories (Videos) ═══
             <motion.section
               initial="hidden"
               whileInView="visible"
@@ -1137,7 +1147,7 @@ export default function AlbumPage() {
                   </div>
                 </div>
               </div>
-            </motion.section>
+            </motion.section> */}
 
             {/* ═══ SECTION 4: Join The Atelier ═══ */}
             <section className="bg-[#efe5e8] py-12 sm:py-16 md:py-20 lg:py-24">

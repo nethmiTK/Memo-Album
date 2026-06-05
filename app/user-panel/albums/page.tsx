@@ -3,10 +3,8 @@
 import Link from 'next/link';
 import { Image as ImageIcon, ArrowRight } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { useProtectedRoute, logout } from '@/lib/useAuth';
+import { useProtectedRoute } from '@/lib/useAuth';
 import { apiFetch, handleAuthError } from '@/lib/api';
-
-const albumCacheKey = 'memoalbum:user-panel:assigned-albums';
 
 interface Album {
   id: string;
@@ -23,20 +21,6 @@ export default function AlbumsPage() {
 
   useEffect(() => {
     if (!authLoading) {
-      if (typeof window !== 'undefined') {
-        try {
-          const cached = window.localStorage.getItem(albumCacheKey);
-          if (cached) {
-            const parsed = JSON.parse(cached) as { items?: Album[] };
-            if (Array.isArray(parsed.items)) {
-              setAlbums(parsed.items);
-            }
-          }
-        } catch {
-          // Ignore stale cache.
-        }
-      }
-
       const loadAssignedAlbums = async () => {
         try {
           const response = await apiFetch('/client-invites/assigned-albums');
@@ -60,10 +44,6 @@ export default function AlbumsPage() {
           }));
 
           setAlbums(mapped);
-
-          if (typeof window !== 'undefined') {
-            window.localStorage.setItem(albumCacheKey, JSON.stringify({ items: mapped, timestamp: Date.now() }));
-          }
         } catch (error) {
           console.error('Failed to load assigned albums:', error);
           setAlbums([]);
@@ -134,35 +114,12 @@ export default function AlbumsPage() {
       {/* Empty State with Placeholder Grid */}
       {!loading && albums.length === 0 ? (
         <section className="px-4 md:px-8 lg:px-12 pb-16">
-          <div className="max-w-7xl mx-auto">
-            {/* Large Placeholder Card */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              <div
-                className="rounded-lg h-96 md:h-full flex items-center justify-center relative overflow-hidden group cursor-pointer transition-all duration-300 hover:shadow-lg"
-                style={{ backgroundColor: '#FEF0F1' }}
-              >
-                <div className="text-center z-10">
-                  <ImageIcon size={56} className="mx-auto mb-3" style={{ color: '#D23284', opacity: 0.4 }} />
-                  <p className="font-serif text-lg italic" style={{ color: '#9B9095' }}>
-                    First Album Awaits
-                  </p>
-                </div>
-              </div>
-
-              {/* Grid of Placeholder Cards */}
-              <div className="grid grid-cols-2 gap-4">
-                {[1, 2, 3, 4].map((i) => (
-                  <div
-                    key={i}
-                    className="rounded-lg h-24 md:h-32 flex items-center justify-center transition-all duration-300 hover:shadow-md"
-                    style={{ backgroundColor: '#FEF0F1' }}
-                  >
-                    <ImageIcon size={24} style={{ color: '#D23284', opacity: 0.3 }} />
-                  </div>
-                ))}
-              </div>
-            </div>
- 
+              <div className="max-w-4xl mx-auto py-24 text-center">
+            <ImageIcon size={64} className="mx-auto mb-6 text-[#D23284] opacity-50" />
+            <h2 className="text-3xl font-semibold text-[#2C1E26] mb-3">No albums found</h2>
+            <p className="text-base text-[#534345]">
+              Your album list is empty right now. Refresh the page or check back once albums are assigned.
+            </p>
           </div>
         </section>
       ) : (

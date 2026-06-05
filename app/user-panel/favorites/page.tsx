@@ -15,7 +15,7 @@ interface FavoritePhoto {
   albumName: string;
   fileName?: string;
   mediaKind?: string;
-  sourceType?: string;
+  sourceType?: 'gallery' | 'album';
   createdAt?: string;
 }
 
@@ -46,22 +46,44 @@ export default function FavoritesPage() {
 
     const loadFavorites = async () => {
       try {
-        const response = await apiFetch('/favorites');
-        if (response.status === 401) {
-          handleAuthError(response);
+        const [favoritesResponse, galleryResponse] = await Promise.all([
+          apiFetch('/favorites'),
+          apiFetch('/gallery/media'),
+        ]);
+
+        if (favoritesResponse.status === 401 || galleryResponse.status === 401) {
+          handleAuthError(favoritesResponse.status === 401 ? favoritesResponse : galleryResponse);
           return;
         }
 
-        const result = await response.json();
-        if (!response.ok || !result.success || !Array.isArray(result.favorites)) {
-          setFavorites([]);
-          return;
-        }
+        const favoritesResult = await favoritesResponse.json();
+        const galleryResult = await galleryResponse.json();
 
-        setFavorites(result.favorites);
+        const rawFavorites = Array.isArray(favoritesResult.favorites) ? favoritesResult.favorites : [];
+        const galleryFavorites = Array.isArray(galleryResult.data)
+          ? galleryResult.data
+              .filter((item: any) => item.isFavorite)
+              .map((item: any) => ({
+                id: String(item._id),
+                url: item.url,
+                albumName: item.albumName || 'Gallery',
+                fileName: item.title,
+                mediaKind: item.mediaType,
+                sourceType: 'gallery' as const,
+                createdAt: item.createdAt || item.uploadedAt,
+              }))
+          : [];
+
+        const mergedFavorites = [...rawFavorites, ...galleryFavorites].reduce<FavoritePhoto[]>((acc, favorite) => {
+          if (!favorite?.id) return acc;
+          if (acc.some((item) => item.id === favorite.id)) return acc;
+          return [...acc, favorite];
+        }, []);
+
+        setFavorites(mergedFavorites);
 
         if (typeof window !== 'undefined') {
-          window.localStorage.setItem(favoritesCacheKey, JSON.stringify({ items: result.favorites, timestamp: Date.now() }));
+          window.localStorage.setItem(favoritesCacheKey, JSON.stringify({ items: mergedFavorites, timestamp: Date.now() }));
         }
       } catch (error) {
         console.error('Failed to load favorites:', error);
@@ -77,15 +99,29 @@ export default function FavoritesPage() {
   const removeFavorite = async (id: string) => {
     try {
       setRemovingId(id);
-      const response = await apiFetch(`/favorites/${id}`, { method: 'DELETE' });
+      const sourceItem = favorites.find((photo) => photo.id === id);
+      let response;
+
+      if (sourceItem?.sourceType === 'gallery') {
+        response = await apiFetch(`/gallery/media/${id}/favorite`, { method: 'PATCH' });
+      } else {
+        response = await apiFetch(`/favorites/${id}`, { method: 'DELETE' });
+      }
+
       if (response.status === 401) {
         handleAuthError(response);
         return;
       }
 
-      const result = await response.json();
-      if (!response.ok || !result.success) {
-        throw new Error(result.message || 'Unable to remove favorite');
+      if (sourceItem?.sourceType === 'gallery') {
+        if (!response.ok) {
+          throw new Error('Unable to remove gallery favorite');
+        }
+      } else {
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+          throw new Error(result.message || 'Unable to remove favorite');
+        }
       }
 
       setFavorites((current) => current.filter((photo) => photo.id !== id));
@@ -135,9 +171,19 @@ export default function FavoritesPage() {
                     type="button"
                     onClick={() => setSelectedPhoto(photo)}
                     className="relative block aspect-4/5 w-full overflow-hidden bg-[#FEF0F1] text-left"
-                    aria-label="Open favorite image"
+                    aria-label="Open favorite item"
                   >
-                    <img src={photo.url} alt="Favorite image" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                    {photo.mediaKind?.includes('video') ? (
+                      <video
+                        src={photo.url}
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        muted
+                        loop
+                        playsInline
+                      />
+                    ) : (
+                      <img src={photo.url} alt="Favorite item" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                    )}
 
                     <div className="absolute inset-0 bg-linear-to-t from-black/55 via-black/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
@@ -208,15 +254,27 @@ export default function FavoritesPage() {
 
               <div className="grid gap-0 lg:grid-cols-[1.5fr_0.9fr]">
                 <div className="flex items-center justify-center bg-black">
-                  <motion.img
-                    key={selectedPhoto.id}
-                    initial={{ scale: 0.98, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ duration: 0.3 }}
-                    src={selectedPhoto.url}
-                    alt="Favorite image"
-                    className="max-h-[82vh] w-full object-contain"
-                  />
+                  {selectedPhoto.mediaKind?.includes('video') ? (
+                    <motion.video
+                      key={selectedPhoto.id}
+                      initial={{ scale: 0.98, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ duration: 0.3 }}
+                      src={selectedPhoto.url}
+                      controls
+                      className="max-h-[82vh] w-full object-contain"
+                    />
+                  ) : (
+                    <motion.img
+                      key={selectedPhoto.id}
+                      initial={{ scale: 0.98, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ duration: 0.3 }}
+                      src={selectedPhoto.url}
+                      alt="Favorite image"
+                      className="max-h-[82vh] w-full object-contain"
+                    />
+                  )}
                 </div>
                 <div className="hidden lg:block bg-black" />
               </div>

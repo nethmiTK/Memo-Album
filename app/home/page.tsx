@@ -21,40 +21,7 @@ const plusJakarta = Plus_Jakarta_Sans({
   variable: '--font-plus-jakarta',
 });
 
-const DEFAULT_FEATURED = [
-  {
-    name: 'Julianne V',
-    role: 'Editorial Fine Arts',
-    image:
-      'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=900&q=80',
-    social: {
-      instagram: 'https://instagram.com',
-      facebook: 'https://facebook.com',
-      youtube: 'https://youtube.com',
-      website: 'https://example.com',
-    },
-  },
-  {
-    name: 'Ava Claire',
-    role: 'Portrait Narratives',
-    image:
-      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=900&q=80',
-    social: {
-      instagram: 'https://instagram.com',
-      website: 'https://example.com',
-    },
-  },
-  {
-    name: 'Elina K',
-    role: 'Cinematic Elopements',
-    image:
-      'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=900&q=80',
-    social: {
-      instagram: 'https://instagram.com',
-      youtube: 'https://youtube.com',
-    },
-  },
-];
+const DEFAULT_FEATURED: any[] = [];
 
 const collaborationSteps = [
   {
@@ -74,38 +41,7 @@ const collaborationSteps = [
   },
 ];
 
-const journalEntries = [
-  {
-    title: 'Moonlight JF',
-    image:
-      'https://images.unsplash.com/photo-1473116763249-2faaef81ccda?auto=format&fit=crop&w=900&q=80',
-  },
-  {
-    title: 'Silent Pathways',
-    image:
-      'https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=900&q=80',
-  },
-  {
-    title: 'Woodland Veins',
-    image:
-      'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&q=80',
-  },
-  {
-    title: 'The Last Study',
-    image:
-      'https://images.unsplash.com/photo-1469571486292-b53601020fcb?auto=format&fit=crop&w=900&q=80',
-  },
-  {
-    title: 'Born Anew',
-    image:
-      'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?auto=format&fit=crop&w=900&q=80',
-  },
-  {
-    title: 'Velvet Archive',
-    image:
-      'https://images.unsplash.com/photo-1455885666463-9e00e42f95c3?auto=format&fit=crop&w=900&q=80',
-  },
-];
+const journalEntries: any[] = [];
 
 export default function HomePage() {
   const [featuredPhotographers, setFeaturedPhotographers] = useState(DEFAULT_FEATURED);
@@ -118,11 +54,27 @@ export default function HomePage() {
 
     const loadFeatured = async () => {
       try {
-        const res = await fetch(`${API_URL}/photographer/public-users`, { cache: 'no-store' });
+        const res = await fetch(`${API_URL}/photographer/public-users?t=${Date.now()}`, {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+          },
+        });
         const data = await res.json();
-        if (!res.ok || !data || !Array.isArray(data.users)) return;
+        
+        console.log('Home page Featured Photographers Response:', data);
+        
+        // Handle both data.users and data.data
+        const users = data?.users || data?.data || [];
+        
+        if (!res.ok || !Array.isArray(users) || users.length === 0) {
+          console.warn('No featured photographers available');
+          return;
+        }
 
-        const mapped = data.users
+        const mapped = users
           .map((u: any) => ({
             name: u.name || 'Photographer',
             role: u.role || u.roleName || (u.roleId?.roleName || 'photographer'),
@@ -141,7 +93,7 @@ export default function HomePage() {
 
         // active photographer count
         try {
-          const activeCount = Array.isArray(data.users) ? data.users.filter((u: any) => u.isActive || u.status === 'active').length : 0;
+          const activeCount = Array.isArray(users) ? users.filter((u: any) => u.isActive || u.status === 'active').length : 0;
           if (mounted) setActivePhotographerCount(activeCount);
         } catch (e) {
           // ignore
@@ -342,130 +294,134 @@ export default function HomePage() {
         </motion.div>
       </section>
 
-      <section className="bg-[#ecd4db] py-12 sm:py-16 md:py-24">
-        <div className="mx-auto max-w-6xl px-4 sm:px-5 md:px-10">
-          <div className="mb-8 sm:mb-10 md:mb-12">
-            <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.2em] sm:tracking-[0.24em] text-[#8c0053]">
-              Featured Photographers
-            </p>
-            <h2
-              className="mt-2 sm:mt-3 text-2xl sm:text-3xl md:text-4xl lg:text-5xl text-[#25181d] leading-tight"
-              style={{ fontFamily: 'var(--font-newsreader)' }}
-            >
-              Curated Visionaries
-            </h2>
-            <p className="mt-3 sm:mt-4 max-w-lg text-xs sm:text-sm text-[#534345]">
-              Discover artists whose work balances editorial elegance with candid
-              storytelling, crafted for modern wedding memory books.
-            </p>
-          </div>
-
-          {/* Asymmetric Editorial Grid */}
-          <div className="grid gap-4 sm:gap-6 md:gap-8 md:grid-cols-12 auto-rows-max mt-8 sm:mt-10 md:mt-12">
-            {/* Featured Large Card (Left) */}
-            <motion.article
-              key={featuredPhotographers[0].name}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.2 }}
-              transition={{ delay: 0, duration: 0.45 }}
-              className="col-span-1 md:col-span-5 md:row-span-2 group rounded-xl sm:rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-2xl"
-            >
-              <div className="relative h-64 sm:h-80 md:h-full overflow-hidden bg-[#ebe0e1]">
-                <img
-                  src={featuredPhotographers[0].image}
-                  alt={featuredPhotographers[0].name}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-black/10 backdrop-blur-0 group-hover:backdrop-blur-[2px] transition-all duration-300" />
-                <div className="absolute inset-0 bg-linear-to-t from-black/55 via-black/20 to-transparent flex flex-col justify-end p-4 sm:p-6">
-                  <h3
-                    className="text-lg sm:text-2xl md:text-3xl text-white leading-tight"
-                    style={{ fontFamily: 'var(--font-newsreader)' }}
-                  >
-                    {featuredPhotographers[0].name}
-                  </h3>
-                  <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-white/80 uppercase tracking-[0.14em] sm:tracking-[0.18em] font-semibold">
-                    {featuredPhotographers[0].role}
-                  </p>
-                  <div className="mt-4 flex flex-wrap gap-2 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                    {socialLinks(featuredPhotographers[0].social).map((item) => (
-                      <a
-                        key={item.key}
-                        href={item.href}
-                        target="_blank"
-                        rel="noreferrer"
-                        aria-label={item.label}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-md transition hover:bg-white hover:text-[#C92D7D]"
-                      >
-                        {item.icon}
-                      </a>
-                    ))}
-                  </div>
-                </div>
+        {featuredPhotographers.length > 0 &&
+          <section className="bg-[#fff8f7] py-12 sm:py-16 md:py-24">
+            <div className="mx-auto max-w-6xl px-4 sm:px-5 md:px-10">
+              <div className="mb-8 sm:mb-10 md:mb-12">
+                <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.2em] sm:tracking-[0.24em] text-[#8c0053]">
+                  Featured Photographers
+                </p>
+                <h2
+                  className="mt-2 sm:mt-3 text-2xl sm:text-3xl md:text-4xl lg:text-5xl text-[#25181d] leading-tight"
+                  style={{ fontFamily: 'var(--font-newsreader)' }}
+                >
+                  Curated Visionaries
+                </h2>
+                <p className="mt-3 sm:mt-4 max-w-lg text-xs sm:text-sm text-[#534345]">
+                  Discover artists whose work balances editorial elegance with candid
+                  storytelling, crafted for modern wedding memory books.
+                </p>
               </div>
-            </motion.article>
 
-            {/* Right Side Cards */}
-            {featuredPhotographers.slice(1).map((item, index) => (
+              {/* Asymmetric Editorial Grid */}
+              <div className="grid gap-4 sm:gap-5 md:gap-6 md:grid-cols-12 auto-rows-max">
+            <div className="grid gap-4 sm:gap-6 md:gap-8 md:grid-cols-12 auto-rows-max mt-8 sm:mt-10 md:mt-12">
+              {/* Featured Large Card (Left) */}
               <motion.article
-                key={item.name}
+                key={featuredPhotographers[0].name}
                 initial={{ opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.2 }}
-                transition={{ delay: (index + 1) * 0.1, duration: 0.45 }}
-                className={`group rounded-xl sm:rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-lg ${
-                  index === 0 ? 'col-span-1 md:col-span-7' : 'col-span-1 md:col-span-3'
-                } ${index === 0 ? 'h-48 sm:h-56 md:h-64' : 'h-40 sm:h-48 md:h-56'}`}
+                transition={{ delay: 0, duration: 0.45 }}
+                className="col-span-1 md:col-span-5 md:row-span-2 group rounded-xl sm:rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-2xl"
               >
-                <div className="relative w-full h-full bg-[#ebe0e1] overflow-hidden">
+                <div className="relative h-64 sm:h-80 md:h-full overflow-hidden bg-[#ebe0e1]">
                   <img
-                    src={item.image}
-                    alt={item.name}
+                    src={featuredPhotographers[0].image}
+                    alt={featuredPhotographers[0].name}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                   <div className="absolute inset-0 bg-black/10 backdrop-blur-0 group-hover:backdrop-blur-[2px] transition-all duration-300" />
-                  <div className="absolute inset-0 bg-linear-to-t from-black/60 via-black/25 to-transparent flex flex-col justify-end p-3 sm:p-4 md:p-5">
+                  <div className="absolute inset-0 bg-linear-to-t from-black/55 via-black/20 to-transparent flex flex-col justify-end p-4 sm:p-6">
                     <h3
-                      className="text-base sm:text-lg md:text-2xl text-white leading-tight"
+                      className="text-lg sm:text-2xl md:text-3xl text-white leading-tight"
                       style={{ fontFamily: 'var(--font-newsreader)' }}
                     >
-                      {item.name}
+                      {featuredPhotographers[0].name}
                     </h3>
-                    <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-xs text-white/80 uppercase tracking-[0.12em] sm:tracking-[0.16em] font-semibold">
-                      {item.role}
+                    <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-white/80 uppercase tracking-[0.14em] sm:tracking-[0.18em] font-semibold">
+                      {featuredPhotographers[0].role}
                     </p>
-                    <div className="mt-3 flex flex-wrap gap-2 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                      {socialLinks(item.social).map((social) => (
+                    <div className="mt-4 flex flex-wrap gap-2 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                      {socialLinks(featuredPhotographers[0].social).map((item) => (
                         <a
-                          key={social.key}
-                          href={social.href}
+                          key={item.key}
+                          href={item.href}
                           target="_blank"
                           rel="noreferrer"
-                          aria-label={social.label}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-md transition hover:bg-white hover:text-[#C92D7D]"
+                          aria-label={item.label}
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-md transition hover:bg-white hover:text-[#C92D7D]"
                         >
-                          {social.icon}
+                          {item.icon}
                         </a>
                       ))}
                     </div>
                   </div>
                 </div>
               </motion.article>
-            ))}
-          </div>
 
-          {/* See more button */}
-          <div className="mt-6 flex justify-center">
-            <Link
-              href="/photographer"
-              className="rounded-xl bg-[#C92D7D] px-6 py-2.5 text-xs font-semibold text-white hover:bg-[#b52670]"
-            >
-              See more
-            </Link>
+              {/* Right Side Cards */}
+              {featuredPhotographers.slice(1).map((item, index) => (
+                <motion.article
+                  key={item.name}
+                  initial={{ opacity: 0, y: 24 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.2 }}
+                  transition={{ delay: (index + 1) * 0.1, duration: 0.45 }}
+                  className={`group rounded-xl sm:rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-lg ${
+                    index === 0 ? 'col-span-1 md:col-span-7' : 'col-span-1 md:col-span-3'
+                  } ${index === 0 ? 'h-48 sm:h-56 md:h-64' : 'h-40 sm:h-48 md:h-56'}`}
+                >
+                  <div className="relative w-full h-full bg-[#ebe0e1] overflow-hidden">
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-black/10 backdrop-blur-0 group-hover:backdrop-blur-[2px] transition-all duration-300" />
+                    <div className="absolute inset-0 bg-linear-to-t from-black/60 via-black/25 to-transparent flex flex-col justify-end p-3 sm:p-4 md:p-5">
+                      <h3
+                        className="text-base sm:text-lg md:text-2xl text-white leading-tight"
+                        style={{ fontFamily: 'var(--font-newsreader)' }}
+                      >
+                        {item.name}
+                      </h3>
+                      <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-xs text-white/80 uppercase tracking-[0.12em] sm:tracking-[0.16em] font-semibold">
+                        {item.role}
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-2 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                        {socialLinks(item.social).map((social) => (
+                          <a
+                            key={social.key}
+                            href={social.href}
+                            target="_blank"
+                            rel="noreferrer"
+                            aria-label={social.label}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-md transition hover:bg-white hover:text-[#C92D7D]"
+                          >
+                            {social.icon}
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </motion.article>
+              ))}
+            </div>
+
+            {/* See more button */}
+            <div className="mt-6 flex justify-center">
+              <Link
+                href="/photographer"
+                className="rounded-xl bg-[#C92D7D] px-6 py-2.5 text-xs font-semibold text-white hover:bg-[#b52670]"
+              >
+                See more
+              </Link>
+            </div>
           </div>
-        </div>
-      </section>
+          </div>
+          </section>
+        }
 
       <section className="bg-[#fff8f8] py-12 sm:py-16 md:py-24">
         <div className="mx-auto grid max-w-6xl items-center gap-6 sm:gap-8 md:gap-10 px-4 sm:px-5 md:px-10 lg:grid-cols-[0.9fr_1fr]">
@@ -650,7 +606,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="bg-[#fff8f7] py-12 sm:py-18 md:py-24">
+      {journalCards.length > 0 && (
+        <section className="bg-[#fff8f7] py-12 sm:py-18 md:py-24">
         <div className="mx-auto max-w-6xl px-4 sm:px-5 md:px-10">
           <div className="mb-8 sm:mb-10 md:mb-12">
             <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.2em] sm:tracking-[0.24em] text-[#8c0053]">
@@ -772,7 +729,8 @@ export default function HomePage() {
             </Link>
           </div>
         </div>
-      </section>
+        </section>
+      )}
 
       <Footer />
 

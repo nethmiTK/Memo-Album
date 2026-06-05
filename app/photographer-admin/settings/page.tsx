@@ -48,6 +48,49 @@ export default function SettingsPage() {
     }
 
     const mergedUser = { ...parsedUser, ...parsedUserData };
+
+    // prefer photographer-specific token, fall back to general tokens
+    const token =
+      localStorage.getItem('photographerToken') ||
+      localStorage.getItem('token') ||
+      localStorage.getItem('authToken') ||
+      localStorage.getItem('adminToken');
+
+    // If there's no auth token, clear any stale user data and redirect to login
+    if (!token) {
+      try {
+        localStorage.removeItem('user');
+        localStorage.removeItem('userData');
+        localStorage.removeItem('photographerUser');
+        localStorage.removeItem('photographerToken');
+      } catch (e) {
+        /* ignore */
+      }
+      setUser(null);
+      setProfilePreview('');
+      setFormData({
+        username: '',
+        email: '',
+        businessName: '',
+        whatsappNo: '',
+        contactNo: '',
+        address: '',
+        bio: '',
+      });
+      setLoading(false);
+      // redirect to login after a short tick to allow UI update
+      setTimeout(() => {
+        try {
+          const { push } = require('next/navigation');
+          // best-effort: use window fallback
+          if (typeof window !== 'undefined') window.location.href = '/login';
+        } catch (err) {
+          if (typeof window !== 'undefined') window.location.href = '/login';
+        }
+      }, 50);
+      return;
+    }
+
     setUser(mergedUser);
     setProfilePreview(mergedUser.profileImage || mergedUser.profilePic || '');
     const mergedFormData = {

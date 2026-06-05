@@ -1,139 +1,97 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Image, Heart, Settings, HelpCircle, Home } from 'lucide-react';
-import SecureOnboarding from '@/app/Components/user-panel/Secure';
+import { ArrowRight, Heart, Image as ImageIcon } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useProtectedRoute } from '@/lib/useAuth';
+import { apiFetch, handleAuthError } from '@/lib/api';
+import LoadingComponent from '@/app/Components/user-panel/loading';
 
+ 
 export default function UserPanelPage() {
   const { user, loading: authLoading } = useProtectedRoute(['client', 'couple']);
-  const [showOnboarding, setShowOnboarding] = useState(true);
+  const [albumsPreview, setAlbumsPreview] = useState<any[]>([]);
+  const [albumsLoading, setAlbumsLoading] = useState(true);
 
   useEffect(() => {
-    if (!authLoading && user) {
-      // Load onboarding preference
-      const hasSeenOnboarding = localStorage.getItem('hasSeenOnboarding');
-      if (hasSeenOnboarding === 'true') {
-        setShowOnboarding(false);
+    if (authLoading) return;
+    const load = async () => {
+      try {
+        const res = await apiFetch('/client-invites/assigned-albums');
+        if (res.status === 401) return handleAuthError(res);
+        const json = await res.json();
+        if (!res.ok || !json.success || !Array.isArray(json.albums)) {
+          setAlbumsPreview([]);
+        } else {
+          setAlbumsPreview(
+            json.albums.slice(0, 4).map((a: any) => ({
+              id: a.id,
+              name: a.name || 'Album',
+              coverImage: a.coverImage || '',
+              photoCount: Number(a.photoCount || 0),
+            }))
+          );
+        }
+      } catch (e) {
+        console.error('Failed to load preview albums', e);
+        setAlbumsPreview([]);
+      } finally {
+        setAlbumsLoading(false);
       }
-    }
-  }, [authLoading, user]);
+    };
+    load();
+  }, [authLoading]);
 
-  if (authLoading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <p className="text-gray-600">Loading...</p>
-      </div>
-    );
+  if (authLoading || albumsLoading) {
+    return <LoadingComponent />;
   }
-
-  if (showOnboarding) {
-    return <SecureOnboarding onClose={() => {
-      setShowOnboarding(false);
-      localStorage.setItem('hasSeenOnboarding', 'true');
-    }} />;
-  }
-
-  const menuItems = [
-    {
-      title: 'My Albums',
-      description: 'View and manage your wedding albums',
-      icon: <Image size={32} />,
-      href: '/user-panel/albums',
-      color: '#D23284',
-    },
-    {
-      title: 'Favorites',
-      description: 'Access your favorite photos',
-      icon: <Heart size={32} />,
-      href: '/user-panel/favorites',
-      color: '#E91E63',
-    },
-    {
-      title: 'Settings',
-      description: 'Manage your account settings',
-      icon: <Settings size={32} />,
-      href: '/user-panel/settings',
-      color: '#9B7D8A',
-    },
-    {
-      title: 'Support',
-      description: 'Get help and support',
-      icon: <HelpCircle size={32} />,
-      href: '/user-panel/support',
-      color: '#B8A7AF',
-    },
-  ];
 
   return (
-    <div className="px-4 md:px-8 lg:px-12 py-8">
-      {/* Welcome Section */}
-      <div className="mb-12">
-        <h1 className="text-4xl md:text-5xl font-serif font-bold mb-2" style={{ color: '#2C1E26' }}>
-          Welcome Back
-        </h1>
-        <p className="text-lg text-gray-600" style={{ color: '#6B7387' }}>
-          Explore your memories and manage your wedding album
-        </p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-b from-[#FFF3F6] to-[#FFF8F7] px-4 py-12 sm:px-6 lg:px-10">
+      <div className="mx-auto max-w-6xl space-y-0">
+        <section className="rounded-[2rem] bg-gradient-to-br from-[#fff8fb] to-[#fff1f4] p-8 shadow-[0_24px_60px_rgba(200,43,125,0.06)] md:p-12">
+          <p className="text-xs font-semibold uppercase tracking-[0.4em] text-[#D23284]">User Dashboard</p>
+          <h1 className="text-xs font-semibold uppercase tracking-[0.4em] text-[#211A1B] md:text-5xl">   wedding memories.</h1>
+          <p className="mt-4 max-w-2xl text-sm leading-7 text-[#534345]">
+            Manage albums, review your favorite media, and keep your gallery organized in one place.
+          </p>
+        </section>
 
-      {/* Menu Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {menuItems.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className="group relative p-8 rounded-2xl transition-all duration-300 hover:shadow-xl overflow-hidden"
-            style={{ backgroundColor: '#FFFFFF', border: '1px solid #E5CCD4' }}
-          >
-            {/* Hover Background */}
-            <div
-              className="absolute inset-0 opacity-0 group-hover:opacity-5 transition-opacity duration-300"
-              style={{ backgroundColor: item.color }}
-            ></div>
+        {/* Albums preview section */}
+        <section className="grid gap-6 md:grid-cols-3">
+          <div className="md:col-span-3">
+            <div className="flex items-center justify-between mb-4">
+               
+             </div>
 
-            <div className="relative z-10">
-              {/* Icon */}
-              <div className="mb-4 inline-block p-3 rounded-lg transition-colors duration-300" style={{ backgroundColor: '#FEF0F1' }}>
-                <div style={{ color: item.color }}>{item.icon}</div>
-              </div>
-
-              {/* Title & Description */}
-              <h3 className="text-2xl font-semibold mb-2 transition-colors duration-300" style={{ color: '#2C1E26' }}>
-                {item.title}
-              </h3>
-              <p className="text-gray-600" style={{ color: '#6B7387' }}>
-                {item.description}
-              </p>
+            <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {albumsLoading ? (
+                <div className="col-span-1 sm:col-span-2 lg:col-span-4 text-center py-6">Loading albums...</div>
+              ) : albumsPreview.length === 0 ? (
+                <div className="col-span-1 sm:col-span-2 lg:col-span-4 text-center py-6 text-sm text-[#6B7387]">No albums assigned yet</div>
+              ) : (
+                albumsPreview.map((a) => (
+                  <Link key={a.id} href={`/user-panel/albums/${a.id}/book?source=session`} className="group rounded-lg overflow-hidden p-3 bg-gradient-to-br from-[#fff6f8] to-[#fff1f3] shadow-sm">
+                    {a.coverImage ? (
+                      <img src={a.coverImage} alt={a.name} className="w-full h-28 object-cover rounded-md" />
+                    ) : (
+                      <div className="w-full h-28 bg-[#FEF0F1] rounded-md flex items-center justify-center text-[#D23284]">
+                        <ImageIcon size={28} />
+                      </div>
+                    )}
+                    <div className="mt-2">
+                      <div className="font-medium text-sm text-[#2C1E26] truncate">{a.name}</div>
+                      <div className="text-xs text-[#6B7387]">{a.photoCount} photos</div>
+                    </div>
+                  </Link>
+                ))
+              )}
             </div>
-
-            {/* Arrow */}
-            <div className="absolute bottom-6 right-6 text-gray-400 transform group-hover:translate-x-1 transition-transform duration-300">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-                <polyline points="12 5 19 12 12 19"></polyline>
-              </svg>
-            </div>
-          </Link>
-        ))}
-      </div>
-
-      {/* Quick Stats Section */}
-      <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="p-6 rounded-xl" style={{ backgroundColor: '#FFFFFF', border: '1px solid #E5CCD4' }}>
-          <p className="text-sm text-gray-600 mb-2" style={{ color: '#6B7387' }}>Total Albums</p>
-          <p className="text-3xl font-bold" style={{ color: '#D23284' }}>0</p>
-        </div>
-        <div className="p-6 rounded-xl" style={{ backgroundColor: '#FFFFFF', border: '1px solid #E5CCD4' }}>
-          <p className="text-sm text-gray-600 mb-2" style={{ color: '#6B7387' }}>Total Photos</p>
-          <p className="text-3xl font-bold" style={{ color: '#D23284' }}>0</p>
-        </div>
-        <div className="p-6 rounded-xl" style={{ backgroundColor: '#FFFFFF', border: '1px solid #E5CCD4' }}>
-          <p className="text-sm text-gray-600 mb-2" style={{ color: '#6B7387' }}>Favorites</p>
-          <p className="text-3xl font-bold" style={{ color: '#D23284' }}>0</p>
-        </div>
+          </div>
+        </section>
+ 
       </div>
     </div>
   );
 }
+ 

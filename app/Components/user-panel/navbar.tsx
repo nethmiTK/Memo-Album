@@ -118,12 +118,12 @@ export default function UserNavbar({ onMenuClick }: UserNavbarProps) {
         {/* Right Side - Actions */}
         <div className="flex items-center gap-3 md:gap-4 justify-end shrink-0">
           {/* Notifications */}
-          <button
+          {/* <button
             className="h-10 w-10 flex items-center justify-center rounded-full transition-all hover:bg-gray-100"
             title="Notifications"
           >
             <Bell size={20} style={{ color: '#6B7387' }} />
-          </button>
+          </button> */}
 
           {/* Profile Menu */}
           <div className="relative">
@@ -157,14 +157,14 @@ export default function UserNavbar({ onMenuClick }: UserNavbarProps) {
                 className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg py-1 z-50"
                 style={{ backgroundColor: '#FFFFFF', border: '1px solid #E5CCD4' }}
               >
-                <Link
+                {/* <Link
                   href="/user-panel/profile"
                   className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                   onClick={() => setShowProfileMenu(false)}
                 >
                   <UserIcon size={16} />
                   Profile
-                </Link>
+                </Link> */}
                 <Link
                   href="/home"
                   className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"

@@ -37,224 +37,55 @@ const plusJakarta = Plus_Jakarta_Sans({
 });
 
 export default function PhotographerPage() {
-  const [visibleCount, setVisibleCount] = useState(25);
+  const [visibleCount, setVisibleCount] = useState(0);
   const [photographersData, setPhotographersData] = useState<PhotographerCard[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
 
   // 25 Photographers Array
-  const photographers = [
-    {
-      name: "Sarah Mitchell",
-      phone: "+1 (555) 123-4567",
-      email: "sarah@memoalbum.com",
-      desc: "Editorial wedding specialist with a focus on timeless moments and golden-hour magic.",
-      image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80",
-      social: { instagram: "https://instagram.com", facebook: "https://facebook.com", tiktok: "https://tiktok.com", youtube: "https://youtube.com", website: "https://example.com" }
-    },
-    {
-      name: "Jessica Chen",
-      phone: "+1 (555) 234-5678",
-      email: "jessica@memoalbum.com",
-      desc: "Contemporary cinematography meets fine art photography with cinematic storytelling.",
-      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80",
-      social: { instagram: "https://instagram.com", facebook: "https://facebook.com", tiktok: "https://tiktok.com", youtube: "https://youtube.com", website: "https://example.com" }
-    },
-    {
-      name: "Amanda Rodriguez",
-      phone: "+1 (555) 345-6789",
-      email: "amanda@memoalbum.com",
-      desc: "Luxury brand photography with an artistic vision and attention to detail.",
-      image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=400&q=80",
-      social: { instagram: "https://instagram.com", facebook: "https://facebook.com", tiktok: "https://tiktok.com", youtube: "https://youtube.com", website: "https://example.com" }
-    },
-    {
-      name: "Emily Watson",
-      phone: "+1 (555) 456-7890",
-      email: "emily@memoalbum.com",
-      desc: "Storyteller first, photographer second. Capturing real emotions and candid moments.",
-      image: "https://images.unsplash.com/photo-1516534775068-bb6c4e8b9f73?auto=format&fit=crop&w=400&q=80",
-      social: { instagram: "https://instagram.com", facebook: "https://facebook.com", tiktok: "https://tiktok.com", youtube: "https://youtube.com", website: "https://example.com" }
-    },
-    {
-      name: "Michelle Park",
-      phone: "+1 (555) 567-8901",
-      email: "michelle@memoalbum.com",
-      desc: "Golden hour specialist with eye for detail and professional composition skills.",
-      image: "https://images.unsplash.com/photo-1502933691298-84fc14542831?auto=format&fit=crop&w=400&q=80",
-      social: { instagram: "https://instagram.com", facebook: "https://facebook.com", tiktok: "https://tiktok.com", youtube: "https://youtube.com", website: "https://example.com" }
-    },
-    {
-      name: "Victoria Hayes",
-      phone: "+1 (555) 678-9012",
-      email: "victoria@memoalbum.com",
-      desc: "Minimalist approach with maximalist emotional impact in every frame.",
-      image: "https://images.unsplash.com/photo-1488426862026-56bde64955e0?auto=format&fit=crop&w=400&q=80",
-      social: { instagram: "https://instagram.com", facebook: "https://facebook.com", tiktok: "https://tiktok.com", youtube: "https://youtube.com", website: "https://example.com" }
-    },
-    {
-      name: "Lauren Davies",
-      phone: "+1 (555) 789-0123",
-      email: "lauren@memoalbum.com",
-      desc: "Fine art photographer specializing in romantic and editorial wedding narratives.",
-      image: "https://images.unsplash.com/photo-1533195671163-e31e5c1f3c0f?auto=format&fit=crop&w=400&q=80",
-      social: { instagram: "https://instagram.com", facebook: "https://facebook.com", tiktok: "https://tiktok.com", youtube: "https://youtube.com", website: "https://example.com" }
-    },
-    {
-      name: "Sophia Martinez",
-      phone: "+1 (555) 890-1234",
-      email: "sophia@memoalbum.com",
-      desc: "Capturing authentic connections with a documentary-style artistic flair.",
-      image: "https://images.unsplash.com/photo-1520854721936-1aa58fa8e434?auto=format&fit=crop&w=400&q=80",
-      social: { instagram: "https://instagram.com", facebook: "https://facebook.com", tiktok: "https://tiktok.com", youtube: "https://youtube.com", website: "https://example.com" }
-    },
-    {
-      name: "Rachel Thompson",
-      phone: "+1 (555) 901-2345",
-      email: "rachel@memoalbum.com",
-      desc: "Natural light photographer with passion for intimate wedding moments.",
-      image: "https://images.unsplash.com/photo-1524634126442-357e0eac6b14?auto=format&fit=crop&w=400&q=80",
-      social: { instagram: "https://instagram.com", facebook: "https://facebook.com", tiktok: "https://tiktok.com", youtube: "https://youtube.com", website: "https://example.com" }
-    },
-    {
-      name: "Olivia Bennett",
-      phone: "+1 (555) 012-3456",
-      email: "olivia@memoalbum.com",
-      desc: "Luxury lifestyle photographer bringing elegance to every celebration.",
-      image: "https://images.unsplash.com/photo-1517841905240-74dec2e4eb42?auto=format&fit=crop&w=400&q=80",
-      social: { instagram: "https://instagram.com", facebook: "https://facebook.com", tiktok: "https://tiktok.com", youtube: "https://youtube.com", website: "https://example.com" }
-    },
-    {
-      name: "Grace Kim",
-      phone: "+1 (555) 123-0987",
-      email: "grace@memoalbum.com",
-      desc: "Artistic storyteller specializing in cinematic wedding films and photography.",
-      image: "https://images.unsplash.com/photo-1529900748604-07564826fba7?auto=format&fit=crop&w=400&q=80",
-      social: { instagram: "https://instagram.com", facebook: "https://facebook.com", tiktok: "https://tiktok.com", youtube: "https://youtube.com", website: "https://example.com" }
-    },
-    {
-      name: "Nina Patel",
-      phone: "+1 (555) 234-0987",
-      email: "nina@memoalbum.com",
-      desc: "Vibrant colors and dynamic compositions in every wedding moment captured.",
-      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80",
-      social: { instagram: "https://instagram.com", facebook: "https://facebook.com", tiktok: "https://tiktok.com", youtube: "https://youtube.com", website: "https://example.com" }
-    },
-    {
-      name: "Claire Anderson",
-      phone: "+1 (555) 345-0987",
-      email: "claire@memoalbum.com",
-      desc: "Classic elegance with modern editorial touches in every wedding portfolio.",
-      image: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=400&q=80",
-      social: { instagram: "https://instagram.com", facebook: "https://facebook.com", tiktok: "https://tiktok.com", youtube: "https://youtube.com", website: "https://example.com" }
-    },
-    {
-      name: "Maya Gupta",
-      phone: "+1 (555) 456-0987",
-      email: "maya@memoalbum.com",
-      desc: "Fusion of traditional and contemporary styles in wedding photography.",
-      image: "https://images.unsplash.com/photo-1520854721936-1aa58fa8e434?auto=format&fit=crop&w=400&q=80",
-      social: { instagram: "https://instagram.com", facebook: "https://facebook.com", tiktok: "https://tiktok.com", youtube: "https://youtube.com", website: "https://example.com" }
-    },
-    {
-      name: "Isabelle Leclerc",
-      phone: "+1 (555) 567-0987",
-      email: "isabelle@memoalbum.com",
-      desc: "European editorial photography style with artistic depth and sophistication.",
-      image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80",
-      social: { instagram: "https://instagram.com", facebook: "https://facebook.com", tiktok: "https://tiktok.com", youtube: "https://youtube.com", website: "https://example.com" }
-    },
-    {
-      name: "Fiona Walsh",
-      phone: "+1 (555) 678-0987",
-      email: "fiona@memoalbum.com",
-      desc: "Moody atmospheric photography capturing intimate wedding day moments.",
-      image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=400&q=80",
-      social: { instagram: "https://instagram.com", facebook: "https://facebook.com", tiktok: "https://tiktok.com", youtube: "https://youtube.com", website: "https://example.com" }
-    },
-    {
-      name: "Harper Sterling",
-      phone: "+1 (555) 789-0987",
-      email: "harper@memoalbum.com",
-      desc: "Bold colors and artistic vision transforming wedding narratives beautifully.",
-      image: "https://images.unsplash.com/photo-1516534775068-bb6c4e8b9f73?auto=format&fit=crop&w=400&q=80",
-      social: { instagram: "https://instagram.com", facebook: "https://facebook.com", tiktok: "https://tiktok.com", youtube: "https://youtube.com", website: "https://example.com" }
-    },
-    {
-      name: "Audrey James",
-      phone: "+1 (555) 890-0987",
-      email: "audrey@memoalbum.com",
-      desc: "Timeless compositions with a modern sensibility in wedding photography.",
-      image: "https://images.unsplash.com/photo-1502933691298-84fc14542831?auto=format&fit=crop&w=400&q=80",
-      social: { instagram: "https://instagram.com", facebook: "https://facebook.com", tiktok: "https://tiktok.com", youtube: "https://youtube.com", website: "https://example.com" }
-    },
-    {
-      name: "Sienna Turner",
-      phone: "+1 (555) 901-0987",
-      email: "sienna@memoalbum.com",
-      desc: "Romantic and dreamy wedding photography with ethereal light work.",
-      image: "https://images.unsplash.com/photo-1488426862026-56bde64955e0?auto=format&fit=crop&w=400&q=80",
-      social: { instagram: "https://instagram.com", facebook: "https://facebook.com", tiktok: "https://tiktok.com", youtube: "https://youtube.com", website: "https://example.com" }
-    },
-    {
-      name: "Juliet Foster",
-      phone: "+1 (555) 012-0987",
-      email: "juliet@memoalbum.com",
-      desc: "Storytelling through photography with emotional depth and artistry.",
-      image: "https://images.unsplash.com/photo-1533195671163-e31e5c1f3c0f?auto=format&fit=crop&w=400&q=80",
-      social: { instagram: "https://instagram.com", facebook: "https://facebook.com", tiktok: "https://tiktok.com", youtube: "https://youtube.com", website: "https://example.com" }
-    },
-    {
-      name: "Piper Sullivan",
-      phone: "+1 (555) 123-1098",
-      email: "piper@memoalbum.com",
-      desc: "Contemporary wedding photography with artistic editorial sensibility.",
-      image: "https://images.unsplash.com/photo-1520854721936-1aa58fa8e434?auto=format&fit=crop&w=400&q=80",
-      social: { instagram: "https://instagram.com", facebook: "https://facebook.com", tiktok: "https://tiktok.com", youtube: "https://youtube.com", website: "https://example.com" }
-    },
-    {
-      name: "Violet Crawford",
-      phone: "+1 (555) 234-1098",
-      email: "violet@memoalbum.com",
-      desc: "Luxury wedding photography capturing opulence and intimate moments.",
-      image: "https://images.unsplash.com/photo-1524634126442-357e0eac6b14?auto=format&fit=crop&w=400&q=80",
-      social: { instagram: "https://instagram.com", facebook: "https://facebook.com", tiktok: "https://tiktok.com", youtube: "https://youtube.com", website: "https://example.com" }
-    },
-    {
-      name: "Chloe Morgan",
-      phone: "+1 (555) 345-1098",
-      email: "chloe@memoalbum.com",
-      desc: "Documentary-style photography preserving authentic wedding day emotions.",
-      image: "https://images.unsplash.com/photo-1517841905240-74dec2e4eb42?auto=format&fit=crop&w=400&q=80",
-      social: { instagram: "https://instagram.com", facebook: "https://facebook.com", tiktok: "https://tiktok.com", youtube: "https://youtube.com", website: "https://example.com" }
-    },
-    {
-      name: "Evelyn Pierce",
-      phone: "+1 (555) 456-1098",
-      email: "evelyn@memoalbum.com",
-      desc: "Vintage-inspired aesthetics combined with contemporary wedding photography.",
-      image: "https://images.unsplash.com/photo-1529900748604-07564826fba7?auto=format&fit=crop&w=400&q=80",
-      social: { instagram: "https://instagram.com", facebook: "https://facebook.com", tiktok: "https://tiktok.com", youtube: "https://youtube.com", website: "https://example.com" }
-    }
-  ];
+  const photographers: PhotographerCard[] = [];
 
   useEffect(() => {
     const loadPhotographers = async () => {
+      setIsLoading(true);
       try {
-        const response = await fetch(`${API_URL}/photographer/public-users`, { cache: 'no-store' });
+        const response = await fetch(`${API_URL}/photographer/public-users?t=${Date.now()}`, {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+          },
+        });
         const result = await response.json();
 
-        if (!response.ok || !result.success || !Array.isArray(result.users)) {
+        console.log('Photographer API Response:', result);
+
+        if (!response.ok) {
+          console.error('API Error - Status:', response.status, 'Result:', result);
           setPhotographersData([]);
           setVisibleCount(0);
+          setIsLoading(false);
           return;
         }
 
-        const mapped: PhotographerCard[] = result.users.map((user: any) => ({
+        // Handle both result.users and result.data structures
+        const users = result.users || result.data || [];
+        
+        if (!Array.isArray(users) || users.length === 0) {
+          console.warn('No photographers found in response');
+          setPhotographersData([]);
+          setVisibleCount(0);
+          setIsLoading(false);
+          return;
+        }
+
+        const mapped: PhotographerCard[] = users.map((user: any) => ({
           name: user.name || 'Photographer',
           phone: user.phoneNumber || user.phone || '',
           email: user.email || '',
           desc: user.bio || 'Editorial photographer with a refined visual style.',
-          image: user.profileImage || user.image || '/images/album.png',
+          image: user.profileImage || user.image || user.profilePic || '/images/album.png',
           social: {
             instagram: user.instagram || '',
             facebook: user.facebook || '',
@@ -264,19 +95,22 @@ export default function PhotographerPage() {
           },
         }));
 
+        console.log('Mapped photographers:', mapped);
         setPhotographersData(mapped);
         setVisibleCount(mapped.length);
       } catch (error) {
         console.error('Failed to load photographers:', error);
         setPhotographersData([]);
         setVisibleCount(0);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     loadPhotographers();
   }, []);
 
-  const displayedPhotographers = photographersData.length > 0 ? photographersData : photographers;
+  const displayedPhotographers = photographersData;
   
   const filteredPhotographers = displayedPhotographers.filter((photographer) => {
     if (!searchQuery.trim()) return true;
@@ -396,7 +230,18 @@ export default function PhotographerPage() {
 
           {/* Photographers Grid with Groups */}
           <div className="space-y-12">
-            {filteredPhotographers.length === 0 ? (
+            {isLoading ? (
+              <div className="flex justify-center items-center py-24">
+                <div className="flex flex-col items-center gap-6">
+                  <div className="relative w-16 h-16">
+                    <div className="absolute inset-0 rounded-full border-4 border-[#e5d5d8]" />
+                    <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-[#d23284] border-r-[#d23284] animate-spin" />
+                  </div>
+                  <p className="text-[#8c0053] font-medium text-lg">Loading photographers...</p>
+                  <p className="text-[#534345] text-sm">Please wait while we fetch our editorial collective</p>
+                </div>
+              </div>
+            ) : filteredPhotographers.length === 0 ? (
               <div className="rounded-3xl border border-dashed border-[#e5d5d8] bg-white px-8 py-16 text-center">
                 <svg className="mx-auto h-12 w-12 text-[#8c0053]/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
