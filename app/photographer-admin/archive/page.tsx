@@ -447,17 +447,6 @@ export default function ArchivePage() {
     }
   };
 
-  // Recent media uploads mock data (in production, fetch from API)
-  const recentUploads = useMemo(() => {
-    const allArchives = archives.slice(0, 8);
-    return allArchives.map((archive) => ({
-      id: archive._id,
-      title: archive.archiveFolderName,
-      image: archiveCover(archive),
-      date: archive.archivedAt,
-    }));
-  }, [archives]);
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#fff8f7] via-white to-[#fff0f4]">
       <Toast message={message} />
@@ -482,7 +471,7 @@ export default function ArchivePage() {
       <div className="mx-auto max-w-7xl px-4 py-12 md:px-8 lg:px-12">
         {/* Create Archive Section */}
         <div className="mb-16">
-          <div className="rounded-3xl overflow-hidden bg-gradient-to-br from-white/60 to-white/40 backdrop-blur-xl border border-white/50 shadow-xl p-8 md:p-10">
+          <div className="p-0">
             <div className="mb-8">
               <h2 className="text-2xl font-serif font-semibold text-[#211a1b] mb-2">Create New Collection</h2>
               <p className="text-sm text-[#6b5d60]">Select albums and organize them into named archive folders</p>
@@ -643,7 +632,32 @@ export default function ArchivePage() {
                       </div>
 
                       {/* Hover Indicator */}
-                      <div className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/30 backdrop-blur-md border border-white/50 flex items-center justify-center group-hover:bg-[#b10e6b]/30 transition-all">
+                      <div className="absolute top-6 left-6 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setExpandedArchiveId(group.folderName);
+                        setEditingFolderName(group.folderName);
+                      }}
+                      className="flex items-center justify-center w-10 h-10 rounded-full bg-white/70 text-[#211a1b] shadow-sm border border-white/70 hover:bg-[#fff] transition-all"
+                      title="Edit folder"
+                    >
+                      <Edit2 size={16} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void handleDeleteFolder(group.folderName);
+                      }}
+                      className="flex items-center justify-center w-10 h-10 rounded-full bg-white/70 text-[#b10e6b] shadow-sm border border-white/70 hover:bg-[#ffe7f1] transition-all"
+                      title="Delete folder"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                  <div className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/30 backdrop-blur-md border border-white/50 flex items-center justify-center group-hover:bg-[#b10e6b]/30 transition-all">
                         <ChevronDown size={20} className="text-white group-hover:rotate-180 transition-transform" />
                       </div>
                     </div>
@@ -660,44 +674,6 @@ export default function ArchivePage() {
           )}
         </div>
 
-        {/* Recent Media Uploads Section */}
-        {recentUploads.length > 0 && (
-          <div className="mb-16">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-[#b10e6b]/20 to-[#951254]/20">
-                <ImageIcon size={24} className="text-[#b10e6b]" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-serif font-semibold text-[#211a1b]">Recent Media</h2>
-                <p className="text-sm text-[#6b5d60]">Latest uploads from your collections</p>
-              </div>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              {recentUploads.map((upload) => (
-                <div
-                  key={upload.id}
-                  className="group relative h-48 rounded-2xl overflow-hidden bg-gradient-to-br from-white/60 to-white/30 backdrop-blur-xl border border-white/50 shadow-lg hover:shadow-xl hover:border-[#b10e6b]/30 transition-all duration-500 hover:scale-105 cursor-pointer"
-                >
-                  <img
-                    src={upload.image}
-                    alt={upload.title}
-                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                  
-                  <div className="absolute inset-0 p-4 flex flex-col justify-between">
-                    <div />
-                    <div>
-                      <p className="text-sm font-semibold text-white line-clamp-2 mb-2">{upload.title}</p>
-                      <p className="text-xs text-white/70">{new Date(upload.date || Date.now()).toLocaleDateString()}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Folder Details Modal */}
@@ -809,50 +785,6 @@ export default function ArchivePage() {
                         Add Album
                       </button>
                     </div>
-                  </div>
-
-                  {/* Recent Media Uploads Section */}
-                  <div>
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-[#b10e6b]/20 to-[#951254]/20">
-                        <ImageIcon size={24} className="text-[#b10e6b]" />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-[#211a1b]">Recent Media Uploads</h3>
-                        <p className="text-xs text-[#6b5d60]">Latest photos and videos from this collection</p>
-                      </div>
-                    </div>
-
-                    {recentUploads.length > 0 ? (
-                      <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4 mb-8">
-                        {recentUploads.slice(0, 8).map((upload) => (
-                          <div
-                            key={upload.id}
-                            className="group relative h-32 rounded-lg overflow-hidden bg-gradient-to-br from-white/60 to-white/30 backdrop-blur-xl border border-white/50 shadow-lg hover:shadow-xl hover:border-[#b10e6b]/30 transition-all duration-500 hover:scale-105 cursor-pointer"
-                          >
-                            <img
-                              src={upload.image}
-                              alt={upload.title}
-                              className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-                            
-                            <div className="absolute inset-0 p-2 flex flex-col justify-between">
-                              <div className="flex items-center gap-1 bg-white/30 backdrop-blur-md rounded px-2 py-1 w-fit text-white text-xs font-semibold">
-                                <ImageIcon size={12} />
-                                Media
-                              </div>
-                              <p className="text-white text-xs font-medium line-clamp-1 drop-shadow">{upload.title}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="rounded-2xl border-2 border-dashed border-[#e9dddd] py-8 text-center mb-8">
-                        <ImageIcon size={32} className="mx-auto text-[#b10e6b]/20 mb-3" />
-                        <p className="text-sm text-[#6b5d60]">No media uploaded yet</p>
-                      </div>
-                    )}
                   </div>
 
                   {/* Albums/Books Section */}

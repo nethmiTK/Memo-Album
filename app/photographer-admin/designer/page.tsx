@@ -237,7 +237,7 @@ const CreateAlbum: React.FC = () => {
         }, 100);
       }
 
-      toast.success('Cover photo changed (auto-saving...)', toastStyle);
+      // toast.success('Cover photo changed (auto-saving...)', toastStyle);
     };
     reader.readAsDataURL(file);
     e.target.value = '';
@@ -255,7 +255,7 @@ const CreateAlbum: React.FC = () => {
       }, 100);
     }
 
-    toast.success('Cover photo removed (auto-saving...)', toastStyle);
+    // toast.success('Cover photo removed (auto-saving...)', toastStyle);
   };
 
   const handleEndPhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -283,7 +283,7 @@ const CreateAlbum: React.FC = () => {
         }, 100);
       }
 
-      toast.success('End photo uploaded (auto-saving...)', toastStyle);
+      // toast.success('End photo uploaded (auto-saving...)', toastStyle);
     };
     reader.readAsDataURL(file);
     e.target.value = '';
@@ -302,7 +302,7 @@ const CreateAlbum: React.FC = () => {
       }, 100);
     }
 
-    toast.success('End photo removed (auto-saving...)', toastStyle);
+    // toast.success('End photo removed (auto-saving...)', toastStyle);
   };
 
   useEffect(() => {
@@ -342,7 +342,7 @@ const CreateAlbum: React.FC = () => {
         }
       } catch (error) {
         console.error('Failed to fetch templates:', error);
-        toast.error(error instanceof Error ? error.message : 'Failed to load templates', toastStyle);
+        // toast.error(error instanceof Error ? error.message : 'Failed to load templates', toastStyle);
       }
     };
 
@@ -499,7 +499,7 @@ const CreateAlbum: React.FC = () => {
         setMediaItems([]);
         if (filtered.length === 0 && lastAlbumNoMatchToastRef.current !== value) {
           lastAlbumNoMatchToastRef.current = value;
-          toast.error(`No curates found matching "${value}"`, toastStyle);
+          // toast.error(`No curates found matching "${value}"`, toastStyle);
         }
       }
     } else {
@@ -537,7 +537,7 @@ const CreateAlbum: React.FC = () => {
         setSelectedTemplateData(null);
         if (filtered.length === 0 && lastTemplateNoMatchToastRef.current !== value) {
           lastTemplateNoMatchToastRef.current = value;
-          toast.error(`No templates found matching "${value}"`, toastStyle);
+          // toast.error(`No templates found matching "${value}"`, toastStyle);
         }
       }
     } else {
@@ -570,7 +570,7 @@ const CreateAlbum: React.FC = () => {
     }));
 
     setMediaItems(normalizedMedia);
-    toast.success('Media loaded from curate', toastStyle);
+    // toast.success('Media loaded from curate', toastStyle);
     return normalizedMedia;
   };
 
@@ -622,7 +622,7 @@ const CreateAlbum: React.FC = () => {
     
     // Show which album was selected
     const statusBadge = album.status === 'saved' || album.status === 'published' ? '✓ Saved' : '◆ Draft';
-    toast.info(`${statusBadge} "${album.albumName}" loaded (${album.mediaItems?.length || 0} items)`, toastStyle);
+    // toast.info(`${statusBadge} "${album.albumName}" loaded (${album.mediaItems?.length || 0} items)`, toastStyle);
     
     if (selectedTemplate && loaded.length > 0) {
       void syncBookAlbum(album._id, selectedTemplate);
@@ -639,7 +639,7 @@ const CreateAlbum: React.FC = () => {
     
     // Show template selected with slot info
     const slotCount = (template.pages || []).reduce((sum, page) => sum + (page.slots?.length || 0), 0) + (template.slots?.length || 0);
-    toast.info(`✓ Template "${template.name}" selected (${slotCount} slots)`, toastStyle);
+    // toast.info(`✓ Template "${template.name}" selected (${slotCount} slots)`, toastStyle);
     
     if (selectedAlbum && compactMediaItems(mediaItems).length > 0) {
       void syncBookAlbum(selectedAlbum, template._id);
@@ -788,7 +788,7 @@ const CreateAlbum: React.FC = () => {
       const targetSlot = resolveTargetSlot();
       await uploadFileToSlot(targetSlot, file);
       setPasteSlotIndex(null);
-      toast.success('✓ Pasted image into slot', toastStyle);
+      // toast.success('✓ Pasted image into slot', toastStyle);
     };
 
     window.addEventListener('paste', handlePaste as any);
@@ -850,7 +850,7 @@ const CreateAlbum: React.FC = () => {
       
       return normalized;
     });
-    toast.success('✓ Media rearranged (auto-saving...)', toastStyle);
+    // toast.success('✓ Media rearranged (auto-saving...)', toastStyle);
   };
 
   const moveMediaToPage = (targetPageIndex: number, mediaId: string) => {
@@ -897,7 +897,7 @@ const CreateAlbum: React.FC = () => {
       return normalized;
     });
 
-    toast.success('✓ Slot image added (auto-saving...)', toastStyle);
+    // toast.success('✓ Slot image added (auto-saving...)', toastStyle);
   };
 
   reader.readAsDataURL(file);
@@ -953,7 +953,7 @@ const handleUploadToSlot = (slotIndex: number, files: FileList | null) => {
     reader.readAsDataURL(file);
   }
 
-  toast.success('Images added (Auto Saving...)', toastStyle);
+  // toast.success('Images added (Auto Saving...)', toastStyle);
 };
 
  const clearSlotMedia = (slotIndex: number) => {
@@ -978,12 +978,12 @@ const handleUploadToSlot = (slotIndex: number, files: FileList | null) => {
     return normalized;
   });
 
-  toast.success('✓ Slot cleared (auto-saving...)', toastStyle);
+  // toast.success('✓ Slot cleared (auto-saving...)', toastStyle);
 };
 
   const clearAllMedia = () => {
     setMediaItems([]);
-    toast.success('All images cleared', toastStyle);
+    // toast.success('All images cleared', toastStyle);
   };
 
   const handleDragStart = (item: MediaItem) => {
@@ -1052,7 +1052,7 @@ const handleUploadToSlot = (slotIndex: number, files: FileList | null) => {
 
     setCropMedia(null);
     setCropSlot(null);
-    toast.success('✓ Crop applied (auto-saving...)', toastStyle);
+    // toast.success('✓ Crop applied (auto-saving...)', toastStyle);
   };
 
   const handleCropPointerDown = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -1086,7 +1086,7 @@ const handleUploadToSlot = (slotIndex: number, files: FileList | null) => {
     const hasData = selectedAlbum || selectedTemplate || mediaItems.length > 0 || coverPhotoPreview;
     
     if (!hasData) {
-      toast.info('No data to discard', toastStyle);
+      // toast.info('No data to discard', toastStyle);
       return;
     }
 
@@ -1116,7 +1116,7 @@ const handleUploadToSlot = (slotIndex: number, files: FileList | null) => {
     sessionStorage.removeItem('designerState');
     
     // Show confirmation
-    toast.success('✓ Designer cleared (your curate draft is safe)', toastStyle);
+    // toast.success('✓ Designer cleared (your curate draft is safe)', toastStyle);
   };
 
   const saveCurateDraft = async (
@@ -1124,7 +1124,7 @@ const handleUploadToSlot = (slotIndex: number, files: FileList | null) => {
     saveStatus: 'save_draft' | 'saved' = 'saved'
   ) => {
     if (!selectedAlbum || !selectedTemplate) {
-      toast.error('Please select album and template before saving', toastStyle);
+      // toast.error('Please select album and template before saving', toastStyle);
       return false;
     }
 
@@ -1326,23 +1326,6 @@ const handleUploadToSlot = (slotIndex: number, files: FileList | null) => {
               Select an album and template, then upload media to fill your design.
             </p>
           </div>
-          {/* Workflow Progress */}
-          {(selectedAlbum || selectedTemplate || filledSlotCount > 0) && (
-            <div className="p-4 bg-white rounded-xl border border-[#f3d6df] shadow-sm text-right">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-[#b10e6b] mb-2">Progress</p>
-              <div className="space-y-1.5 text-xs">
-                <div className={`flex items-center gap-1.5 ${selectedAlbum ? 'text-green-600 font-semibold' : 'text-[#8d7d81]'}`}>
-                  {selectedAlbum ? '✓' : '○'} Album Selected
-                </div>
-                <div className={`flex items-center gap-1.5 ${selectedTemplate ? 'text-green-600 font-semibold' : 'text-[#8d7d81]'}`}>
-                  {selectedTemplate ? '✓' : '○'} Template Selected
-                </div>
-                <div className={`flex items-center gap-1.5 ${filledSlotCount > 0 ? 'text-green-600 font-semibold' : 'text-[#8d7d81]'}`}>
-                  {filledSlotCount > 0 ? '✓' : '○'} Media Added ({filledSlotCount})
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
@@ -1353,10 +1336,10 @@ const handleUploadToSlot = (slotIndex: number, files: FileList | null) => {
           <div className="flex flex-col xl:flex-row gap-6">
           {/* SELECTION PANEL - Left Side */}
           <div className="w-full xl:w-72 shrink-0">
-            <div className="w-full p-5 rounded-2xl shadow-lg bg-white border-l-4 border-[#b10e6b] h-[1075px] overflow-hidden">
+            <div className="w-full p-5 rounded-2xl shadow-lg bg-white border-l-4 border-[#b10e6b] min-h-[760px] overflow-hidden flex flex-col">
               <h3 className="text-[11px] tracking-widest uppercase text-[#b10e6b] font-bold mb-4">SELECTION PANEL</h3>
               
-              <div className="space-y-4">
+              <div className="space-y-4 overflow-y-auto flex-1 pr-1">
   {/* ALBUM SELECT */}
   <div>
     <label className="block text-[11px] font-bold uppercase mb-3 text-[#54474d]">
@@ -1581,7 +1564,7 @@ const handleUploadToSlot = (slotIndex: number, files: FileList | null) => {
         <div className="min-w-0 flex-1">
   {/* Template Book Preview (flip book with curate images in slots) */}
   {selectedTemplateData ? (
-    <div className="bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col border border-gray-100 h-[1075px]">
+    <div className="bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col border border-gray-100 min-h-[760px] h-full">
       <div className="p-4 border-b border-gray-200 flex flex-wrap items-center justify-between gap-2">
         <div>
           <h3 className="text-sm font-bold uppercase tracking-widest text-[#211A1B]">TEMPLATE BOOK</h3>
@@ -1600,9 +1583,9 @@ const handleUploadToSlot = (slotIndex: number, files: FileList | null) => {
         </button>
       </div>
 
-      <div className="p-3 bg-[#FFF8F8]">
+      <div className="p-3 bg-[#FFF8F8] flex-1 flex flex-col">
         {filledSlotCount > 0 || selectedAlbumData?.coverPhoto ? (
-            <div className="w-full h-[960px] rounded-xl overflow-hidden">
+            <div className="w-full h-full rounded-xl overflow-hidden">
             <TemplateBookFlip
               template={selectedTemplateData}
               mediaItems={slotAlignedBookMedia}
@@ -1669,7 +1652,7 @@ const handleUploadToSlot = (slotIndex: number, files: FileList | null) => {
       </div>
     </div>
 
-    <div className="flex-1 p-4 flex flex-col items-center justify-center bg-white">
+    <div className="flex-1 p-4 flex flex-col items-stretch justify-start bg-white min-h-[720px]">
       {filledSlotCount === 0 ? (
         <div className="text-center space-y-2">
           {selectedAlbum ? (
@@ -1708,300 +1691,76 @@ const handleUploadToSlot = (slotIndex: number, files: FileList | null) => {
           )}
         </div>
       ) : (
-        <div className="w-full">
-          <div className="grid gap-4 xl:grid-cols-[1fr_320px]">
-            <div className="rounded-2xl border border-[#ebe7e8] bg-[#fffdfd] p-3 shadow-sm h-full">
+        <div className="w-full min-h-[760px]">
+          <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
+            <div className="rounded-2xl border border-[#ebe7e8] bg-[#fffdfd] p-3 shadow-sm flex flex-col h-full min-h-[720px]">
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <div>
-                    <p className="text-[9px] font-semibold uppercase tracking-[0.22em] text-[#7f6f74]">Template</p>
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.22em] text-[#7f6f74]">Template Preview</p>
                     <p className="text-[8px] text-[#a89094]">{selectedTemplateData?.name || 'Select template'}</p>
                   </div>
-                  <p className="text-[11px] font-medium text-[#7a6d72]">
-                    {filledSlotCount} / {slotConfigs.length} filled
+                  <p className="text-[10px] font-medium text-[#7a6d72]">
+                    {filledSlotCount} / {slotConfigs.length}
                   </p>
                 </div>
                 <div
-                  className="mx-auto w-full rounded-2xl border border-[#ece8e9] bg-white p-3 shadow-sm h-full"
+                  className="mx-auto w-full rounded-xl border border-[#ece8e9] bg-white p-2 shadow-sm flex-1"
                   style={{
                     background: `linear-gradient(180deg, ${templateAccent}29 0%, #fffdfd 24%, #fff8fb 72%, ${templateAccent}1a 100%)`,
                   }}
                 >
-                  <div className="mb-2 text-xs text-[#7a6268]">
-                    <p className="font-semibold text-[#211A1B]">{activePreviewPage?.pageLabel || 'Page'}</p>
-                    <p className="text-[10px]">Slots: {activePreviewPage?.slots?.length || 0} available</p>
+                  <div className="mb-2 text-[9px] text-[#7a6268]">
+                    <p className="font-semibold text-[#211A1B]">All Pages</p>
+                    <p className="text-[8px]">Showing {pagePreviewConfigs.length} pages</p>
                   </div>
                   <div
-                    className={`relative w-full rounded-[1.1rem] border border-[#f2e8ec] bg-white h-full ${
-                      pageSlotBounds.get(activePreviewPage?.pageIndex || 0)?.usesAbsoluteLayout
-                        ? 'aspect-3/4 overflow-hidden'
-                        : 'min-h-48 h-full grid auto-rows-[minmax(80px,1fr)] grid-cols-2 gap-2 p-2'
-                    }`}
-                    style={{ backgroundColor: templatePages[activePreviewPage?.pageIndex]?.pageColor || undefined }}
+                    className="w-full rounded-lg border border-[#f2e8ec] bg-white flex-1 overflow-y-auto"
+                    style={{
+                      background: `linear-gradient(180deg, ${templateAccent}29 0%, #fffdfd 24%, #fff8fb 72%, ${templateAccent}1a 100%)`,
+                    }}
                   >
-                    {(activePreviewPage?.slots || []).map((slot) => {
-                      const item = getSlotMediaItem(mediaItems, slot.index);
-                      const transform = item ? mediaTransforms[item.id] || { zoom: 1, x: 0, y: 0 } : { zoom: 1, x: 0, y: 0 };
-                      const rawSlot = templatePages[slot.pageIndex]?.slots?.find((candidate) => (candidate.id || '') === slot.slotId);
-                      const rawPage = templatePages[slot.pageIndex] as { accent?: string; pageColor?: string } | undefined;
-                      const bounds = pageSlotBounds.get(slot.pageIndex);
-                      const usesAbsolute = Boolean(bounds?.usesAbsoluteLayout && rawSlot);
-                      const colSpan = Math.max(1, Math.min(2, Number(rawSlot?.width) || 1));
-                      const rowSpan = Math.max(1, Math.min(3, Number(rawSlot?.height) || 1));
-                      const left = Number.isFinite(Number(rawSlot?.x)) ? Number(rawSlot?.x) : 0;
-                      const top = Number.isFinite(Number(rawSlot?.y)) ? Number(rawSlot?.y) : 0;
-                      const width = Math.max(1, Number.isFinite(Number(rawSlot?.width)) ? Number(rawSlot?.width) : 1);
-                      const height = Math.max(1, Number.isFinite(Number(rawSlot?.height)) ? Number(rawSlot?.height) : 1);
-                      const slotSizeStr = width > 0 && height > 0 ? `${width}% × ${height}%` : 'Auto';
-
-                      return (
-                        <div
-                          key={`${slot.pageLabel}-${slot.slotLabel}-${slot.index}`}
-                          onDragOver={(e) => e.preventDefault()}
-                          onDrop={(e) => {
-                            e.preventDefault();
-                            const transferId =
-                              e.dataTransfer.getData('text/plain') ||
-                              e.dataTransfer.getData('application/x-media-id') ||
-                              draggedItem?.id ||
-                              (() => {
-                                try {
-                                  return window.sessionStorage.getItem('designerDraggedMediaId') || '';
-                                } catch {
-                                  return '';
-                                }
-                              })();
-                            if (transferId) {
-                              moveMediaToSlot(slot.index, transferId);
-                            }
-                          }}
-                          className={`group overflow-hidden rounded-2xl border bg-[#faf8f9] ${
-                            usesAbsolute ? 'absolute cursor-pointer' : 'relative min-h-28'
-                          }`}
-                          title={`${slot.pageLabel} · ${slot.slotLabel} (${slotSizeStr})`}
-                          style={{
-                            borderColor: `${templateAccent}33`,
-                            gridColumn: usesAbsolute ? undefined : `span ${colSpan}`,
-                            gridRow: usesAbsolute ? undefined : `span ${rowSpan}`,
-                            left: usesAbsolute ? `${left}%` : undefined,
-                            top: usesAbsolute ? `${top}%` : undefined,
-                            width: usesAbsolute ? `${width}%` : undefined,
-                            height: usesAbsolute ? `${height}%` : undefined,
-                            backgroundColor: rawPage?.pageColor || undefined,
-                          }}
-                        >
-                          {!item ? (
-                            <div
-                              className="absolute inset-0 flex flex-col items-center justify-center gap-2 border border-dashed border-[#e1bec4]/80 bg-[#fff8fb]"
-                              style={{ backgroundColor: rawPage?.pageColor || '#fff8fb' }}
-                            >
-                              <div className="absolute top-1 left-1 text-[8px] font-bold uppercase tracking-wider text-[#8d7d81]">{slotSizeStr}</div>
-                              <ImagePlus size={22} className="text-[#c1aeb3]" />
-                              <button
-                                type="button"
-                                onClick={() => slotUploadInputRefs.current[slot.slotId]?.click()}
-                                className="inline-flex items-center gap-1.5 rounded-full border border-[#e1bec4] bg-white px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#7a6268] hover:border-[#b10e6b] hover:text-[#b10e6b]"
-                              >
-                                <Upload size={14} />
-                                Upload
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setPasteSlotIndex(slot.index);
-                                  toast.info('Press Ctrl+V / Cmd+V to paste an image into this slot', toastStyle);
-                                }}
-                                className="inline-flex items-center gap-1.5 rounded-full border border-[#e1bec4] bg-white px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#7a6268] hover:border-[#b10e6b] hover:text-[#b10e6b]"
-                              >
-                                <Clipboard size={14} />
-                                Paste
-                              </button>
-                              <input
-                                ref={(el) => {
-                                  slotUploadInputRefs.current[slot.slotId] = el;
-                                }}
-                                type="file"
-                                accept="image/*,video/*"
-                                className="hidden"
-                                onChange={(e) => {
-                                  handleUploadToSlot(slot.index, e.target.files);
-                                  e.target.value = '';
-                                }}
-                              />
+                    <div className="grid grid-cols-2 gap-3 p-2">
+                      {pagePreviewConfigs.map((page) => {
+                        const pageUsesAbsolute = pageSlotBounds.get(page.pageIndex)?.usesAbsoluteLayout;
+                        return (
+                          <div key={`page-grid-${page.pageIndex}`} className="rounded-lg border border-[#f2e8ec] bg-white p-2 overflow-hidden">
+                            <div className="mb-1 text-[8px] text-[#7a6268]">
+                              <p className="font-semibold text-[#211A1B]">{page.pageLabel}</p>
+                              <p className="text-[7px]">{page.slots?.length || 0} slots</p>
                             </div>
-                          ) : (
                             <div
-                              className="absolute inset-0 cursor-move overflow-hidden"
-                              draggable
-                              onDragStart={(e) => {
-                                handleDragStart(item);
-                                e.dataTransfer.setData('text/plain', item.id);
-                                e.dataTransfer.setData('application/x-media-id', item.id);
-                                e.dataTransfer.effectAllowed = 'move';
-                              }}
-                              onDragEnd={handleDragEnd}
+                              className={`relative w-full rounded border border-[#f2e8ec] bg-white ${
+                                pageUsesAbsolute
+                                  ? 'aspect-3/4 overflow-hidden'
+                                  : 'grid auto-rows-[minmax(30px,1fr)] grid-cols-2 gap-1 p-1'
+                              }`}
+                              style={{ backgroundColor: templatePages[page.pageIndex]?.pageColor || undefined }}
                             >
-                              {item.mediaKind === 'image' && hasMediaSrc(item.dataUrl) ? (
-                                <img
-                                  src={item.dataUrl}
-                                  alt={item.fileName}
-                                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-200"
-                                  style={{ transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.zoom})` }}
-                                />
-                              ) : hasMediaSrc(item.dataUrl) ? (
-                                <video src={item.dataUrl} className="absolute inset-0 h-full w-full object-cover" muted playsInline preload="metadata" controls={false} />
-                              ) : (
-                                <div className="absolute inset-0 flex items-center justify-center bg-linear-to-br from-gray-100 to-gray-300">
-                                  <span className="text-[10px] font-bold tracking-widest text-gray-600">VIDEO</span>
-                                </div>
-                              )}
-                              {item.caption ? (
-                                <div className="absolute left-2 bottom-2 rounded-full bg-black/70 px-2 py-1 text-[10px] text-white shadow-sm">
-                                  {item.caption}
-                                </div>
-                              ) : null}
-                              <div className="absolute inset-0 flex items-center justify-center gap-2.5 bg-black/50 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setPreviewMedia(item);
-                                  }}
-                                  className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-lg transition hover:scale-105"
-                                  title="View"
-                                >
-                                  <Eye size={16} className="text-[#211A1B]" />
-                                </button>
-                                {item.mediaKind === 'image' && (
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      openCropEditor(item);
+                              {page.slots.map((slot) => {
+                                const item = getSlotMediaItem(mediaItems, slot.index);
+                                return (
+                                  <div
+                                    key={`${page.pageIndex}-${slot.slotId}`}
+                                    className={`rounded border ${!item ? 'border-dashed border-[#e1bec4] bg-[#f9f0f3]' : 'border-[#b10e6b] bg-cover'}`}
+                                    style={{
+                                      backgroundImage: item?.dataUrl && item.mediaKind === 'image' ? `url(${item.dataUrl})` : 'none',
                                     }}
-                                    className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-lg transition hover:scale-105"
-                                    title="Crop"
-                                  >
-                                    <Edit3 size={16} className="text-[#211A1B]" />
-                                  </button>
-                                )}
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    clearSlotMedia(slot.index);
-                                  }}
-                                  className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-red-500 shadow-lg transition hover:scale-105 hover:bg-red-600"
-                                  title="Remove"
-                                >
-                                  <Trash2 size={16} className="text-white" />
-                                </button>
-                              </div>
+                                  />
+                                );
+                              })}
                             </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-              <div className="rounded-2xl border border-[#f0e2e6] bg-white p-3 h-full flex flex-col">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#8d7d81]">Page templates</p>
-                  <p className="text-[8px] text-[#a89094]">{pageCarouselIndex + 1}–{Math.min(pageCarouselIndex + 2, pagePreviewConfigs.length)} of {pagePreviewConfigs.length}</p>
-                </div>
-                <div className="flex-1 flex flex-col gap-3 overflow-hidden">
-                  <div className="grid grid-cols-2 gap-3 flex-1">
-                    {pagePreviewConfigs.slice(pageCarouselIndex, pageCarouselIndex + 2).map((page) => {
-                      const pageUsesAbsolute = pageSlotBounds.get(page.pageIndex)?.usesAbsoluteLayout;
-                      const isActive = selectedPreviewPage === page.pageIndex;
-                      return (
-                        <button
-                          key={`filmstrip-${page.pageIndex}`}
-                          type="button"
-                          onClick={() => setSelectedPreviewPage(page.pageIndex)}
-                          className={`rounded-xl border p-2 transition-all flex flex-col items-center justify-center ${
-                            isActive ? 'border-[#b10e6b] bg-[#fff0f4] shadow-sm' : 'border-[#ecdbe2] bg-[#fff8f9] hover:border-[#b10e6b]/50'
-                          }`}
-                        >
-                          <p className="mb-2 text-center text-[8px] font-bold uppercase tracking-[0.14em] text-[#8d7d81]">
-                            {page.pageLabel}
-                          </p>
-                          <div
-                            className={`relative h-24 w-20 overflow-hidden rounded-lg border border-[#ecdbe2] bg-white ${
-                              pageUsesAbsolute ? '' : 'grid grid-cols-2 gap-0.5 p-0.5'
-                            }`}
-                          >
-                            {page.slots.map((slot) => {
-                              const item = getSlotMediaItem(mediaItems, slot.index);
-                              const miniSlot = templatePages[slot.pageIndex]?.slots?.find((candidate) => candidate.id === slot.slotId);
-                              const miniAbsolute = pageUsesAbsolute && miniSlot;
-                              return (
-                                <div
-                                  key={`mini-${page.pageIndex}-${slot.slotId}`}
-                                  className={`overflow-hidden bg-[#f3e8ec] ${miniAbsolute ? 'absolute' : 'min-h-3'}`}
-                                  style={
-                                    miniAbsolute
-                                      ? {
-                                          left: `${Number(miniSlot?.x) || 0}%`,
-                                          top: `${Number(miniSlot?.y) || 0}%`,
-                                          width: `${Math.max(8, Number(miniSlot?.width) || 20)}%`,
-                                          height: `${Math.max(8, Number(miniSlot?.height) || 20)}%`,
-                                        }
-                                      : undefined
-                                  }
-                                >
-                                  {item?.dataUrl ? (
-                                    item.mediaKind === 'video' ? (
-                                      <video src={item.dataUrl} className="h-full w-full object-cover" muted playsInline preload="metadata" />
-                                    ) : (
-                                      <img src={item.dataUrl} alt="" className="h-full w-full object-cover" />
-                                    )
-                                  ) : null}
-                                </div>
-                              );
-                            })}
                           </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {pagePreviewConfigs.length > 2 && (
-                    <div className="flex gap-2 justify-center">
-                      <button
-                        type="button"
-                        onClick={() => setPageCarouselIndex(Math.max(0, pageCarouselIndex - 1))}
-                        disabled={pageCarouselIndex === 0}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#e1bec4] bg-white text-[#7a6268] transition hover:border-[#b10e6b] hover:text-[#b10e6b] disabled:opacity-40 disabled:cursor-not-allowed"
-                        title="Previous pages"
-                      >
-                        ←
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPageCarouselIndex(Math.min(pagePreviewConfigs.length - 2, pageCarouselIndex + 1))}
-                        disabled={pageCarouselIndex >= pagePreviewConfigs.length - 2}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#e1bec4] bg-white text-[#7a6268] transition hover:border-[#b10e6b] hover:text-[#b10e6b] disabled:opacity-40 disabled:cursor-not-allowed"
-                        title="Next pages"
-                      >
-                        →
-                      </button>
+                        );
+                      })}
                     </div>
-                  )}
+                  </div>
                 </div>
               </div>
           </div>
         </div>
       )}
     </div>
-
-    {filledSlotCount > 0 && (
-      <div className="p-3 border-t bg-[#fef6f6] text-xs text-[#211A1B] flex items-center justify-between">
-        <span className="font-semibold">{filledSlotCount} item{filledSlotCount !== 1 ? 's' : ''} in slots</span>
-        <span className="text-[10px] text-[#54474d]"></span>
-      </div>
-    )}
   </div>
-        </div>
 
   {/* Modals */}
   {isBookModalOpen && selectedTemplateData && (
@@ -2194,28 +1953,13 @@ const handleUploadToSlot = (slotIndex: number, files: FileList | null) => {
 
       {/* Action Buttons - Narrative Flow */}
       <div className="px-4 md:px-12 py-5 flex flex-col gap-3 border-t border-[#f3d6df]" style={{ fontFamily: 'Manrope, "Segoe UI", sans-serif' }}>
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-          <div className="space-y-1">
-            <p className="text-xs font-bold uppercase tracking-widest text-[#b10e6b]">Workflow Status</p>
-            <p className="text-sm text-[#211A1B]">
-              {!selectedAlbum ? (
-                <span className="text-[#7a6268]">Select an album to begin</span>
-              ) : !selectedTemplate ? (
-                <span className="text-[#7a6268]">Select a template design</span>
-              ) : filledSlotCount === 0 ? (
-                <span className="text-[#7a6268]">Add images to fill slots ({filledSlotCount} / {slotConfigs.length})</span>
-              ) : (
-                <span className="text-green-600 font-semibold">✓ Ready to save ({filledSlotCount} / {slotConfigs.length} filled)</span>
-              )}
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2 justify-end">
+        <div className="flex flex-col sm:flex-row justify-end items-end gap-3">
             <button
               onClick={handleDiscard}
               title="Clear designer (data stays in curate album)"
               className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-[#54474d] border border-[#e1bec4] rounded-lg hover:border-red-500 hover:text-red-600 hover:bg-red-50/50 transition-all whitespace-nowrap"
             >
-              ✕ Discard
+              Discard
             </button>
 
             <button
@@ -2233,7 +1977,7 @@ const handleUploadToSlot = (slotIndex: number, files: FileList | null) => {
                   Saving...
                 </span>
               ) : (
-                '💾 Draft Save'
+                ' Draft Save'
               )}
             </button>
 
@@ -2248,14 +1992,7 @@ const handleUploadToSlot = (slotIndex: number, files: FileList | null) => {
           </div>
         </div>
 
-        {/* Auto-Save Indicator */}
-        {(bookAlbumId || isAutoSaving) && (
-          <div className="p-2 bg-green-50 border border-green-200 rounded-lg">
-            <p className="text-xs text-green-700 font-semibold">
-              {isAutoSaving ? '⌛ Auto-saving changes...' : '✓ Saved to album • Ready for next step'}
-            </p>
-          </div>
-        )}
+
       </div>
     </div>
   );
