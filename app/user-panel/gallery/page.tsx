@@ -608,7 +608,7 @@ const uploadRecentMedia = async (files: File[]) => {
           >
             Gallery Folders
           </h2>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <button
               onClick={() => router.replace('/user-panel/albums')}
               className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full font-semibold text-sm transition-all hover:shadow-lg"
@@ -619,6 +619,18 @@ const uploadRecentMedia = async (files: File[]) => {
               }}
             >
                Wedding Album
+            </button>
+
+            <button
+              onClick={() => router.push('/user-panel/favorites')}
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full font-semibold text-sm transition-all hover:shadow-lg"
+              style={{
+                backgroundColor: '#FFE8EE',
+                border: '2px solid #C82B7D',
+                color: '#C82B7D',
+              }}
+            >
+              ♥ Favorites
             </button>
               
             <button

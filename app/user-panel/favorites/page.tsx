@@ -136,6 +136,51 @@ export default function FavoritesPage() {
     }
   };
 
+  const deleteMedia = async (id: string) => {
+    if (!confirm('Delete this media permanently? This cannot be undone.')) return;
+
+    try {
+      setRemovingId(id);
+      const sourceItem = favorites.find((photo) => photo.id === id);
+
+      if (sourceItem?.sourceType === 'gallery') {
+        const response = await apiFetch(`/gallery/media/${id}`, { method: 'DELETE' });
+
+        if (response.status === 401) {
+          handleAuthError(response);
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error('Unable to delete gallery media');
+        }
+      } else {
+        const response = await apiFetch(`/favorites/${id}`, { method: 'DELETE' });
+
+        if (response.status === 401) {
+          handleAuthError(response);
+          return;
+        }
+
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+          throw new Error(result.message || 'Unable to delete media');
+        }
+      }
+
+      setFavorites((current) => current.filter((photo) => photo.id !== id));
+      setSelectedPhoto(null);
+      setMessage('Media deleted successfully');
+      window.setTimeout(() => setMessage(''), 2000);
+    } catch (error) {
+      console.error('Failed to delete media:', error);
+      setMessage('Could not delete media');
+      window.setTimeout(() => setMessage(''), 2000);
+    } finally {
+      setRemovingId(null);
+    }
+  };
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#fff8f8] px-4">
@@ -276,7 +321,71 @@ export default function FavoritesPage() {
                     />
                   )}
                 </div>
-                <div className="hidden lg:block bg-black" />
+                <div className="hidden lg:flex flex-col bg-black p-6 text-white gap-4">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">{selectedPhoto.fileName || 'Untitled'}</h3>
+                    <p className="text-sm text-gray-400">{selectedPhoto.albumName}</p>
+                    {selectedPhoto.mediaKind && (
+                      <p className="text-sm text-gray-400 mt-1">
+                        {selectedPhoto.mediaKind.includes('video') ? '🎬 Video' : '🖼️ Photo'}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex-1" />
+                  <div className="space-y-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        removeFavorite(selectedPhoto.id);
+                      }}
+                      disabled={removingId === selectedPhoto.id}
+                      className="w-full rounded-lg bg-[#D23284]/80 hover:bg-[#D23284] px-4 py-3 text-sm font-semibold text-white transition disabled:opacity-60 flex items-center justify-center gap-2"
+                    >
+                      <Heart size={16} fill="white" /> Remove Favorite
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        deleteMedia(selectedPhoto.id);
+                      }}
+                      disabled={removingId === selectedPhoto.id}
+                      className="w-full rounded-lg bg-red-600/80 hover:bg-red-700 px-4 py-3 text-sm font-semibold text-white transition disabled:opacity-60 flex items-center justify-center gap-2"
+                    >
+                      <X size={16} /> Delete Permanently
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPhoto(null)}
+                      className="w-full rounded-lg bg-gray-700/50 hover:bg-gray-600/50 px-4 py-3 text-sm font-semibold text-white transition"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mobile action bar at bottom */}
+              <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent p-4 flex gap-3 justify-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    removeFavorite(selectedPhoto.id);
+                  }}
+                  disabled={removingId === selectedPhoto.id}
+                  className="rounded-lg bg-[#D23284]/80 hover:bg-[#D23284] px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-60"
+                >
+                  ♥ Remove
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    deleteMedia(selectedPhoto.id);
+                  }}
+                  disabled={removingId === selectedPhoto.id}
+                  className="rounded-lg bg-red-600/80 hover:bg-red-700 px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-60"
+                >
+                  🗑️ Delete
+                </button>
               </div>
             </motion.div>
           </motion.div>

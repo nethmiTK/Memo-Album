@@ -32,6 +32,9 @@ export default function FolderPage() {
   const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
   const [pendingMeta, setPendingMeta] = useState<Record<number, { title?: string }>>({});
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [allFolders, setAllFolders] = useState<any[]>([]);
+  const [showMoveModal, setShowMoveModal] = useState(false);
+  const [mediaToMove, setMediaToMove] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
 
@@ -458,6 +461,51 @@ export default function FolderPage() {
     setZoomed(false);
   };
 
+  const fetchAllFolders = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/api/gallery/folders`, {
+        headers: getAuthHeaders(),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setAllFolders(data?.data || []);
+      }
+    } catch (err) {
+      console.warn('Failed to load folders for move:', err);
+    }
+  };
+
+  const moveMediaToFolder = async (destinationFolderId: string) => {
+    if (!mediaToMove) return;
+
+    try {
+      // Call backend to move
+      const response = await fetch(`${API_BASE}/api/gallery/media/${mediaToMove}`, {
+        method: 'PATCH',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ folderId: destinationFolderId }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => null as any);
+        throw new Error(err?.message || 'Failed to move media.');
+      }
+
+      // Remove from current folder locally
+      setFolder((prev: any) => {
+        if (!prev) return prev;
+        return { ...prev, images: prev.images.filter((image: any) => image.id !== mediaToMove) };
+      });
+
+      setShowMoveModal(false);
+      setMediaToMove(null);
+    } catch (err) {
+      console.warn('Move media failed:', err);
+      setShowMoveModal(false);
+      setMediaToMove(null);
+    }
+  };
+
   const showPrev = () => {
     if (previewIndex === null || !folder) return;
     const len = (folder.images || []).length;
@@ -539,6 +587,12 @@ export default function FolderPage() {
 
                   <div className="flex flex-wrap items-center gap-3">
                     <button
+                      onClick={() => router.push('/user-panel/favorites')}
+                      className="rounded-full border border-[#C82B7D] bg-white px-5 py-2 text-xs font-medium text-[#C82B7D] hover:bg-[#f6edee] transition-colors flex items-center gap-2"
+                    >
+                      ♥ Favorites
+                    </button>
+                    <button
                       onClick={() => window.alert('Share link copied')}
                       className="rounded-full border border-[#d8c1cb] bg-white px-5 py-2 text-xs font-medium text-[#5f3d4a] hover:bg-[#f6edee] transition-colors flex items-center gap-2"
                     >
@@ -600,8 +654,14 @@ export default function FolderPage() {
                             </div>
                           )
                         ) : (
-                          <div className="w-full aspect-3/4 flex items-center justify-center text-[#7f1940] bg-linear-to-br from-[#FFE8EE] to-[#f3e6eb']">
+                          <div className="w-full aspect-3/4 flex items-center justify-center text-[#7f1940] bg-linear-to-br from-[#FFE8EE] to-[#f3e6eb'] relative group">
                             <span className="text-4xl">🎬</span>
+                            {/* Play button overlay for videos */}
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                              <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-white/90 shadow-lg">
+                                <span className="text-3xl">▶</span>
+                              </div>
+                            </div>
                           </div>
                         )}
                         {/* Gradient overlay */}
@@ -627,6 +687,20 @@ export default function FolderPage() {
                           <p className="text-white/70 text-xs">{image.uploadedAt}</p>
                         </div>
                           <div className="flex gap-2">
+                            <button
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setMediaToMove(image.id);
+                                fetchAllFolders();
+                                setShowMoveModal(true);
+                              }}
+                              type="button"
+                              className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-[#C82B7D] hover:bg-white transition-all"
+                              aria-label="Move to folder"
+                              title="Move to folder"
+                            >
+                              ➜
+                            </button>
                             <button
                               onClick={(event) => {
                                 event.stopPropagation();
@@ -776,42 +850,67 @@ export default function FolderPage() {
             >
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="w-20 h-20 rounded-full bg-[#fff1f4] flex items-center justify-center text-4xl text-[#C82B7D] cursor-pointer"
+                className="w-20 h-20 rounded-full bg-[#fff1f4] flex items-center justify-center text-4xl text-[#C82B7D] cursor-pointer hover:scale-110 transition-transform"
               >⬆️</div>
-              <h3 className="text-2xl font-medium text-[#211a1b]">Drag your memories here</h3>
+              <h3 className="text-2xl font-medium text-[#211a1b]">Drag your photos & videos here</h3>
               <p className="text-sm text-[#7f5a67]">or <label className="text-[#C82B7D] underline cursor-pointer">browse files
                 <input ref={fileInputRef} type="file" accept="image/*,video/*" multiple className="hidden" onChange={handleFileSelection} />
-              </label> from your workstation</p>
+              </label> from your computer</p>
+              <p className="text-xs text-[#9f7a88] mt-2">Supported: JPEG, PNG, GIF, WebP, MP4, MOV, WebM</p>
             </div>
 
             {filePreviews.length > 0 && (
-              <div className="mt-6 bg-white rounded-lg p-4 border border-[#e7d5db] relative">
+              <div className="mt-6 bg-gradient-to-r from-[#FFF8F7] to-[#fff1f4] rounded-lg p-6 border border-[#e7d5db] relative shadow-lg">
                 {showSaveConfirmation && (
-                  <div className="mb-4 flex items-center justify-between rounded-md bg-green-50 border border-green-200 p-3">
-                    <div className="text-sm text-green-800">Saved successfully.</div>
+                  <div className="mb-4 flex items-center justify-between rounded-md bg-green-50 border border-green-200 p-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">✅</span>
+                      <div className="text-sm text-green-800 font-medium">Saved to database successfully!</div>
+                    </div>
                     <div className="flex gap-2">
-                      <button onClick={() => { setSelectedFiles([]); setFilePreviews([]); setShowSaveConfirmation(false); }} className="text-sm text-[#7f1940]">Add more</button>
-                      <button onClick={() => { setShowUploadModal(false); setShowSaveConfirmation(false); setSelectedFiles([]); setFilePreviews([]); }} className="ml-2 rounded-full bg-[#C82B7D] px-3 py-1 text-sm text-white">Done</button>
+                      <button onClick={() => { setSelectedFiles([]); setFilePreviews([]); setShowSaveConfirmation(false); }} className="text-sm text-green-700 hover:underline">Add more</button>
+                      <button onClick={() => { setShowUploadModal(false); setShowSaveConfirmation(false); setSelectedFiles([]); setFilePreviews([]); }} className="ml-2 rounded-full bg-[#C82B7D] px-4 py-2 text-sm text-white hover:bg-[#a02063]">Done</button>
                     </div>
                   </div>
                 )}
                 <div className="mb-4 flex items-center justify-between">
-                  <div className="text-sm text-[#7f5a67]">{filePreviews.length} file(s) selected</div>
+                  <div>
+                    <div className="text-sm font-semibold text-[#211a1b]">{filePreviews.length} file(s) selected</div>
+                    <p className="text-xs text-[#7f5a67] mt-1">Ready to save to your gallery</p>
+                  </div>
                   <div className="flex gap-2">
-                    <button onClick={() => { setSelectedFiles([]); setFilePreviews([]); }} className="text-sm text-[#7f1940]">Clear</button>
-                    <button onClick={async () => { const ok = await uploadMedia(); if (ok) { alert('Saved successfully'); setShowUploadModal(false); } else { alert('Save failed'); } }} className="ml-2 rounded-full bg-[#C82B7D] px-4 py-2 text-sm text-white">{uploading ? '⏳ Uploading...' : 'Save'}</button>
+                    <button onClick={() => { setSelectedFiles([]); setFilePreviews([]); }} className="text-sm text-[#7f1940] hover:underline">Clear all</button>
+                    <button 
+                      onClick={async () => { 
+                        const ok = await uploadMedia(); 
+                        if (ok) { 
+                          setShowSaveConfirmation(true); 
+                        } else { 
+                          alert('Save failed'); 
+                        } 
+                      }} 
+                      disabled={uploading}
+                      className="ml-2 rounded-full bg-gradient-to-r from-[#C82B7D] to-[#d23284] px-6 py-2 text-sm font-semibold text-white hover:shadow-lg hover:opacity-95 disabled:opacity-60 transition-all"
+                    >
+                      {uploading ? '⏳ Saving to Database...' : '💾 Save to Gallery'}
+                    </button>
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-3">
                   {filePreviews.map((preview, i) => (
-                    <div key={`modal-preview-${i}`} className="relative rounded-lg overflow-hidden bg-[#f3e6eb] cursor-pointer" onClick={() => setEditingIndex(i)}>
+                    <div key={`modal-preview-${i}`} className="relative rounded-lg overflow-hidden bg-[#f3e6eb] cursor-pointer group" onClick={() => setEditingIndex(i)}>
                       {preview.type === 'video' ? (
-                        <video src={preview.previewUrl} className="w-full h-28 object-cover" controls playsInline />
+                        <>
+                          <video src={preview.previewUrl} className="w-full h-28 object-cover" />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <span className="text-2xl">▶</span>
+                          </div>
+                        </>
                       ) : (
-                        <img src={preview.previewUrl} alt={`preview-${i}`} className="w-full h-28 object-cover" />
+                        <img src={preview.previewUrl} alt={`preview-${i}`} className="w-full h-28 object-cover group-hover:scale-105 transition-transform" />
                       )}
-                      <button onClick={(e) => { e.stopPropagation(); removePreview(i); }} className="absolute top-2 right-2 inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-[#C82B7D]">✕</button>
-                      <div className="absolute left-2 bottom-2 bg-white/80 rounded-md px-2 py-1 text-xs text-[#7f1940]">{preview.name}</div>
+                      <button onClick={(e) => { e.stopPropagation(); removePreview(i); }} className="absolute top-2 right-2 inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-[#C82B7D] hover:bg-white">✕</button>
+                      <div className="absolute left-2 bottom-2 bg-white/90 rounded-md px-2 py-1 text-xs text-[#7f1940] font-medium">{preview.name.substring(0, 12)}</div>
                     </div>
                   ))}
                 </div>
@@ -878,9 +977,14 @@ export default function FolderPage() {
                 </a>
               ) : null}
               <button onClick={toggleZoom} className="absolute top-3 right-28 z-50 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-[#7f1940]" aria-label="Toggle zoom">🔍</button>
-              <div className="flex items-center justify-center w-full h-full overflow-hidden">
+              <div className="flex items-center justify-center w-full h-full overflow-hidden bg-black">
                 {previewImage.mediaType === 'video' ? (
-                  <video src={previewImage.url} controls className={`max-w-full ${zoomed ? 'scale-125' : 'scale-100'} max-h-[90vh] rounded transition-transform`} />
+                  <video 
+                    src={previewImage.url} 
+                    controls 
+                    autoPlay
+                    className={`max-w-full ${zoomed ? 'scale-125' : 'scale-100'} max-h-[90vh] rounded transition-transform`} 
+                  />
                 ) : (
                   <img src={previewImage.url} alt={previewImage.title} className={`max-w-full ${zoomed ? 'scale-125' : 'scale-100'} max-h-[90vh] rounded transition-transform`} />
                 )}
@@ -888,6 +992,53 @@ export default function FolderPage() {
             </div>
         </div>
       )}
-    </div>
+      {/* Move Media Modal */}
+      {showMoveModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-96 flex flex-col">
+            <div className="px-6 py-4 border-b border-[#e7d5db] flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-[#211a1b]">Move to Folder</h3>
+              <button
+                onClick={() => {
+                  setShowMoveModal(false);
+                  setMediaToMove(null);
+                }}
+                className="text-[#7f5a67] hover:text-[#211a1b] transition"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-6 py-4">
+              {allFolders.length === 0 ? (
+                <p className="text-sm text-[#7f5a67] py-8 text-center">No folders available</p>
+              ) : (
+                <div className="space-y-2">
+                  {allFolders.map((f: any) => (
+                    <button
+                      key={f.id}
+                      onClick={() => moveMediaToFolder(f.id)}
+                      className="w-full text-left px-4 py-3 rounded-lg hover:bg-[#FFE8EE] transition border border-transparent hover:border-[#FFB6D9]"
+                    >
+                      <p className="font-medium text-[#211a1b]">{f.name}</p>
+                      <p className="text-xs text-[#7f5a67]">{f.category}</p>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="px-6 py-4 border-t border-[#e7d5db] flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setShowMoveModal(false);
+                  setMediaToMove(null);
+                }}
+                className="px-4 py-2 rounded-full border border-[#d8c1cb] text-[#5f3d4a] hover:bg-[#f6edee] transition"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}    </div>
   );
 }
