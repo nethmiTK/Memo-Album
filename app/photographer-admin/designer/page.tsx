@@ -237,7 +237,7 @@ const CreateAlbum: React.FC = () => {
         }, 100);
       }
 
-      // toast.success('Cover photo changed (auto-saving...)', toastStyle);
+      toast.success('Cover photo changed (auto-saving...)', toastStyle);
     };
     reader.readAsDataURL(file);
     e.target.value = '';
@@ -255,7 +255,7 @@ const CreateAlbum: React.FC = () => {
       }, 100);
     }
 
-    // toast.success('Cover photo removed (auto-saving...)', toastStyle);
+    toast.success('Cover photo removed (auto-saving...)', toastStyle);
   };
 
   const handleEndPhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {

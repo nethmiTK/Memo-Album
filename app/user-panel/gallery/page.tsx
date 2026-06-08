@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Heart, Trash2 } from 'lucide-react';
+import { Heart, Trash2, Upload, FolderPlus, Search, Filter, MoreVertical, Download, Share2, Eye, EyeOff, Copy, CheckCircle, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
@@ -12,6 +12,20 @@ interface MediaItem {
   type: 'photo' | 'video';
   uploadedAt: string;
   isFavorite: boolean;
+  uploadPath?: string;
+  uploadedBy?: string;
+}
+
+interface UploadLog {
+  id: string;
+  fileName: string;
+  uploadPath: string;
+  uploadedBy: string;
+  uploadTime: string;
+  fileSize: string;
+  status: 'success' | 'pending' | 'error';
+  mediaType: 'photo' | 'video';
+  mediaUrl?: string;
 }
 
 export default function GalleryPage() {
@@ -19,6 +33,7 @@ export default function GalleryPage() {
   const [mediaFilter, setMediaFilter] = useState<'all' | 'photos' | 'videos'>('all');
   const [galleryFolders, setGalleryFolders] = useState<any[]>([]);
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
+  const [uploadLogs, setUploadLogs] = useState<UploadLog[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -33,9 +48,12 @@ export default function GalleryPage() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [galleryCounts, setGalleryCounts] = useState({ all: 0, photos: 0, videos: 0 });
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const getAuthHeaders = () => {
     const headers: Record<string, string> = {
@@ -69,59 +87,92 @@ export default function GalleryPage() {
     return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
   };
 
+  const addUploadLog = (fileName: string, fileSize: string, mediaType: 'photo' | 'video', mediaUrl?: string, uploadPath: string = '/uploads/gallery', status: 'success' | 'pending' | 'error' = 'success') => {
+    const newLog: UploadLog = {
+      id: `log-${Date.now()}`,
+      fileName,
+      uploadPath,
+      uploadedBy: 'couple-profile',
+      uploadTime: new Date().toLocaleTimeString(),
+      fileSize,
+      status,
+      mediaType,
+      mediaUrl,
+    };
+    setUploadLogs((prev) => [newLog, ...prev.slice(0, 9)]);
+  };
+
   const getSelectedFilesSize = () => selectedFiles.reduce((total, file) => total + file.size, 0);
 
-  const uploadRecentMedia = async (files: File[]) => {
-    if (!files.length) return;
+const uploadRecentMedia = async (files: File[]) => {
+  if (!files.length) return;
 
-    setUploading(true);
-    setUploadProgress(0);
-    try {
-      const items = await Promise.all(
-        files.map(async (file) => ({
-          title: file.name,
-          mediaType: getMediaTypeFromFile(file),
-          dataUrl: await fileToDataUrl(file),
-          fileType: file.type,
-          fileName: file.name,
-        }))
+  setUploading(true);
+  setUploadProgress(0);
+  setUploadError(null);
+
+  try {
+    const items = await Promise.all(
+      files.map(async (file) => ({
+        title: file.name,
+        mediaType: getMediaTypeFromFile(file),
+        dataUrl: await fileToDataUrl(file),
+        fileType: file.type,
+        fileName: file.name,
+      }))
+    );
+
+    setUploadProgress(30);
+
+    const response = await fetch(`${API_BASE}/api/gallery/media`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ items }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) throw new Error(result?.message || 'Upload failed');
+
+    setUploadProgress(70);
+
+    // Refresh data
+    await fetchGalleryData();
+
+    setUploadProgress(100);
+
+    // Success feedback
+    files.forEach((file) => {
+      addUploadLog(
+        file.name,
+        formatStorage(file.size),
+        getMediaTypeFromFile(file),
+        '', 
+        '/uploads/gallery',
+        'success'
       );
+    });
 
-      setUploadProgress(40);
-      const response = await fetch(`${API_BASE}/api/gallery/media`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ items }),
-      });
-
-      const result = await response.json();
-      if (!response.ok) {
-        throw new Error(result?.message || 'Upload failed');
-      }
-
-      setUploadProgress(90);
-      const uploadedItems = Array.isArray(result.data) ? result.data : [result.data];
-      setMediaItems((prev) => [
-        ...uploadedItems.map((item: any) => ({
-          id: String(item.id || Date.now()),
-          url: item.url || '/images/media1.jpg',
-          type: item.mediaType === 'video' ? 'video' : 'photo',
-          uploadedAt: item.uploadedAt ? new Date(item.uploadedAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-          isFavorite: item.isFavorite ?? false,
-        })),
-        ...prev,
-      ]);
-      setUploadProgress(100);
-
+    // 🔥 Auto navigate to All Photos after successful upload
+    setTimeout(() => {
+      router.push('/user-panel/gallery?view=all'); // or your all photos route
+      setShowUploadForm(false);
       setSelectedFiles([]);
       setFilePreviews([]);
-    } catch (uploadErr) {
-      console.warn('Upload failed:', uploadErr);
-      setError((uploadErr as Error).message || 'Upload failed.');
-    } finally {
-      setUploading(false);
-    }
-  };
+    }, 800);
+
+  } catch (err: any) {
+    console.error(err);
+    setUploadError(err.message || 'Upload failed');
+    setUploadProgress(0);
+    
+    files.forEach((file) => {
+      addUploadLog(file.name, formatStorage(file.size), getMediaTypeFromFile(file), undefined, '/uploads/gallery', 'error');
+    });
+  } finally {
+    setUploading(false);
+  }
+};
 
   const handleFileSelection = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
@@ -250,6 +301,7 @@ export default function GalleryPage() {
         headers: getAuthHeaders(),
         body: JSON.stringify({ items }),
       });
+      const [uploadSuccess, setUploadSuccess] = useState(false);
 
       const result = await response.json();
       if (!response.ok) {
@@ -264,14 +316,32 @@ export default function GalleryPage() {
           type: item.mediaType === 'video' ? 'video' : 'photo',
           uploadedAt: item.createdAt ? new Date(item.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
           isFavorite: item.isFavorite ?? false,
+          uploadPath: item.uploadPath || '/uploads/gallery',
+          uploadedBy: item.uploadedBy || 'couple-profile',
         })),
         ...prev,
       ]);
+
+      // Add upload logs for folder uploads
+      selectedFiles.forEach((file, idx) => {
+        const uploadedItem = uploadedItems[idx];
+        addUploadLog(
+          file.name, 
+          formatStorage(file.size), 
+          getMediaTypeFromFile(file),
+          uploadedItem?.url,
+          `/uploads/gallery/${selectedFolder.id}`, 
+          'success'
+        );
+      });
 
       closeUploadModal();
     } catch (uploadErr) {
       console.warn('Upload failed:', uploadErr);
       setUploadError((uploadErr as Error).message || 'Upload failed.');
+      selectedFiles.forEach((file) => {
+        addUploadLog(file.name, formatStorage(file.size), getMediaTypeFromFile(file), undefined, `/uploads/gallery/${selectedFolder.id}`, 'error');
+      });
     } finally {
       setUploading(false);
     }
@@ -283,54 +353,48 @@ export default function GalleryPage() {
     };
   }, [filePreviews]);
 
-  const fetchGalleryData = async () => {
-    setLoading(true);
-    try {
-      const [folderResponse, mediaResponse] = await Promise.all([
-        fetch(`${API_BASE}/api/gallery/folders`, {
-          headers: getAuthHeaders(),
-        }),
-        fetch(`${API_BASE}/api/gallery/media`, {
-          headers: getAuthHeaders(),
-        }),
-      ]);
+ const fetchGalleryData = async () => {
+  setLoading(true);
+  setError(null);
 
-      if (folderResponse.ok) {
-        const folderData = await folderResponse.json();
-        if (folderData?.data) {
-          setGalleryFolders(
-            folderData.data.map((folder: any) => ({
-              id: String(folder.id ?? folder._id ?? Date.now()),
-              name: folder.name,
-              category: folder.category || 'Custom',
-              imageCount: folder.images?.length ?? 0,
-              coverImages: folder.images?.filter((image: any) => image.url).map((image: any) => image.url) ?? [],
-            }))
-          );
-        }
-      }
+  try {
+    const [folderRes, mediaRes, summaryRes] = await Promise.all([
+      fetch(`${API_BASE}/api/gallery/folders`, { headers: getAuthHeaders() }),
+      fetch(`${API_BASE}/api/gallery/media`, { headers: getAuthHeaders() }),
+      fetch(`${API_BASE}/api/gallery/summary`, { headers: getAuthHeaders() }),
+    ]);
 
-      if (mediaResponse.ok) {
-        const mediaData = await mediaResponse.json();
-        if (mediaData?.data) {
-          setMediaItems(
-            mediaData.data.map((item: any) => ({
-              id: String(item._id),
-              url: item.url || '/images/media1.jpg',
-              type: item.mediaType === 'video' ? 'video' : 'photo',
-              uploadedAt: item.createdAt ? new Date(item.createdAt).toISOString().split('T')[0] : item.uploadedAt || '2024-01-01',
-              isFavorite: item.isFavorite ?? false,
-            }))
-          );
-        }
-      }
-    } catch (fetchError) {
-      console.warn('Gallery load failed:', fetchError);
-      setError('Could not load gallery data.');
-    } finally {
-      setLoading(false);
+    if (folderRes.ok) {
+      const { data } = await folderRes.json();
+      setGalleryFolders(data || []);
     }
-  };
+
+    if (mediaRes.ok) {
+      const { data } = await mediaRes.json();
+      setMediaItems(
+        (data || []).map((item: any) => ({
+          id: String(item._id || item.id),
+          url: item.url,
+          type: item.mediaType === 'video' ? 'video' : 'photo',
+          uploadedAt: item.uploadedAt ? new Date(item.uploadedAt).toISOString().split('T')[0] : 'Recent',
+          isFavorite: item.isFavorite ?? false,
+        }))
+      );
+    }
+
+    if (summaryRes.ok) {
+      const { counts } = await summaryRes.json();
+      const safeCounts = counts || { all: 0, photos: 0, videos: 0 };
+      setGalleryCounts(safeCounts);
+    }
+  } catch (e) {
+    console.error('Error fetching gallery data:', e);
+    setError('Failed to load gallery');
+  } finally {
+    setLoading(false);
+    setIsInitialized(true);
+  }
+};
 
   useEffect(() => {
     fetchGalleryData();
@@ -407,6 +471,8 @@ export default function GalleryPage() {
       if (!response.ok) {
         throw new Error('Failed to delete media item.');
       }
+      // Refresh counts after deletion
+      await fetchGalleryData();
     } catch (deleteError) {
       console.warn('Failed to delete media item:', deleteError);
       await fetchGalleryData();
@@ -468,15 +534,20 @@ export default function GalleryPage() {
     setShowCreateModal(false);
   };
 
-  const filteredMedia =
-    mediaFilter === 'all' ? mediaItems : mediaItems.filter((item) => item.type === mediaFilter.slice(0, -1));
+   
+
+  const filteredMedia = isInitialized
+    ? mediaFilter === 'all' 
+      ? mediaItems 
+      : mediaItems.filter((item) => item.type === mediaFilter.slice(0, -1))
+    : [];
 
   const allPhotosCard: any = {
     id: 'all-photos',
     name: 'All Photos',
     category: 'All Media',
-    imageCount: mediaItems.length,
-    coverImages: mediaItems.slice(0, 2).map((item) => item.url),
+    imageCount: galleryCounts?.all ?? 0,
+    coverImages: (Array.isArray(mediaItems) ? mediaItems : []).slice(0, 2).map((item) => item.url),
   };
 
   const guestFolderCard: any = {
@@ -490,31 +561,46 @@ export default function GalleryPage() {
   const visibleFolders = [
     allPhotosCard,
     guestFolderCard,
-    ...galleryFolders.filter(
-      (folder) => !/guest|interactive/i.test(folder.name) && !/guest|interactive/i.test(folder.category)
-    ),
+    ...(Array.isArray(galleryFolders) 
+      ? galleryFolders.map(folder => ({
+          ...folder,
+          // Transform 'images' array from backend to 'coverImages'
+          coverImages: Array.isArray(folder?.images) 
+            ? folder.images.slice(0, 2).map((img: any) => img.url).filter(Boolean)
+            : (Array.isArray(folder?.coverImages) ? folder.coverImages : []),
+        })).filter(
+          (folder) => !/guest|interactive/i.test(folder?.name || '') && !/guest|interactive/i.test(folder?.category || '')
+        )
+      : []),
   ];
 
   return (
     <div className="w-full min-h-screen" style={{ backgroundColor: '#FFE8EE' }}>
-      {/* Header */}
-      <div className="px-8 py-12" style={{ backgroundColor: '#fff8f7' }}>
-        <h1
-          className="text-5xl font-normal mb-2"
-          style={{
-            fontFamily: 'Newsreader',
-            color: '#211a1b',
-          }}
-        >
-          The Living Archive
-        </h1>
+      {/* Main Content */}
+      <div className="w-full">
+        {/* Header */}
+        <div className="px-8 py-12 bg-linear-to-r from-[#fff8f7] to-[#fff5f7] border-b border-[#f0e0e6]">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1
+              className="text-5xl font-normal mb-2 tracking-tight"
+              style={{
+                fontFamily: 'Newsreader',
+                color: '#211a1b',
+              }}
+            >
+              The Living Archive
+            </h1>
+            <p className="text-sm text-[#7f5a67] font-medium">Preserve your precious memories</p>
+          </div>
+        </div>
       </div>
 
       {/* Gallery Folders Section */}
       <section className="px-8 py-12">
         <div className="flex items-center justify-between mb-8">
           <h2
-            className="text-3xl font-normal"
+            className="text-3xl font-normal tracking-tight"
             style={{
               fontFamily: 'Newsreader',
               color: '#211a1b',
@@ -522,39 +608,29 @@ export default function GalleryPage() {
           >
             Gallery Folders
           </h2>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => router.replace('/user-panel/albums')}
-              className="px-6 py-2 rounded-full font-semibold transition-all flex items-center gap-2"
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full font-semibold text-sm transition-all hover:shadow-lg"
               style={{
                 backgroundColor: '#FFE8EE',
-                border: '1px solid #C82B7D',
+                border: '2px solid #C82B7D',
                 color: '#C82B7D',
               }}
             >
-              <span className="material-symbols-outlined text-base"> </span>
-              Wedding Album
+               Wedding Album
             </button>
+              
             <button
-                onClick={openUploadForm}
-                className="px-6 py-2 rounded-full font-semibold text-white transition-all"
-                style={{
-                  backgroundColor: '#890051',
-                  background: 'linear-gradient(135deg, #890051 0%, #d23284 100%)',
-                }}
-              >
-                Upload Media
-              </button>
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="px-6 py-2 rounded-full font-semibold text-white transition-all"
-                style={{
-                  backgroundColor: '#890051',
-                  background: 'linear-gradient(135deg, #890051 0%, #d23284 100%)',
-                }}
-              >
-                Create New Folder
-              </button>
+              onClick={() => setShowCreateModal(true)}
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full font-semibold text-white text-sm transition-all hover:shadow-lg hover:scale-105"
+              style={{
+                background: 'linear-gradient(135deg, #890051 0%, #d23284 100%)',
+              }}
+            >
+              <FolderPlus className="w-4 h-4" />
+              Create Folder
+            </button>
           </div>
         </div>
 
@@ -563,76 +639,62 @@ export default function GalleryPage() {
             <div
               key={folder.id ?? folder.name ?? `folder-${fIdx}`}
               onClick={() => openFolderPage(folder)}
-              className="cursor-pointer rounded-4xl overflow-hidden transition-all duration-300 hover:shadow-2xl h-full min-h-[18rem]"
+              className="group cursor-pointer rounded-3xl overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-105 h-full min-h-72 relative"
               style={{
                 backgroundColor: '#fff1f4',
               }}
             >
               {/* Folder Preview */}
               <div
-                className="h-56 bg-gray-200 flex items-center justify-center overflow-hidden"
+                className="h-56 bg-gray-200 flex items-center justify-center overflow-hidden relative"
                 style={{
                   backgroundColor: '#ffe8ee',
                 }}
               >
-                {folder.coverImages.length > 0 ? (
+                {Array.isArray(folder.coverImages) && folder.coverImages.length > 0 ? (
                   <img
                     src={folder.coverImages[0]}
                     alt={folder.name}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   />
                 ) : (
                   <div className="text-center">
-                    <svg
-                      className="w-12 h-12 mx-auto"
-                      style={{ color: '#d23284' }}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                      />
-                    </svg>
+                    <FolderPlus className="w-12 h-12 mx-auto text-[#d23284]" />
                   </div>
                 )}
+                {/* Overlay on hover */}
+                <div className="absolute inset-0 bg-linear-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-3">
+                  <div className="w-full">
+                    <p className="text-white text-xs font-semibold truncate">{folder.imageCount} items</p>
+                  </div>
+                </div>
               </div>
 
               {/* Folder Info */}
               <div className="p-4">
                 <h3
-                  className="font-semibold mb-1"
+                  className="font-semibold mb-1 text-lg group-hover:text-[#d23284] transition-colors"
                   style={{
                     fontFamily: 'Plus Jakarta Sans',
                     color: '#211a1b',
-                    fontSize: '16px',
                   }}
                 >
                   {folder.name}
                 </h3>
                 <p
-                  className="text-sm"
+                  className="text-sm mb-2"
                   style={{
                     fontFamily: 'Plus Jakarta Sans',
                     color: '#534345',
-                    fontSize: '12px',
                   }}
                 >
                   {folder.category}
                 </p>
                 {folder.imageCount > 0 && (
-                  <p
-                    className="text-xs mt-2"
-                    style={{
-                      fontFamily: 'Plus Jakarta Sans',
-                      color: '#8b7079',
-                    }}
-                  >
-                    {folder.imageCount} items
-                  </p>
+                  <div className="flex items-center gap-1 text-xs" style={{ color: '#8b7079' }}>
+                    <span>📷</span>
+                    <p>{folder.imageCount} items</p>
+                  </div>
                 )}
               </div>
             </div>
@@ -688,7 +750,7 @@ export default function GalleryPage() {
                 className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#e0d3d8] text-[#4b4b4b] transition hover:bg-[#f7f1f3]"
                 aria-label="Close upload modal"
               >
-                <span className="material-symbols-outlined text-base">close</span>
+                ✕
               </button>
             </div>
 
@@ -703,7 +765,7 @@ export default function GalleryPage() {
             {filePreviews.length > 0 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                 {filePreviews.map((preview, pIdx) => (
-                  <div key={preview.previewUrl ?? preview.name ?? `preview-${pIdx}`} className="border rounded p-2">
+                  <div key={`folder-preview-${preview.name}-${pIdx}`} className="border rounded p-2">
                     <div className="text-xs font-semibold mb-1" style={{ color: '#211a1b' }}>
                       {preview.name}
                     </div>
@@ -743,153 +805,77 @@ export default function GalleryPage() {
         </div>
       )}
 
-      {showUploadForm && (
-        <div className="mb-8 mx-auto w-full max-w-[1000px] rounded-[32px] border border-[#e7d5db] bg-white shadow-sm overflow-hidden">
-          <div className="flex flex-col gap-4 p-6 border-b sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <h3 className="text-xl font-semibold text-[#211a1b]">Media Repository</h3>
-              <p className="text-sm text-[#7f5a67] mt-1">Drag images or videos here to upload into your gallery.</p>
-            </div>
-            <button
-              onClick={() => setShowUploadForm(false)}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#e0d3d8] text-[#4b4b4b] transition hover:bg-[#f7f1f3]"
-              aria-label="Close upload form"
-            >
-              <span className="material-symbols-outlined text-base">close</span>
-            </button>
-          </div>
-
-          <div className="p-6 max-h-[72vh] overflow-y-auto">
-            <div className="rounded-3xl border border-[#b10e6b]/10 bg-[#fff6f7] p-6">
-              <div
-                className={`p-6 border border-[#f1d7e1] rounded-3xl flex flex-col items-center justify-center text-center gap-4 min-h-[14rem] cursor-pointer transition-colors ${isDragging ? 'bg-[#fcf1f6]' : ''}`}
-                onClick={() => fileInputRef.current?.click()}
-                onDragEnter={handleDrag}
-                onDragOver={handleDrag}
-                onDragLeave={handleDrag}
-                onDrop={handleDrop}
-              >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  onChange={handleUploadFormFileSelection}
-                  className="hidden"
-                  accept="image/*,video/*,.raw"
-                />
-
-                <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto" style={{ backgroundColor: '#f7ecef' }}>
-                  <span className="material-symbols-outlined text-4xl" style={{ color: '#b10e6b' }}>cloud_upload</span>
-                </div>
-                <p className="serif text-2xl text-[#211a1b]">Drag your memories here</p>
-                <p className="text-sm text-[#9a8a8e]">
-                  or <span className="text-[#b10e6b] underline">browse files</span> from your workstation
-                </p>
-              </div>
-
-              {selectedFiles.length > 0 && (
-                <div className="mt-6 w-full max-w-2xl rounded-2xl bg-[#FEF5F6] p-4">
-                  <div className="flex justify-between mb-2 text-sm">
-                    <span className="truncate">{selectedFiles[0]?.name}</span>
-                    <span className="text-[#b10e6b] font-bold">{uploadProgress}%</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-gray-200 overflow-hidden">
-                    <div className="h-2 rounded-full bg-[#b10e6b] transition-all" style={{ width: `${uploadProgress}%` }} />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {filePreviews.length > 0 && (
-              <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {filePreviews.map((preview, pIdx) => (
-                  <div key={`${preview.previewUrl}-${pIdx}`} className="rounded-3xl border border-[#f1d7e1] bg-[#fff5f7] p-3">
-                    <div className="text-xs font-semibold mb-2 text-[#211a1b] truncate">{preview.name}</div>
-                    {preview.type === 'photo' ? (
-                      <img src={preview.previewUrl} alt={preview.name} className="h-32 w-full rounded-2xl object-cover" />
-                    ) : (
-                      <video src={preview.previewUrl} controls className="h-32 w-full rounded-2xl object-cover bg-black" />
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end sm:items-center">
-              {uploadError && <div className="text-sm text-red-600">{uploadError}</div>}
-              <button
-                onClick={() => setShowUploadForm(false)}
-                className="rounded-full border border-[#e0d3d8] px-4 py-2 text-sm font-semibold text-[#4b4b4b] hover:bg-[#f7f1f3]"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleUploadFormSubmit}
-                disabled={uploading}
-                className="rounded-full bg-[#890051] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {uploading ? 'Uploading...' : 'Save Media'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Recent Media Section */}
       <section className="px-8 py-16" style={{ backgroundColor: '#fff8f7' }}>
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <h2
-            className="text-3xl font-normal"
-            style={{
-              fontFamily: 'Newsreader',
-              color: '#211a1b',
-            }}
-          >
-            Recent Media
-          </h2>
-          <div className="flex gap-3">
+          <div>
+            <h2
+              className="text-3xl font-normal tracking-tight"
+              style={{
+                fontFamily: 'Newsreader',
+                color: '#211a1b',
+              }}
+            >
+              Recent Media
+            </h2>
+            <p className="text-sm text-[#7f5a67] mt-1">{filteredMedia.length} items in gallery</p>
+          </div>
+          <div className="flex gap-3 items-center">
+            <div className="relative hidden sm:flex">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search media..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 pr-4 py-2 rounded-full border border-[#e0d3d8] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#d23284]"
+              />
+            </div>
             <button
               type="button"
               onClick={openUploadForm}
-              className="inline-flex items-center gap-2 rounded-full bg-[#890051] px-6 py-2 font-semibold text-white transition-all hover:opacity-95"
+              className="inline-flex items-center justify-center rounded-full bg-linear-to-r from-[#890051] to-[#d23284] h-12 w-12 font-semibold text-white transition-all hover:opacity-95 hover:shadow-lg"
+              aria-label="Upload Media"
+              title="Upload new media"
             >
-              <span className="material-symbols-outlined text-xl">cloud_upload</span>
-              Upload Media
+              <Upload className="w-5 h-5" />
             </button>
           </div>
         </div>
 
         {showUploadForm && (
-          <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-            <div className="w-full max-w-4xl rounded-4xl overflow-hidden bg-white shadow-2xl max-h-[90vh] overflow-y-auto">
-              <div className="p-8 border-b flex items-center justify-between">
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="w-full max-w-5xl rounded-3xl overflow-hidden bg-white shadow-2xl max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 p-8 border-b border-[#e0d3d8] bg-linear-to-r from-[#fff8f7] to-[#fff5f7] flex items-center justify-between">
                 <div>
-                  <h3 className="text-xl font-semibold text-[#211a1b]">Media Repository</h3>
-                  <p className="text-sm text-[#7f5a67] mt-1">Drag images or videos here to upload into your gallery.</p>
+                  <h3 className="text-2xl font-semibold text-[#211a1b] font-newsreader">Media Repository</h3>
+                  <p className="text-sm text-[#7f5a67] mt-1">Drag images or videos to upload them to your gallery</p>
                 </div>
                 <button
                   onClick={() => setShowUploadForm(false)}
                   className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#e0d3d8] text-[#4b4b4b] transition hover:bg-[#f7f1f3]"
                   aria-label="Close upload form"
                 >
-                  <span className="material-symbols-outlined text-base">close</span>
+                  <span className="text-2xl">✕</span>
                 </button>
               </div>
 
-              <div className="bg-white min-h-96 rounded-xl shadow-sm overflow-hidden flex flex-col border border-[#b10e6b]/5 p-6">
-                <div className="p-4 border-b flex justify-between items-center">
+              <div className="bg-white rounded-xl shadow-sm overflow-hidden flex flex-col border border-[#b10e6b]/5 p-6">
+                <div className="p-4 border-b border-[#ecd4db] flex justify-between items-center mb-4">
                   <div>
-                    <h3 className="label-sm tracking-widest uppercase text-[10px] text-[#9a8a8e] font-bold">MEDIA REPOSITORY</h3>
-                    <p className="text-xs text-[#9a8a8e] mt-1">Accepting RAW, JPG, and 4K MOV</p>
+                    <h3 className="text-xs font-bold text-[#9a8a8e] uppercase tracking-widest">📸 Media Repository</h3>
+                    <p className="text-xs text-[#9a8a8e] mt-1">Supports RAW, JPG, PNG, MOV, MP4 and more</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-[10px] font-bold text-[#b10e6b] uppercase">STORAGE USED</p>
-                    <p className="text-xs">{formatStorage(getSelectedFilesSize())} / 5.0 GB</p>
+                    <p className="text-xs font-bold text-[#b10e6b] uppercase">Storage Used</p>
+                    <p className="text-xs text-[#7f5a67]">{formatStorage(getSelectedFilesSize())} / 2.0 GB</p>
                   </div>
                 </div>
 
                 <div
-                  className={`flex-1 p-8 flex flex-col items-center justify-center cursor-pointer transition-colors ${isDragging ? 'bg-[#fcf1f6]' : ''}`}
+                  className={`flex-1 p-8 flex flex-col items-center justify-center cursor-pointer transition-colors border-2 border-dashed rounded-2xl ${
+                    isDragging ? 'bg-[#fcf1f6] border-[#d23284]' : 'border-[#e0d3d8] bg-[#fff8f7]'
+                  }`}
                   onClick={() => fileInputRef.current?.click()}
                   onDragEnter={handleDrag}
                   onDragOver={handleDrag}
@@ -905,22 +891,25 @@ export default function GalleryPage() {
                     accept="image/*,video/*,.raw"
                   />
 
-                  <div className="w-24 h-24 rounded-full flex items-center justify-center mx-auto" style={{ backgroundColor: '#f7ecef' }}>
-                    <span className="material-symbols-outlined text-5xl" style={{ color: '#b10e6b' }}>cloud_upload</span>
+                  <div className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#f7ecef' }}>
+                    <Upload className="w-12 h-12 text-[#b10e6b]" />
                   </div>
-                  <p className="serif text-3xl text-[#211a1b]">Drag your memories here</p>
-                  <p className="text-sm text-[#9a8a8e]">
-                    or <span className="text-[#b10e6b] underline">browse files</span> from your workstation
+                  <p className="text-2xl font-newsreader text-[#211a1b] mb-2">Drag your memories here</p>
+                  <p className="text-sm text-[#9a8a8e] mb-6">
+                    or <span className="text-[#b10e6b] font-semibold cursor-pointer hover:underline">browse files</span> from your workstation
                   </p>
 
                   {selectedFiles.length > 0 && (
-                    <div className="mt-6 w-full max-w-3xl p-4 rounded-lg bg-[#FEF5F6]">
-                      <div className="flex justify-between mb-2">
-                        <span className="truncate">{selectedFiles[0]?.name}</span>
-                        <span className="text-[#b10e6b] font-bold">{uploadProgress}%</span>
+                    <div className="mt-6 w-full max-w-3xl p-4 rounded-lg bg-linear-to-r from-[#FEF5F6] to-[#fcf1f6]">
+                      <div className="flex justify-between mb-3">
+                        <span className="truncate font-medium text-[#211a1b]">{selectedFiles[0]?.name}</span>
+                        <span className="text-[#b10e6b] font-bold ml-2">{uploadProgress}%</span>
                       </div>
                       <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                        <div className="h-2 bg-[#b10e6b] rounded-full transition-all" style={{ width: `${uploadProgress}%` }} />
+                        <div
+                          className="h-2 bg-linear-to-r from-[#890051] to-[#d23284] rounded-full transition-all duration-500"
+                          style={{ width: `${uploadProgress}%` }}
+                        />
                       </div>
                     </div>
                   )}
@@ -928,60 +917,109 @@ export default function GalleryPage() {
               </div>
 
               {filePreviews.length > 0 && (
-                <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4 border-t">
+                <div className="p-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 border-t border-[#e0d3d8]">
                   {filePreviews.map((preview, pIdx) => (
-                    <div key={`${preview.previewUrl}-${pIdx}`} className="rounded-3xl border p-3 bg-[#fff5f7]">
-                      <div className="text-xs font-semibold mb-2 text-[#211a1b]">{preview.name}</div>
+                    <div key={`preview-${preview.name}-${pIdx}`} className="rounded-2xl border-2 border-[#e0d3d8] p-2 bg-[#fff5f7] relative group">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-xs font-semibold text-[#211a1b] flex-1 truncate">{preview.name}</div>
+                        <button
+                          onClick={() => setFilePreviews((prev) => prev.filter((_, i) => i !== pIdx))}
+                          className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                          aria-label="Remove file"
+                          title="Remove"
+                        >
+                          <span className="text-xs">✕</span>
+                        </button>
+                      </div>
                       {preview.type === 'photo' ? (
-                        <img src={preview.previewUrl} alt={preview.name} className="h-40 w-full rounded-2xl object-cover" />
+                        <img src={preview.previewUrl} alt={preview.name} className="h-40 w-full rounded-xl object-cover" />
                       ) : (
-                        <video src={preview.previewUrl} controls className="h-40 w-full rounded-2xl object-cover bg-black" />
+                        <video src={preview.previewUrl} controls className="h-40 w-full rounded-xl object-cover bg-black" />
                       )}
                     </div>
                   ))}
                 </div>
               )}
 
-              <div className="p-6 flex flex-col gap-3 sm:flex-row sm:justify-end sm:items-center border-t">
-                {uploadError && <div className="text-sm text-red-600">{uploadError}</div>}
+              <div className="p-6 flex flex-col gap-3 sm:flex-row sm:justify-end sm:items-center border-t border-[#e0d3d8] bg-linear-to-r from-[#fff8f7] to-[#fff5f7]">
+                {uploadError && (
+                  <div className="text-sm text-red-600 flex items-center gap-2 flex-1">
+                    <AlertCircle className="w-4 h-4" />
+                    {uploadError}
+                  </div>
+                )}
                 <button
                   onClick={() => setShowUploadForm(false)}
-                  className="rounded-full border border-[#e0d3d8] px-5 py-3 text-sm font-semibold text-[#4b4b4b] hover:bg-[#f7f1f3]"
+                  className="rounded-full border-2 border-[#e0d3d8] px-6 py-3 text-sm font-semibold text-[#4b4b4b] hover:bg-[#f7f1f3] transition"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleUploadFormSubmit}
                   disabled={uploading}
-                  className="rounded-full bg-[#890051] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-full bg-linear-to-r from-[#890051] to-[#d23284] px-6 py-3 text-sm font-semibold text-white transition hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {uploading ? 'Uploading...' : 'Save Media'}
+                  {uploading ? `Uploading ${uploadProgress}%...` : '💾 Save Media'}
                 </button>
               </div>
             </div>
           </div>
         )}
 
-        {loading && <div className="text-center text-sm mb-6">Loading gallery data...</div>}
-        {error && <div className="text-center text-sm text-red-600 mb-6">{error}</div>}
+        {loading && <div className="text-center text-sm mb-6 text-[#7f5a67] flex items-center justify-center gap-2"><span className="animate-spin">⏳</span> Loading gallery data...</div>}
+        {error && <div className="text-center text-sm text-red-600 mb-6 flex items-center justify-center gap-2"><AlertCircle className="w-4 h-4" /> {error}</div>}
 
+        {isInitialized && !loading && (
+          <>
         {/* Filter Tabs */}
-        <div className="flex gap-6 mb-8 border-b" style={{ borderColor: '#ecd4db' }}>
-          {['all', 'photos', 'videos'].map((filter) => (
-            <button
-              key={filter}
-              onClick={() => setMediaFilter(filter as typeof mediaFilter)}
-              className="pb-4 font-medium text-sm capitalize transition-all"
-              style={{
-                color: mediaFilter === filter ? '#890051' : '#8b7079',
-                fontFamily: 'Plus Jakarta Sans',
-                borderBottom: mediaFilter === filter ? '2px solid #890051' : 'none',
-              }}
-            >
-              {filter === 'all' ? 'All' : filter} ({filteredMedia.length})
-            </button>
-          ))}
+        <div className="flex gap-8 mb-8 border-b border-[#ecd4db] overflow-x-auto pb-2">
+          {['all', 'photos', 'videos'].map((filter) => {
+            let count = 0;
+            if (filter === 'all') {
+              count = galleryCounts?.all ?? 0;
+            } else if (filter === 'photos') {
+              count = galleryCounts?.photos ?? 0;
+            } else if (filter === 'videos') {
+              count = galleryCounts?.videos ?? 0;
+            }
+            
+            return (
+              <button
+                key={filter}
+                onClick={() => setMediaFilter(filter as typeof mediaFilter)}
+                className="relative whitespace-nowrap pb-2 font-medium text-sm capitalize transition-all"
+                style={{
+                  color: mediaFilter === filter ? '#890051' : '#8b7079',
+                  fontFamily: 'Plus Jakarta Sans',
+                }}
+              >
+                {filter === 'all' ? '📷 All' : filter === 'photos' ? '🖼️ Photos' : '🎬 Videos'} ({count})
+                {mediaFilter === filter && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-linear-to-r from-[#890051] to-[#d23284]" />
+                )}
+              </button>
+            );
+          })}
         </div>
+
+        {/* Upload History Section - Recently Uploaded */}
+{uploadLogs.length > 0 && (
+  <div className="mb-12">
+    <div className="flex items-center justify-between mb-6">
+      <h3 className="text-2xl font-normal tracking-tight" style={{ fontFamily: 'Newsreader', color: '#211a1b' }}>
+         Recently Uploaded
+      </h3>
+    </div>
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      {uploadLogs.map((log) => (
+        <div key={log.id} className="group relative overflow-hidden rounded-3xl ...">
+          {/* ... existing card content ... */}
+          {/* Remove the "Save to Profile" hover button */}
+        </div>
+      ))}
+    </div>
+  </div>
+)}
 
         {/* Media Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -1139,7 +1177,10 @@ export default function GalleryPage() {
             </div>
           </div>
         )}
+          </>
+        )}
       </section>
+      </div>
     </div>
   );
 }
