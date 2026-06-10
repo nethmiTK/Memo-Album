@@ -1475,16 +1475,18 @@ const CreateAlbum: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => coverPhotoInputRef.current?.click()}
-                              className="rounded-lg border px-3 py-1 text-[11px] font-semibold bg-white"
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border bg-white transition hover:bg-gray-50"
+                              title="Change Cover"
                             >
-                              Change Cover
+                              <Edit3 size={14} className="text-[#54474d]" />
                             </button>
                             <button
                               type="button"
                               onClick={clearCoverPhoto}
-                              className="rounded-lg border px-3 py-1 text-[11px] font-semibold text-[#b10e6b] bg-white"
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border bg-white transition hover:bg-red-50"
+                              title="Remove Cover"
                             >
-                              Remove
+                              <Trash2 size={14} className="text-[#b10e6b]" />
                             </button>
                           </div>
                           <input
@@ -1514,16 +1516,18 @@ const CreateAlbum: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => endPhotoInputRef.current?.click()}
-                              className="rounded-lg border px-3 py-1 text-[11px] font-semibold bg-white"
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border bg-white transition hover:bg-gray-50"
+                              title="Change End"
                             >
-                              Change End
+                              <Edit3 size={14} className="text-[#54474d]" />
                             </button>
                             <button
                               type="button"
                               onClick={clearEndPhoto}
-                              className="rounded-lg border px-3 py-1 text-[11px] font-semibold text-[#b10e6b] bg-white"
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border bg-white transition hover:bg-red-50"
+                              title="Remove End"
                             >
-                              Remove
+                              <Trash2 size={14} className="text-[#b10e6b]" />
                             </button>
                           </div>
                           <input
@@ -1691,7 +1695,7 @@ const CreateAlbum: React.FC = () => {
                   </div>
                 ) : (
                   <div className="w-full space-y-4">
-                    <div className="rounded-2xl border border-[#ebe7e8] bg-[#fffdfd] p-3 shadow-sm">
+                    <div className="rounded-2xl border border-[#ebe7e8] bg-[#fffdfd] p-2 shadow-sm">
                       <div className="mb-2 flex items-center justify-between gap-2">
                         <div>
                           <p className="text-[9px] font-semibold uppercase tracking-[0.22em] text-[#7f6f74]">Template</p>
@@ -1702,7 +1706,7 @@ const CreateAlbum: React.FC = () => {
                         </p>
                       </div>
                       <div
-                        className="mx-auto w-full rounded-2xl border border-[#ece8e9] bg-white p-3 shadow-sm h-full"
+                        className="mx-auto w-full max-w-[130px] rounded-2xl border border-[#ece8e9] bg-white p-2 shadow-sm h-full"
                         style={{
                           background: `linear-gradient(180deg, ${templateAccent}29 0%, #fffdfd 24%, #fff8fb 72%, ${templateAccent}1a 100%)`,
                         }}
@@ -1714,7 +1718,7 @@ const CreateAlbum: React.FC = () => {
                         <div
                           className={`relative w-full rounded-[1.1rem] border border-[#f2e8ec] bg-white h-full ${pageSlotBounds.get(activePreviewPage?.pageIndex || 0)?.usesAbsoluteLayout
                             ? 'aspect-3/4 overflow-hidden'
-                            : 'min-h-48 h-full grid auto-rows-[minmax(80px,1fr)] grid-cols-2 gap-2 p-2'
+                            : 'min-h-32 h-full grid auto-rows-[minmax(56px,1fr)] grid-cols-2 gap-1.5 p-1.5'
                             }`}
                           style={{ backgroundColor: templatePages[activePreviewPage?.pageIndex]?.pageColor || undefined }}
                         >
@@ -1754,7 +1758,7 @@ const CreateAlbum: React.FC = () => {
                                     moveMediaToSlot(slot.index, transferId);
                                   }
                                 }}
-                                className={`group overflow-hidden rounded-2xl border bg-[#faf8f9] ${usesAbsolute ? 'absolute cursor-pointer' : 'relative min-h-28'
+                                className={`group overflow-hidden rounded-2xl border bg-[#faf8f9] ${usesAbsolute ? 'absolute cursor-pointer' : 'relative min-h-20'
                                   }`}
                                 title={`${slot.pageLabel} · ${slot.slotLabel} (${slotSizeStr})`}
                                 style={{
@@ -1809,7 +1813,7 @@ const CreateAlbum: React.FC = () => {
                                   </div>
                                 ) : (
                                   <div
-                                    className="absolute inset-0 cursor-move overflow-hidden"
+                                    className="absolute inset-0 overflow-hidden"
                                     draggable
                                     onDragStart={(e) => {
                                       handleDragStart(item);
@@ -1838,7 +1842,18 @@ const CreateAlbum: React.FC = () => {
                                         {item.caption}
                                       </div>
                                     ) : null}
-                                    <div className="absolute inset-0 flex items-center justify-center gap-2.5 bg-black/50 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                                    {/* Hover overlay: click image area to open crop editor directly */}
+                                    <div
+                                      className="absolute inset-0 flex items-center justify-center gap-2.5 bg-black/50 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+                                      onClick={(e) => {
+                                        // clicking blank overlay area opens crop
+                                        if ((e.target as HTMLElement) === e.currentTarget && item.mediaKind === 'image') {
+                                          e.stopPropagation();
+                                          openCropEditor(item);
+                                        }
+                                      }}
+                                      style={{ cursor: item.mediaKind === 'image' ? 'pointer' : 'default' }}
+                                    >
                                       <button
                                         type="button"
                                         onClick={(e) => {
@@ -1858,9 +1873,9 @@ const CreateAlbum: React.FC = () => {
                                             openCropEditor(item);
                                           }}
                                           className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-lg transition hover:scale-105"
-                                          title="Crop"
+                                          title="Crop / Adjust"
                                         >
-                                          <Edit3 size={16} className="text-[#211A1B]" />
+                                          <Edit3 size={16} className="text-[#b10e6b]" />
                                         </button>
                                       )}
                                       <button
@@ -1885,11 +1900,11 @@ const CreateAlbum: React.FC = () => {
                     </div>
 
                     {/* Page templates selection below */}
-                    <div className="rounded-2xl border border-[#f0e2e6] bg-white p-4">
-                      <div className="flex items-center justify-between mb-3">
+                    <div className="rounded-2xl border border-[#f0e2e6] bg-white p-2.5">
+                      <div className="flex items-center justify-between mb-2">
                         <div>
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-[#8d7d81]">Page templates</p>
-                          <p className="text-[9px] text-[#8d7d81]/70">Select a page template to view and arrange its media slots</p>
+                          <p className="text-[9px] font-bold uppercase tracking-wider text-[#8d7d81]">Page templates</p>
+                          <p className="text-[8px] text-[#8d7d81]/70">Select a page to view slots</p>
                         </div>
                       </div>
                       <div className="flex gap-4 overflow-x-auto pb-3 pt-1 scrollbar-thin scrollbar-thumb-[#e0a7c0] scrollbar-track-transparent">
@@ -1901,20 +1916,18 @@ const CreateAlbum: React.FC = () => {
                               key={`filmstrip-${page.pageIndex}`}
                               type="button"
                               onClick={() => setSelectedPreviewPage(page.pageIndex)}
-                              className={`flex-shrink-0 rounded-xl border p-3 transition-all flex flex-col items-center gap-2 ${
-                                isActive
+                              className={`flex-shrink-0 rounded-xl border p-3 transition-all flex flex-col items-center gap-2 ${isActive
                                   ? 'border-[#b10e6b] bg-[#fff0f4] shadow-sm'
                                   : 'border-[#ecdbe2] bg-[#fff8f9] hover:border-[#b10e6b]/50'
-                              }`}
+                                }`}
                               style={{ width: '130px' }}
                             >
                               <span className={`text-[9px] font-bold uppercase tracking-wider ${isActive ? 'text-[#b10e6b]' : 'text-[#8d7d81]'}`}>
                                 {page.pageLabel}
                               </span>
                               <div
-                                className={`relative h-24 w-20 overflow-hidden rounded-lg border border-[#ecdbe2] bg-white shadow-xs ${
-                                  pageUsesAbsolute ? '' : 'grid grid-cols-2 gap-0.5 p-0.5'
-                                }`}
+                                className={`relative h-24 w-20 overflow-hidden rounded-lg border border-[#ecdbe2] bg-white shadow-xs ${pageUsesAbsolute ? '' : 'grid grid-cols-2 gap-0.5 p-0.5'
+                                  }`}
                               >
                                 {page.slots.map((slot) => {
                                   const item = getSlotMediaItem(mediaItems, slot.index);
@@ -1927,11 +1940,11 @@ const CreateAlbum: React.FC = () => {
                                       style={
                                         miniAbsolute
                                           ? {
-                                              left: `${Number(miniSlot?.x) || 0}%`,
-                                              top: `${Number(miniSlot?.y) || 0}%`,
-                                              width: `${Math.max(8, Number(miniSlot?.width) || 20)}%`,
-                                              height: `${Math.max(8, Number(miniSlot?.height) || 20)}%`,
-                                            }
+                                            left: `${Number(miniSlot?.x) || 0}%`,
+                                            top: `${Number(miniSlot?.y) || 0}%`,
+                                            width: `${Math.max(8, Number(miniSlot?.width) || 20)}%`,
+                                            height: `${Math.max(8, Number(miniSlot?.height) || 20)}%`,
+                                          }
                                           : undefined
                                       }
                                     >
@@ -2019,7 +2032,7 @@ const CreateAlbum: React.FC = () => {
 
           {cropMedia && cropMedia.mediaKind === 'image' && hasMediaSrc(cropMedia.dataUrl) && (
             <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
-              <div className="relative w-full max-w-3xl overflow-hidden rounded-3xl bg-white shadow-2xl">
+              <div className="relative w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-2xl">
                 <div className="flex items-center justify-between border-b border-[#ead5dc] px-4 py-3">
                   <div>
                     <p className="text-sm font-bold uppercase tracking-widest text-[#211A1B]">Adjust Crop</p>
@@ -2038,111 +2051,205 @@ const CreateAlbum: React.FC = () => {
                   </button>
                 </div>
                 <div className="grid gap-4 p-4 md:grid-cols-[minmax(0,1fr)_260px]">
-                  <div className="overflow-hidden rounded-xl border border-[#ead5dc] bg-[#111]">
+                  {/* LEFT: Full image with slot frame cutout overlay */}
+                  <div className="overflow-hidden rounded-xl border border-[#ead5dc] bg-[#111] relative" style={{ minHeight: '320px' }}>
+                    {/* Drag area — full image is the background */}
                     <div
-                      className={`relative h-88 overflow-hidden flex items-center justify-center ${isCropPanning ? 'cursor-grabbing' : 'cursor-grab'}`}
+                      className={`absolute inset-0 overflow-hidden ${isCropPanning ? 'cursor-grabbing' : 'cursor-grab'}`}
                       onMouseDown={handleCropPointerDown}
                       onMouseMove={handleCropPointerMove}
                       onMouseUp={stopCropPanning}
                       onMouseLeave={stopCropPanning}
                     >
-                      {/* Slot frame overlay container */}
-                      <div className="absolute inset-0 flex items-center justify-center p-6">
-                        {/* Dimmed outer area */}
-                        <div className="absolute inset-0 bg-black/40 pointer-events-none" />
+                      {/* Full image sits behind everything, panned/zoomed by user */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={cropMedia.dataUrl}
+                        alt={cropMedia.fileName}
+                        className="absolute inset-0 h-full w-full object-cover select-none pointer-events-none"
+                        draggable={false}
+                        style={{
+                          transform: `translate(${cropDraft.x}px, ${cropDraft.y}px) scale(${cropDraft.zoom})`,
+                          transformOrigin: 'center center',
+                        }}
+                      />
 
-                        {/* Bright slot frame area */}
-                        <div className="relative w-full h-full max-w-xs max-h-sm rounded-3xl border-4 border-[#b10e6b]/80 overflow-hidden bg-black/10 pointer-events-none shadow-2xl">
-                          {/* Image displayed within slot frame */}
-                          <img
-                            src={cropMedia.dataUrl}
-                            alt={cropMedia.fileName}
-                            className="absolute inset-0 h-full w-full object-cover select-none"
-                            draggable={false}
-                            style={{ transform: `translate(${cropDraft.x}px, ${cropDraft.y}px) scale(${cropDraft.zoom})` }}
-                          />
+                      {/* Dark overlay with a slot-shaped transparent cutout in the center */}
+                      {(() => {
+                        const slotW = activeCropSlotSpec?.width ? Number(activeCropSlotSpec.width) : 100;
+                        const slotH = activeCropSlotSpec?.height ? Number(activeCropSlotSpec.height) : 100;
+                        
+                        const bounds = cropSlot ? pageSlotBounds.get(cropSlot.pageIndex) : null;
+                        const usesAbsolute = bounds?.usesAbsoluteLayout;
+                        
+                        let aspectRatio = 1;
+                        if (usesAbsolute) {
+                          const pageAspectRatio = 3/4; // aspect-3/4
+                          aspectRatio = (slotW / Math.max(1, slotH)) * pageAspectRatio;
+                        } else {
+                          const colSpan = Math.max(1, Math.min(2, slotW || 1));
+                          const rowSpan = Math.max(1, Math.min(3, slotH || 1));
+                          aspectRatio = colSpan / rowSpan;
+                        }
 
-                          {/* Grid overlay on slot frame */}
-                          <div className="pointer-events-none absolute inset-0">
-                            <div className="absolute inset-y-0 left-1/3 w-px bg-white/40" />
-                            <div className="absolute inset-y-0 left-2/3 w-px bg-white/40" />
-                            <div className="absolute inset-x-0 top-1/3 h-px bg-white/40" />
-                            <div className="absolute inset-x-0 top-2/3 h-px bg-white/40" />
-                          </div>
+                        // Compute frame dimensions based on container to maintain exact physical aspect ratio
+                        const containerAspectRatio = 364 / 320; // known width/height of the left panel
+                        const targetRatioPercentage = aspectRatio / containerAspectRatio;
 
-                          {/* Corner guides */}
-                          <div className="pointer-events-none absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-[#b10e6b]" />
-                          <div className="pointer-events-none absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-[#b10e6b]" />
-                          <div className="pointer-events-none absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-[#b10e6b]" />
-                          <div className="pointer-events-none absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-[#b10e6b]" />
-                        </div>
-                      </div>
+                        let frameW = 75; // max 75% width
+                        let frameH = frameW / targetRatioPercentage;
+
+                        if (frameH > 80) { // max 80% height
+                          frameH = 80;
+                          frameW = frameH * targetRatioPercentage;
+                        }
+                        return (
+                          <>
+                            {/* SVG overlay: full rect fill minus the slot frame hole */}
+                            <svg
+                              className="absolute inset-0 w-full h-full pointer-events-none"
+                              xmlns="http://www.w3.org/2000/svg"
+                              style={{ zIndex: 10 }}
+                            >
+                              <defs>
+                                <mask id="crop-frame-mask">
+                                  <rect width="100%" height="100%" fill="white" />
+                                  <rect
+                                    x={`${(100 - frameW) / 2}%`}
+                                    y={`${(100 - frameH) / 2}%`}
+                                    width={`${frameW}%`}
+                                    height={`${frameH}%`}
+                                    rx="4"
+                                    fill="black"
+                                  />
+                                </mask>
+                              </defs>
+                              {/* Dark overlay everywhere EXCEPT inside the frame hole */}
+                              <rect width="100%" height="100%" fill="rgba(0,0,0,0.58)" mask="url(#crop-frame-mask)" />
+                              {/* Frame border */}
+                              <rect
+                                x={`${(100 - frameW) / 2}%`}
+                                y={`${(100 - frameH) / 2}%`}
+                                width={`${frameW}%`}
+                                height={`${frameH}%`}
+                                rx="4"
+                                fill="none"
+                                stroke="#b10e6b"
+                                strokeWidth="2.5"
+                              />
+                              {/* Rule-of-thirds grid inside frame */}
+                              {[1/3, 2/3].map((t, i) => (
+                                <line
+                                  key={`vline-${i}`}
+                                  x1={`${(100 - frameW) / 2 + frameW * t}%`}
+                                  y1={`${(100 - frameH) / 2}%`}
+                                  x2={`${(100 - frameW) / 2 + frameW * t}%`}
+                                  y2={`${(100 + frameH) / 2}%`}
+                                  stroke="rgba(255,255,255,0.3)"
+                                  strokeWidth="1"
+                                />
+                              ))}
+                              {[1/3, 2/3].map((t, i) => (
+                                <line
+                                  key={`hline-${i}`}
+                                  x1={`${(100 - frameW) / 2}%`}
+                                  y1={`${(100 - frameH) / 2 + frameH * t}%`}
+                                  x2={`${(100 + frameW) / 2}%`}
+                                  y2={`${(100 - frameH) / 2 + frameH * t}%`}
+                                  stroke="rgba(255,255,255,0.3)"
+                                  strokeWidth="1"
+                                />
+                              ))}
+                              {/* Corner accent marks */}
+                              {[
+                                { cx: (100 - frameW) / 2, cy: (100 - frameH) / 2 },
+                                { cx: (100 + frameW) / 2, cy: (100 - frameH) / 2 },
+                                { cx: (100 - frameW) / 2, cy: (100 + frameH) / 2 },
+                                { cx: (100 + frameW) / 2, cy: (100 + frameH) / 2 },
+                              ].map(({ cx, cy }, i) => (
+                                <circle key={`corner-${i}`} cx={`${cx}%`} cy={`${cy}%`} r="4" fill="#b10e6b" />
+                              ))}
+                            </svg>
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
+
+                  {/* RIGHT: Controls */}
                   <div className="space-y-4">
+                    {/* Slot info badge */}
+                    <div className="rounded-xl border border-[#e1bec4] bg-[#fff8fb] px-3 py-2.5">
+                      <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#b10e6b] mb-1">Slot guidance</p>
+                      {cropSlot && (
+                        <p className="text-xs font-semibold text-[#211A1B]">
+                          {cropSlot.pageLabel} &middot; {cropSlot.slotLabel}
+                        </p>
+                      )}
+                      {activeCropSlotSpec && (
+                        <p className="text-[10px] text-[#7a6268] mt-0.5">
+                          Slot size: {activeCropSlotSpec.width || 'auto'} &times; {activeCropSlotSpec.height || 'auto'}%
+                        </p>
+                      )}
+                      <p className="text-[10px] text-[#9a8a8f] mt-1 leading-snug">
+                        Drag the image and use the slider to align the visible area with the slot frame.
+                      </p>
+                    </div>
+
                     <label className="block text-xs font-semibold text-[#54474d]">
-                      Zoom / Resize
+                      Zoom
                       <div className="mt-1 flex items-center gap-3">
                         <input
                           type="range"
                           min="1"
-                          max="2.5"
+                          max="3"
                           step="0.01"
                           value={cropDraft.zoom}
                           onChange={(e) => setCropDraft((prev) => ({ ...prev, zoom: Number(e.target.value) }))}
-                          className="w-full"
+                          className="w-full accent-[#b10e6b]"
                         />
-                        <span className="text-[10px] text-[#7a6268]">{cropDraft.zoom.toFixed(2)}x</span>
+                        <span className="shrink-0 text-[10px] text-[#7a6268] w-10">{cropDraft.zoom.toFixed(2)}x</span>
                       </div>
                     </label>
                     <label className="block text-xs font-semibold text-[#54474d]">
-                      Horizontal (drag image too)
+                      Horizontal
                       <input
                         type="range"
-                        min="-140"
-                        max="140"
+                        min="-300"
+                        max="300"
                         step="1"
                         value={cropDraft.x}
                         onChange={(e) => setCropDraft((prev) => ({ ...prev, x: Number(e.target.value) }))}
-                        className="mt-1 w-full"
+                        className="mt-1 w-full accent-[#b10e6b]"
                       />
                     </label>
                     <label className="block text-xs font-semibold text-[#54474d]">
                       Vertical
                       <input
                         type="range"
-                        min="-140"
-                        max="140"
+                        min="-300"
+                        max="300"
                         step="1"
                         value={cropDraft.y}
                         onChange={(e) => setCropDraft((prev) => ({ ...prev, y: Number(e.target.value) }))}
-                        className="mt-1 w-full"
+                        className="mt-1 w-full accent-[#b10e6b]"
                       />
                     </label>
-                    <div className="rounded-2xl border border-[#e1bec4] bg-[#fff8fb] p-3 text-xs text-[#54474d]">
-                      <p className="font-semibold text-[#211A1B] mb-2">Slot guidance</p>
-                      <p>{cropSlot ? `${cropSlot.pageLabel} · ${cropSlot.slotLabel}` : 'Adjust image to fit the target slot.'}</p>
-                      <p className="mt-2">
-                        {activeCropSlotSpec
-                          ? `Slot size: ${activeCropSlotSpec.width || 'auto'} × ${activeCropSlotSpec.height || 'auto'}%`
-                          : 'Use the zoom and drag controls to fit the selected slot.'}
-                      </p>
-                      <p className="mt-2 text-[10px] text-[#7a6268]">Drag the image and use the slider to align the visible area with the slot frame.</p>
-                    </div>
-                    <div className="flex gap-2 pt-2">
+
+                    <div className="flex gap-2 pt-1">
                       <button
                         type="button"
                         onClick={() => setCropDraft({ zoom: 1, x: 0, y: 0 })}
-                        className="rounded-lg border border-[#e1bec4] px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-[#7a6268]"
+                        className="rounded-lg border border-[#e1bec4] px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-[#7a6268] hover:border-[#b10e6b] hover:text-[#b10e6b] transition-all"
                       >
                         Reset
                       </button>
                       <button
                         type="button"
                         onClick={applyCropChanges}
-                        className="rounded-lg bg-[#b10e6b] px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-white"
+                        className="flex-1 rounded-lg bg-[#b10e6b] px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-white hover:bg-[#9a0b5c] transition-all"
                       >
-                        Apply
+                        ✓ Apply Crop
                       </button>
                     </div>
                   </div>
