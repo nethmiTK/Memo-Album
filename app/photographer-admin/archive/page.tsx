@@ -160,7 +160,7 @@ export default function ArchivePage() {
       let nextArchives: ArchiveItem[] = [];
 
       if (albumResponse.ok && albumResult.success) {
-        nextAlbums = Array.isArray(albumResult.curates) ? albumResult.curates : [];
+        nextAlbums = Array.isArray(albumResult.curates) ? albumResult.curates.filter((a: any) => a.status === 'saved') : [];
         setAlbums(nextAlbums);
       }
       if (archiveResponse.ok && archiveResult.success) {
@@ -177,7 +177,7 @@ export default function ArchivePage() {
   useEffect(() => {
     const cached = readSessionCache<{ albums: CurateAlbum[]; archives: ArchiveItem[] }>(ARCHIVE_PAGE_CACHE_KEY);
     if (cached) {
-      if (Array.isArray(cached.albums)) setAlbums(cached.albums);
+      if (Array.isArray(cached.albums)) setAlbums(cached.albums.filter(a => a.status === 'saved'));
       if (Array.isArray(cached.archives)) setArchives(cached.archives);
     }
 
@@ -396,8 +396,9 @@ export default function ArchivePage() {
     }
   };
 
-  const handleRenameFolder = async (oldFolderName: string) => {
-    if (!editingFolderName.trim()) {
+  const handleRenameFolder = async (oldFolderName: string, newName?: string) => {
+    const finalName = newName?.trim() || editingFolderName.trim();
+    if (!finalName) {
       setMessage('Enter a new folder name.');
       return;
     }
@@ -405,7 +406,7 @@ export default function ArchivePage() {
     try {
       const response = await apiFetch(`/archive/folder/${encodeURIComponent(oldFolderName)}`, {
         method: 'PATCH',
-        body: JSON.stringify({ archiveFolderName: editingFolderName.trim() }),
+        body: JSON.stringify({ archiveFolderName: finalName }),
       });
 
       if (response.status === 401) {
@@ -419,6 +420,7 @@ export default function ArchivePage() {
       }
 
       setEditingFolderName('');
+      setExpandedArchiveId(finalName);
       await loadData();
       setMessage('Folder renamed successfully');
     } catch (error) {
@@ -444,6 +446,42 @@ export default function ArchivePage() {
       setMessage('Folder deleted successfully');
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Failed to delete folder');
+    }
+  };
+
+  const handleChangeCover = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !expandedArchiveId) return;
+
+    try {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const coverPhoto = e.target?.result as string;
+        try {
+          const response = await apiFetch(`/archive/folder/${encodeURIComponent(expandedArchiveId)}/cover`, {
+            method: 'PATCH',
+            body: JSON.stringify({ coverPhoto }),
+          });
+
+          if (response.status === 401) {
+            handleAuthError(response);
+            return;
+          }
+
+          const result = await response.json();
+          if (!response.ok || !result.success) {
+            throw new Error(result.message || 'Failed to change cover');
+          }
+
+          setMessage('Cover changed successfully');
+          await loadData();
+        } catch (error) {
+          setMessage(error instanceof Error ? error.message : 'Failed to change cover');
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      setMessage('Failed to read image file');
     }
   };
 
@@ -717,10 +755,19 @@ export default function ArchivePage() {
                   <label className="flex items-center gap-2 rounded-full bg-white/30 backdrop-blur-md border border-white/50 px-4 py-2.5 text-sm font-bold uppercase tracking-wider text-white hover:bg-white/50 transition-all cursor-pointer group/upload">
                     <Upload size={16} className="group-hover/upload:scale-110 transition-transform" />
                     Change Cover
-                    <input type="file" accept="image/*" className="hidden" />
+                    <input type="file" accept="image/*" className="hidden" onChange={handleChangeCover} />
                   </label>
                   
-                  <button className="flex items-center gap-2 rounded-full bg-white/30 backdrop-blur-md border border-white/50 px-4 py-2.5 text-sm font-bold uppercase tracking-wider text-white hover:bg-white/50 transition-all">
+                  <button 
+                    onClick={() => {
+                      const newName = window.prompt('Enter new folder name', expandedArchiveId || '');
+                      if (newName && newName.trim() && newName !== expandedArchiveId) {
+                        setEditingFolderName(newName);
+                        void handleRenameFolder(expandedArchiveId!, newName);
+                      }
+                    }}
+                    className="flex items-center gap-2 rounded-full bg-white/30 backdrop-blur-md border border-white/50 px-4 py-2.5 text-sm font-bold uppercase tracking-wider text-white hover:bg-white/50 transition-all"
+                  >
                     <Edit2 size={16} />
                     Rename
                   </button>
