@@ -164,17 +164,11 @@ export default function HomePage() {
   };
 
   const closePublicBook = () => setSelectedPublicBook(null);
-  const getImageUrl = (url: string | undefined) => {
-    if (!url) return '/images/album.png';
-    if (url.startsWith('http') || url.startsWith('/images/')) return url;
-    return `${API_URL}${url.startsWith('/') ? '' : '/'}${url}`;
-  };
-
   const journalCards =
     publicBookAlbums.length > 0
       ? publicBookAlbums.map((book) => ({
           title: book.albumName || book.curateId?.albumName || 'Album',
-          image: getImageUrl(book.curateId?.coverPhoto || book.curateId?.coverPhotoName),
+          image: book.curateId?.coverPhoto || book.curateId?.coverPhotoName || '/images/album.png',
           raw: book,
         }))
       : journalEntries;
@@ -320,110 +314,112 @@ export default function HomePage() {
               </div>
 
               {/* Asymmetric Editorial Grid */}
-              <div className="grid gap-4 sm:gap-5 md:gap-6 md:grid-cols-12 auto-rows-max mt-8 sm:mt-10 md:mt-12">
-                {/* Featured Large Card (Left) */}
+              <div className="grid gap-4 sm:gap-5 md:gap-6 md:grid-cols-12 auto-rows-max">
+            <div className="grid gap-4 sm:gap-6 md:gap-8 md:grid-cols-12 auto-rows-max mt-8 sm:mt-10 md:mt-12">
+              {/* Featured Large Card (Left) */}
+              <motion.article
+                key={featuredPhotographers[0].name}
+                initial={{ opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.2 }}
+                transition={{ delay: 0, duration: 0.45 }}
+                className="col-span-1 md:col-span-5 md:row-span-2 group rounded-xl sm:rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-2xl"
+              >
+                <div className="relative h-64 sm:h-80 md:h-full overflow-hidden bg-[#ebe0e1]">
+                  <img
+                    src={featuredPhotographers[0].image}
+                    alt={featuredPhotographers[0].name}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-black/10 backdrop-blur-0 group-hover:backdrop-blur-[2px] transition-all duration-300" />
+                  <div className="absolute inset-0 bg-linear-to-t from-black/55 via-black/20 to-transparent flex flex-col justify-end p-4 sm:p-6">
+                    <h3
+                      className="text-lg sm:text-2xl md:text-3xl text-white leading-tight"
+                      style={{ fontFamily: 'var(--font-newsreader)' }}
+                    >
+                      {featuredPhotographers[0].name}
+                    </h3>
+                    <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-white/80 uppercase tracking-[0.14em] sm:tracking-[0.18em] font-semibold">
+                      {featuredPhotographers[0].role}
+                    </p>
+                    <div className="mt-4 flex flex-wrap gap-2 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                      {socialLinks(featuredPhotographers[0].social).map((item) => (
+                        <a
+                          key={item.key}
+                          href={item.href}
+                          target="_blank"
+                          rel="noreferrer"
+                          aria-label={item.label}
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-md transition hover:bg-white hover:text-[#C92D7D]"
+                        >
+                          {item.icon}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </motion.article>
+
+              {/* Right Side Cards */}
+              {featuredPhotographers.slice(1).map((item, index) => (
                 <motion.article
-                  key={featuredPhotographers[0].name}
+                  key={item.name}
                   initial={{ opacity: 0, y: 24 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, amount: 0.2 }}
-                  transition={{ delay: 0, duration: 0.45 }}
-                  className="col-span-1 md:col-span-5 md:row-span-2 group rounded-xl sm:rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-2xl"
+                  transition={{ delay: (index + 1) * 0.1, duration: 0.45 }}
+                  className={`group rounded-xl sm:rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-lg ${
+                    index === 0 ? 'col-span-1 md:col-span-7' : 'col-span-1 md:col-span-3'
+                  } ${index === 0 ? 'h-48 sm:h-56 md:h-64' : 'h-40 sm:h-48 md:h-56'}`}
                 >
-                  <div className="relative h-64 sm:h-80 md:h-full overflow-hidden bg-[#ebe0e1]">
+                  <div className="relative w-full h-full bg-[#ebe0e1] overflow-hidden">
                     <img
-                      src={featuredPhotographers[0].image}
-                      alt={featuredPhotographers[0].name}
+                      src={item.image}
+                      alt={item.name}
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                     <div className="absolute inset-0 bg-black/10 backdrop-blur-0 group-hover:backdrop-blur-[2px] transition-all duration-300" />
-                    <div className="absolute inset-0 bg-linear-to-t from-black/55 via-black/20 to-transparent flex flex-col justify-end p-4 sm:p-6">
+                    <div className="absolute inset-0 bg-linear-to-t from-black/60 via-black/25 to-transparent flex flex-col justify-end p-3 sm:p-4 md:p-5">
                       <h3
-                        className="text-lg sm:text-2xl md:text-3xl text-white leading-tight"
+                        className="text-base sm:text-lg md:text-2xl text-white leading-tight"
                         style={{ fontFamily: 'var(--font-newsreader)' }}
                       >
-                        {featuredPhotographers[0].name}
+                        {item.name}
                       </h3>
-                      <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-white/80 uppercase tracking-[0.14em] sm:tracking-[0.18em] font-semibold">
-                        {featuredPhotographers[0].role}
+                      <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-xs text-white/80 uppercase tracking-[0.12em] sm:tracking-[0.16em] font-semibold">
+                        {item.role}
                       </p>
-                      <div className="mt-4 flex flex-wrap gap-2 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                        {socialLinks(featuredPhotographers[0].social).map((item) => (
+                      <div className="mt-3 flex flex-wrap gap-2 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                        {socialLinks(item.social).map((social) => (
                           <a
-                            key={item.key}
-                            href={item.href}
+                            key={social.key}
+                            href={social.href}
                             target="_blank"
                             rel="noreferrer"
-                            aria-label={item.label}
-                            className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-md transition hover:bg-white hover:text-[#C92D7D]"
+                            aria-label={social.label}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-md transition hover:bg-white hover:text-[#C92D7D]"
                           >
-                            {item.icon}
+                            {social.icon}
                           </a>
                         ))}
                       </div>
                     </div>
                   </div>
                 </motion.article>
-
-                {/* Right Side Cards */}
-                {featuredPhotographers.slice(1).map((item, index) => (
-                  <motion.article
-                    key={item.name}
-                    initial={{ opacity: 0, y: 24 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, amount: 0.2 }}
-                    transition={{ delay: (index + 1) * 0.1, duration: 0.45 }}
-                    className={`group rounded-xl sm:rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-lg ${
-                      index === 0 ? 'col-span-1 md:col-span-7' : 'col-span-1 md:col-span-3'
-                    } ${index === 0 ? 'h-48 sm:h-56 md:h-64' : 'h-40 sm:h-48 md:h-56'}`}
-                  >
-                    <div className="relative w-full h-full bg-[#ebe0e1] overflow-hidden">
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                      <div className="absolute inset-0 bg-black/10 backdrop-blur-0 group-hover:backdrop-blur-[2px] transition-all duration-300" />
-                      <div className="absolute inset-0 bg-linear-to-t from-black/60 via-black/25 to-transparent flex flex-col justify-end p-3 sm:p-4 md:p-5">
-                        <h3
-                          className="text-base sm:text-lg md:text-2xl text-white leading-tight"
-                          style={{ fontFamily: 'var(--font-newsreader)' }}
-                        >
-                          {item.name}
-                        </h3>
-                        <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-xs text-white/80 uppercase tracking-[0.12em] sm:tracking-[0.16em] font-semibold">
-                          {item.role}
-                        </p>
-                        <div className="mt-3 flex flex-wrap gap-2 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                          {socialLinks(item.social).map((social) => (
-                            <a
-                              key={social.key}
-                              href={social.href}
-                              target="_blank"
-                              rel="noreferrer"
-                              aria-label={social.label}
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-md transition hover:bg-white hover:text-[#C92D7D]"
-                            >
-                              {social.icon}
-                            </a>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </motion.article>
-                ))}
-              </div>
-
-              {/* See more button — outside grid so it renders full-width below */}
-              <div className="mt-8 flex justify-center">
-                <Link
-                  href="/photographer"
-                  className="rounded-xl bg-[#C92D7D] px-6 py-2.5 text-xs font-semibold text-white hover:bg-[#b52670] transition-colors"
-                >
-                  See more
-                </Link>
-              </div>
+              ))}
             </div>
+
+            {/* See more button */}
+            <div className="mt-6 flex justify-center">
+              <Link
+                href="/photographer"
+                className="rounded-xl bg-[#C92D7D] px-6 py-2.5 text-xs font-semibold text-white hover:bg-[#b52670]"
+              >
+                See more
+              </Link>
+            </div>
+          </div>
+          </div>
           </section>
         }
 

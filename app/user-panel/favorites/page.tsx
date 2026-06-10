@@ -204,110 +204,52 @@ export default function FavoritesPage() {
 
         <section className="mt-6">
           {favorites.length > 0 ? (
-            <div className="space-y-12">
-              {favorites.filter(f => f.sourceType === 'gallery').length > 0 && (
-                <div>
-                  <h2 className="text-xl font-serif text-[#2C1E26] mb-4">My Media Favorites</h2>
-                  <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                    {favorites.filter(f => f.sourceType === 'gallery').map((photo) => (
-                      <motion.article
-                        key={photo.id}
-                        initial={{ y: 0 }}
-                        whileHover={{ y: -6 }}
-                        className="group overflow-hidden rounded-3xl border border-[#E5CCD4] bg-white shadow-sm"
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {favorites.map((photo) => (
+                <motion.article
+                  key={photo.id}
+                  initial={{ y: 0 }}
+                  whileHover={{ y: -6 }}
+                  className="group overflow-hidden rounded-3xl border border-[#E5CCD4] bg-white shadow-sm"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPhoto(photo)}
+                    className="relative block aspect-4/5 w-full overflow-hidden bg-[#FEF0F1] text-left"
+                    aria-label="Open favorite item"
+                  >
+                    {photo.mediaKind?.includes('video') ? (
+                      <video
+                        src={photo.url}
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        muted
+                        loop
+                        playsInline
+                      />
+                    ) : (
+                      <img src={photo.url} alt="Favorite item" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                    )}
+
+                    <div className="absolute inset-0 bg-linear-to-t from-black/55 via-black/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+
+                    <div className="absolute right-4 top-4 z-20 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeFavorite(photo.id);
+                        }}
+                        disabled={removingId === photo.id}
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/95 text-[#D23284] shadow-md transition hover:scale-105 disabled:cursor-not-allowed disabled:opacity-60"
+                        aria-label="Remove from favorites"
                       >
-                        <button
-                          type="button"
-                          onClick={() => setSelectedPhoto(photo)}
-                          className="relative block aspect-4/5 w-full overflow-hidden bg-[#FEF0F1] text-left"
-                          aria-label="Open favorite item"
-                        >
-                          {photo.mediaKind?.includes('video') ? (
-                            <video
-                              src={photo.url}
-                              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                              muted
-                              loop
-                              playsInline
-                            />
-                          ) : (
-                            <img src={photo.url} alt="Favorite item" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                          )}
+                        <Heart size={16} fill="#D23284" />
+                      </button>
+                    </div>
 
-                          <div className="absolute inset-0 bg-linear-to-t from-black/55 via-black/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-
-                          <div className="absolute right-4 top-4 z-20 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                removeFavorite(photo.id);
-                              }}
-                              disabled={removingId === photo.id}
-                              className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/95 text-[#D23284] shadow-md transition hover:scale-105 disabled:cursor-not-allowed disabled:opacity-60"
-                              aria-label="Remove from favorites"
-                            >
-                              <Heart size={16} fill="#D23284" />
-                            </button>
-                          </div>
-                        </button>
-                      </motion.article>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {favorites.filter(f => f.sourceType !== 'gallery').length > 0 && (
-                <div>
-                  <h2 className="text-xl font-serif text-[#2C1E26] mb-4">Album Favorites</h2>
-                  <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                    {favorites.filter(f => f.sourceType !== 'gallery').map((photo) => (
-                      <motion.article
-                        key={photo.id}
-                        initial={{ y: 0 }}
-                        whileHover={{ y: -6 }}
-                        className="group overflow-hidden rounded-3xl border border-[#E5CCD4] bg-white shadow-sm"
-                      >
-                        <button
-                          type="button"
-                          onClick={() => setSelectedPhoto(photo)}
-                          className="relative block aspect-4/5 w-full overflow-hidden bg-[#FEF0F1] text-left"
-                          aria-label="Open favorite item"
-                        >
-                          {photo.mediaKind?.includes('video') ? (
-                            <video
-                              src={photo.url}
-                              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                              muted
-                              loop
-                              playsInline
-                            />
-                          ) : (
-                            <img src={photo.url} alt="Favorite item" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                          )}
-
-                          <div className="absolute inset-0 bg-linear-to-t from-black/55 via-black/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-
-                          <div className="absolute right-4 top-4 z-20 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                removeFavorite(photo.id);
-                              }}
-                              disabled={removingId === photo.id}
-                              className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/95 text-[#D23284] shadow-md transition hover:scale-105 disabled:cursor-not-allowed disabled:opacity-60"
-                              aria-label="Remove from favorites"
-                            >
-                              <Heart size={16} fill="#D23284" />
-                            </button>
-                          </div>
-                        </button>
-                      </motion.article>
-                    ))}
-                  </div>
-                </div>
-              )}
+                  </button>
+                </motion.article>
+              ))}
             </div>
           ) : (
             <div className="rounded-3xl border border-dashed border-[#E5CCD4] bg-white p-10 text-center shadow-sm">
