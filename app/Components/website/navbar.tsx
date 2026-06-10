@@ -1,17 +1,17 @@
- 'use client';
+'use client';
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LogOut, User } from 'lucide-react';
+import { LogOut, User, X, Home, Images, Camera, Mail } from 'lucide-react';
 import { logout } from '@/lib/useAuth';
 
 const navLinks = [
-  { label: 'Home', href: '/' },
-  { label: 'Album', href: '/album' },
-  { label: 'Photographer', href: '/photographer' },
-  { label: 'Contact', href: '/contact' },
+  { label: 'Home', href: '/', icon: Home },
+  { label: 'Album', href: '/album', icon: Images },
+  { label: 'Photographer', href: '/photographer', icon: Camera },
+  { label: 'Contact', href: '/contact', icon: Mail },
 ];
 
 export default function Navbar() {
@@ -42,7 +42,6 @@ export default function Navbar() {
         console.error('Failed to parse user data');
         setUser(null);
       }
-
       setLoading(false);
     };
 
@@ -62,41 +61,39 @@ export default function Navbar() {
     router.push('/');
   };
 
-  const profileHref = user?.role?.toLowerCase() === 'photographer' ? '/photographer-admin/settings' : '/user-panel/profile';
-  const profileLabel = 'My Profile';
+  const profileHref = user?.role?.toLowerCase() === 'photographer'
+    ? '/photographer-admin/settings'
+    : '/user-panel/profile';
+
   const profileImageSrc = user?.profileImage || user?.profilePic || '';
 
   return (
-    <header className="sticky top-0 z-40 border-b border-[#211a1b]/10 bg-[#fff8f8]/85 backdrop-blur-md">
-      <div className="mx-auto flex h-16 sm:h-20 w-full max-w-6xl items-center justify-between px-4 sm:px-5 md:px-10">
-        <Link
-          href="/"
-          className="text-[11px] sm:text-sm font-semibold uppercase tracking-[0.2em] sm:tracking-[0.24em] text-[#8c0053]"
-        >
+    <header className="sticky top-0 z-50 border-b border-[#211a1b]/10 bg-[#fff8f8]">
+      <div className="mx-auto flex h-16 sm:h-20 w-full max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <Link href="/" className="text-lg sm:text-xl font-serif font-semibold tracking-tight text-[#8c0053]">
           Memo Album
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden items-center gap-6 md:gap-7 md:flex">
+        <nav className="hidden md:flex items-center gap-8">
           {navLinks.map((link) => (
             <Link
               key={link.label}
               href={link.href}
-              className={`text-[11px] uppercase tracking-[0.2em] transition hover:text-[#890051] ${
-                pathname === link.href ? 'text-[#890051]' : 'text-[#534345]'
-              }`}
+              className={`text-sm font-medium uppercase tracking-widest transition hover:text-[#890051] ${pathname === link.href ? 'text-[#890051]' : 'text-[#534345]'
+                }`}
             >
               {link.label}
             </Link>
           ))}
         </nav>
 
-        <div className="flex items-center gap-3 sm:gap-4 relative">
-          {/* Desktop Sign In Button or Profile */}
+        {/* Desktop Profile */}
+        <div className="flex items-center gap-3">
           {!loading && !user ? (
             <Link
               href="/login"
-              className="hidden sm:block rounded-full bg-linear-to-r from-[#890051] to-[#d23284] px-4 py-1.5 sm:py-2 text-[9px] sm:text-[10px] font-semibold uppercase tracking-[0.18em] text-white shadow-[0_8px_16px_rgba(137,0,81,0.15)] sm:shadow-[0_14px_30px_rgba(137,0,81,0.22)] transition-all hover:shadow-lg"
+              className="hidden sm:block rounded-full bg-gradient-to-r from-[#890051] to-[#d23284] px-6 py-2 text-xs font-semibold uppercase tracking-widest text-white shadow-lg hover:shadow-xl transition-all active:scale-95"
             >
               Sign In
             </Link>
@@ -104,52 +101,36 @@ export default function Navbar() {
             <div className="hidden sm:block relative">
               <button
                 onClick={() => setProfileOpen(!profileOpen)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-black/5 transition-colors"
+                className="flex items-center gap-3 px-4 py-2 rounded-2xl hover:bg-white/70 transition-all"
               >
-                <div className="w-8 h-8 rounded-full bg-linear-to-r from-[#890051] to-[#d23284] flex items-center justify-center text-white font-bold text-sm overflow-hidden">
+                <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-[#890051] to-[#d23284] flex items-center justify-center text-white font-bold overflow-hidden border border-white/30">
                   {profileImageSrc ? (
-                    <img src={profileImageSrc} alt={user.name} className="w-full h-full object-cover" />
+                    <img src={profileImageSrc} alt={user?.name} className="w-full h-full object-cover" />
                   ) : (
                     <span>{user?.name?.charAt(0)?.toUpperCase() || 'U'}</span>
                   )}
                 </div>
-                <div className="hidden lg:flex flex-col items-start leading-tight">
-                  <span className="text-xs font-bold text-[#534345]">{user?.name?.split(' ')[0] || 'User'}</span>
-                  <span className="text-xs text-[#9B9095]">{user?.role || 'Guest'}</span>
+                <div className="hidden lg:flex flex-col items-start text-sm">
+                  <span className="font-semibold text-[#534345]">{user?.name?.split(' ')[0] || 'User'}</span>
+                  <span className="text-xs text-[#9B9095] -mt-0.5">{user?.role}</span>
                 </div>
               </button>
 
-              {/* Profile Dropdown */}
               <AnimatePresence>
                 {profileOpen && (
                   <>
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-30" onClick={() => setProfileOpen(false)} />
                     <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      onClick={() => setProfileOpen(false)}
-                      className="fixed inset-0 z-30"
-                    />
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="absolute top-12 right-0 z-40 bg-white rounded-lg shadow-lg border border-[#8c0053]/10 overflow-hidden"
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      className="absolute top-16 right-0 z-40 w-56 bg-white rounded-2xl shadow-xl border border-[#8c0053]/10 py-2"
                     >
-                      <Link
-                        href={profileHref}
-                        onClick={() => setProfileOpen(false)}
-                        className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-[#534345] hover:bg-[#fff8f8] transition-colors border-b border-[#8c0053]/10"
-                      >
-                        <User size={16} />
-                        {profileLabel}
+                      <Link href={profileHref} onClick={() => setProfileOpen(false)} className="flex items-center gap-3 px-5 py-3 text-sm hover:bg-[#fff8f8]">
+                        <User size={18} /> My Profile
                       </Link>
-                      <button
-                        onClick={handleLogout}
-                        className="flex items-center gap-2 w-full px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors text-left"
-                      >
-                        <LogOut size={16} />
-                        Logout
+                      <button onClick={handleLogout} className="flex items-center gap-3 w-full px-5 py-3 text-sm text-red-600 hover:bg-red-50">
+                        <LogOut size={18} /> Logout
                       </button>
                     </motion.div>
                   </>
@@ -158,129 +139,143 @@ export default function Navbar() {
             </div>
           )}
 
-          {/* Mobile Menu Toggle Button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden flex flex-col gap-1.5 p-2 rounded-lg hover:bg-black/5 transition-colors"
-            aria-label="Toggle menu"
+            className="md:hidden p-3 rounded-xl hover:bg-black/5 transition-colors"
           >
-            <motion.span
-              animate={mobileMenuOpen ? { rotate: 45, y: 10 } : { rotate: 0, y: 0 }}
-              className="w-5 h-0.5 bg-[#8c0053] block"
-            />
-            <motion.span
-              animate={mobileMenuOpen ? { opacity: 0 } : { opacity: 1 }}
-              className="w-5 h-0.5 bg-[#8c0053] block"
-            />
-            <motion.span
-              animate={mobileMenuOpen ? { rotate: -45, y: -10 } : { rotate: 0, y: 0 }}
-              className="w-5 h-0.5 bg-[#8c0053] block"
-            />
+            <div className="space-y-1.5">
+              <motion.div animate={mobileMenuOpen ? { rotate: 45, y: 6 } : { rotate: 0 }} className="w-6 h-0.5 bg-[#8c0053] rounded" />
+              <motion.div animate={mobileMenuOpen ? { opacity: 0 } : { opacity: 1 }} className="w-6 h-0.5 bg-[#8c0053] rounded" />
+              <motion.div animate={mobileMenuOpen ? { rotate: -45, y: -6 } : { rotate: 0 }} className="w-6 h-0.5 bg-[#8c0053] rounded" />
+            </div>
           </button>
         </div>
       </div>
 
-      {/* Mobile Menu - Side Panel */}
+      {/* ====================== MOBILE MENU ====================== */}
       <AnimatePresence>
         {mobileMenuOpen && (
           <>
-            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
               onClick={() => setMobileMenuOpen(false)}
-              className="fixed inset-0 md:hidden z-40 bg-black/30 backdrop-blur-sm"
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"
             />
 
-            {/* Side Panel - 50% width, full height */}
             <motion.div
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
-              transition={{ duration: 0.3, ease: 'easeInOut' }}
-              className="fixed top-0 left-0 h-screen w-1/2 md:hidden z-50 bg-linear-to-br from-[#fff8f8] via-[#ffe8f0] to-[#ffd4e0] flex flex-col justify-start pt-20 px-4 overflow-y-auto"
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              className="fixed top-0 left-0 h-full w-80 md:hidden z-50 bg-gradient-to-b from-[#fff8f8] to-[#ffe8f0] shadow-2xl flex flex-col overflow-y-auto"
             >
-              {/* Navigation Links */}
-              <nav className="flex flex-col gap-4 w-full">
+              {/* Profile Header */}
+              {user && (
+                <div className="bg-gradient-to-br from-[#890051] to-[#d23284] p-6 text-white relative">
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-white/30">
+                      {profileImageSrc ? (
+                        <img src={profileImageSrc} alt={user.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-white/20 flex items-center justify-center">
+                          <span className="text-3xl font-bold">{user?.name?.charAt(0)?.toUpperCase() || 'U'}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold">{user.name || 'User'}</h3>
+                      <p className="text-white/80 text-sm">{user.role || 'Member'}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="absolute top-6 right-6 p-2 rounded-full hover:bg-white/20 transition-colors"
+                  >
+                    <X size={26} />
+                  </button>
+                </div>
+              )}
+
+              {!user && (
+                <div className="flex items-center justify-between p-6 border-b">
+                  <div className="text-2xl font-serif font-semibold text-[#8c0053]">Memo Album</div>
+                  <button onClick={() => setMobileMenuOpen(false)} className="p-2">
+                    <X size={28} className="text-[#8c0053]" />
+                  </button>
+                </div>
+              )}
+
+              {/* Navigation Links + My Profile */}
+              <nav className="flex-1 px-6 py-8 space-y-2">
                 {navLinks.map((link, index) => (
                   <motion.div
                     key={link.label}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.08 }}
-                    className="w-full"
+                    transition={{ delay: index * 0.05 }}
                   >
                     <Link
                       href={link.href}
                       onClick={() => setMobileMenuOpen(false)}
-                      className={`block w-full px-5 py-3 rounded-xl text-base font-bold uppercase tracking-wide transition-all text-center cursor-pointer ${
-                        pathname === link.href
-                          ? 'bg-linear-to-r from-[#890051] to-[#d23284] text-white shadow-lg'
-                          : 'bg-white/70 text-[#534345] hover:bg-white/90 hover:shadow-lg'
-                      }`}
+                      className={`flex items-center gap-4 px-6 py-4 rounded-2xl text-base font-semibold transition-all ${pathname === link.href
+                        ? 'text-[#d23284] font-bold bg-white/70'
+                        : 'text-[#534345] hover:text-[#d23284] hover:bg-white/50'
+                        }`}
                     >
+                      <link.icon size={24} />
                       {link.label}
                     </Link>
                   </motion.div>
                 ))}
-              </nav>
 
-              {/* Divider */}
-              <div className="w-full h-1 bg-linear-to-r from-[#8c0053]/40 via-[#A11462]/40 to-transparent rounded-full my-4" />
-
-              {/* Mobile Sign In or Profile */}
-              {!user ? (
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.32 }}
-                  className="w-full"
-                >
-                  <Link
-                    href="/login"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="block w-full px-5 py-3 rounded-xl bg-linear-to-r from-[#890051] to-[#d23284] text-white text-base font-bold uppercase tracking-wide text-center shadow-lg hover:shadow-xl transition-all cursor-pointer"
-                  >
-                    Sign In
-                  </Link>
-                </motion.div>
-              ) : (
-                <>
+                {/* My Profile */}
+                {user && (
                   <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.24 }}
-                    className="w-full"
+                    transition={{ delay: 0.25 }}
                   >
                     <Link
                       href={profileHref}
                       onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center gap-3 w-full px-5 py-3 rounded-xl bg-white/70 text-[#534345] text-base font-bold uppercase tracking-wide text-center hover:bg-white/90 hover:shadow-lg transition-all cursor-pointer"
+                      className={`flex items-center gap-4 px-6 py-4 rounded-2xl text-base font-semibold transition-all ${pathname === profileHref
+                        ? 'text-[#d23284] font-bold bg-white/70'
+                        : 'text-[#534345] hover:text-[#d23284] hover:bg-white/50'
+                        }`}
                     >
-                      <User size={20} />
-                      {profileLabel}
+                      <User size={24} />
+                      My Profile
                     </Link>
                   </motion.div>
-                  <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.32 }}
-                    className="w-full"
+                )}
+              </nav>
+
+              {/* Logout / Sign In */}
+              {user ? (
+                <div className="p-6 border-t mt-auto">
+                  <button
+                    onClick={() => {
+                      handleLogout();
+                      setMobileMenuOpen(false);
+                    }}
+                    className="flex items-center justify-center gap-3 w-full py-4 text-white font-semibold rounded-2xl bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 shadow-lg transition-all"
                   >
-                    <button
-                      onClick={() => {
-                        handleLogout();
-                        setMobileMenuOpen(false);
-                      }}
-                      className="flex items-center justify-center gap-3 w-full px-5 py-3 rounded-xl bg-red-50 text-red-600 text-base font-bold uppercase tracking-wide hover:bg-red-100 hover:shadow-lg transition-all cursor-pointer"
-                    >
-                      <LogOut size={20} />
-                      Logout
-                    </button>
-                  </motion.div>
-                </>
+                    <LogOut size={22} />
+                    Logout
+                  </button>
+                </div>
+              ) : (
+                <div className="p-6 border-t mt-auto">
+                  <Link
+                    href="/login"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="block w-full py-4 text-center bg-gradient-to-r from-[#890051] to-[#d23284] text-white font-semibold rounded-2xl shadow-lg"
+                  >
+                    Sign In
+                  </Link>
+                </div>
               )}
             </motion.div>
           </>
