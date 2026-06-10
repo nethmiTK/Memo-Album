@@ -50,13 +50,14 @@ type FullscreenBookData = {
   endPhoto?: string;
   endPhotoName?: string;
   template: {
-    _id?: string;
-    name?: string;
+    _id: string;
+    name: string;
     description?: string;
     accent?: string;
     coverImage?: string;
     pages?: any[];
     slots?: any[];
+    pageLayouts?: any[];
   };
   mediaItems: any[];
   pageLayouts?: Array<{
@@ -472,6 +473,7 @@ export default function GalleryPage() {
         <FullscreenBook
           template={selectedFullscreenBook.template as any}
           mediaItems={selectedFullscreenBook.mediaItems}
+          pageLayouts={selectedFullscreenBook.pageLayouts}
           coverPhoto={selectedFullscreenBook.coverPhoto}
           coverPhotoName={selectedFullscreenBook.coverPhotoName}
           coverWeddingDate={selectedFullscreenBook.coverWeddingDate}

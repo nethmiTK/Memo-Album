@@ -195,22 +195,28 @@ export default function SupportPage() {
           </section>
         </div>
 
-        <div className="overflow-hidden rounded-[1.6rem] border border-[#ead7df] bg-linear-to-r from-[#181214] via-[#2a1f25] to-[#8d5a73] p-6 text-white md:p-8">
+        <div className="overflow-hidden rounded-[1.6rem] border border-[#ead7df] bg-gradient-to-r from-[#181214] via-[#2a1f25] to-[#8d5a73] p-6 text-white md:p-8">
           <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.3em] text-[#f2c6d7]">Concierge note</p>
+              <p className="text-[10px] uppercase tracking-[0.3em] text-[#f2c6d7]">Connect With Us</p>
               <h4 className="mt-3 text-3xl md:text-4xl" style={{ fontFamily: 'Newsreader, serif' }}>
-                Keep your gallery, archive, and designer workflow aligned.
+                Contact Concierge
               </h4>
               <p className="mt-3 max-w-2xl text-sm leading-7 text-[#efe4ea]">
-                If you need help matching albums to templates, moving archive folders, or handling admin approvals, this support space is built to send you to the correct resource quickly.
+                "Every great archive begins with a conversation. We are here to guide your story from first frame to final print."
               </p>
+              <div className="mt-6">
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#f2c6d7]">General Inquiries</p>
+                <a href="mailto:info@memoalbum.com" className="mt-1 inline-block text-lg text-white hover:text-[#f2c6d7] transition-colors">
+                  info@memoalbum.com
+                </a>
+              </div>
             </div>
 
-            <button className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-xs font-bold uppercase tracking-[0.16em] text-[#211a1b]">
-              Open Guide Library
+            <a href="mailto:info@memoalbum.com" className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-xs font-bold uppercase tracking-[0.16em] text-[#211a1b] hover:bg-[#fbf4f5] transition-colors">
+              Send an Email
               <FiArrowRight size={14} />
-            </button>
+            </a>
           </div>
         </div>
       </div>

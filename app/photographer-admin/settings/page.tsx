@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
+import { FiEye, FiEyeOff } from 'react-icons/fi';
 
 
 export default function SettingsPage() {
@@ -21,6 +22,15 @@ export default function SettingsPage() {
       contactNo: '',
       address: '',
       bio: '',
+      socials: {
+        instagram: '',
+        facebook: '',
+        tiktok: '',
+        x: '',
+        youtube: '',
+        linkedin: '',
+        website: '',
+      },
     },
   });
   const [formData, setFormData] = useState({
@@ -31,7 +41,27 @@ export default function SettingsPage() {
     contactNo: '',
     address: '',
     bio: '',
+    socials: {
+      instagram: '',
+      facebook: '',
+      tiktok: '',
+      x: '',
+      youtube: '',
+      linkedin: '',
+      website: '',
+    },
   });
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    new: false,
+    confirm: false,
+  });
+  const [passwordSaving, setPasswordSaving] = useState(false);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -76,6 +106,15 @@ export default function SettingsPage() {
         contactNo: '',
         address: '',
         bio: '',
+        socials: {
+          instagram: '',
+          facebook: '',
+          tiktok: '',
+          x: '',
+          youtube: '',
+          linkedin: '',
+          website: '',
+        },
       });
       setLoading(false);
       // redirect to login after a short tick to allow UI update
@@ -101,6 +140,15 @@ export default function SettingsPage() {
       contactNo: mergedUser.contactNo || '',
       address: mergedUser.address || '',
       bio: mergedUser.bio || '',
+      socials: {
+        instagram: mergedUser.socials?.instagram || '',
+        facebook: mergedUser.socials?.facebook || '',
+        tiktok: mergedUser.socials?.tiktok || '',
+        x: mergedUser.socials?.x || '',
+        youtube: mergedUser.socials?.youtube || '',
+        linkedin: mergedUser.socials?.linkedin || '',
+        website: mergedUser.socials?.website || '',
+      },
     };
 
     setFormData(mergedFormData);
@@ -144,6 +192,15 @@ export default function SettingsPage() {
           contactNo: apiUser.contactNo || mergedFormData.contactNo,
           address: apiUser.address || mergedFormData.address,
           bio: apiUser.bio || mergedFormData.bio,
+          socials: {
+            instagram: apiUser.socials?.instagram || mergedFormData.socials.instagram,
+            facebook: apiUser.socials?.facebook || mergedFormData.socials.facebook,
+            tiktok: apiUser.socials?.tiktok || mergedFormData.socials.tiktok,
+            x: apiUser.socials?.x || mergedFormData.socials.x,
+            youtube: apiUser.socials?.youtube || mergedFormData.socials.youtube,
+            linkedin: apiUser.socials?.linkedin || mergedFormData.socials.linkedin,
+            website: apiUser.socials?.website || mergedFormData.socials.website,
+          },
         };
 
         setUser((current: any) => ({ ...current, ...apiUser }));
@@ -191,6 +248,7 @@ export default function SettingsPage() {
           contactNo: formData.contactNo,
           address: formData.address,
           bio: formData.bio,
+          socials: formData.socials,
           profileImage: profilePreview,
         }),
       });
@@ -222,6 +280,7 @@ export default function SettingsPage() {
         contactNo: formData.contactNo,
         address: formData.address,
         bio: formData.bio,
+        socials: formData.socials,
         profileImage: profilePreview,
         profilePic: profilePreview,
       };
@@ -242,6 +301,7 @@ export default function SettingsPage() {
           contactNo: formData.contactNo,
           address: formData.address,
           bio: formData.bio,
+          socials: formData.socials,
         },
       };
 toast.success('Profile updated successfully!', {
@@ -256,6 +316,55 @@ toast.success('Profile updated successfully!', {
       alert('Error updating profile: ' + errorMessage);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast.error('New passwords do not match.', { style: { background: '#FDF3F2', color: '#000' } });
+      return;
+    }
+
+    const isStrong = passwordData.newPassword.length >= 8 && /[A-Z]/.test(passwordData.newPassword) && /[a-z]/.test(passwordData.newPassword) && /[0-9]/.test(passwordData.newPassword) && /[^A-Za-z0-9]/.test(passwordData.newPassword);
+    
+    if (!isStrong) {
+      toast.error('Password must be at least 8 characters long, include an uppercase letter, a lowercase letter, a number, and a special character.', { style: { background: '#FDF3F2', color: '#000' } });
+      return;
+    }
+
+    setPasswordSaving(true);
+    try {
+      const token =
+        localStorage.getItem('token') ||
+        localStorage.getItem('authToken') ||
+        localStorage.getItem('adminToken');
+
+      const response = await fetch(`${API_URL.replace(/\/admin$/, '')}/auth/change-password`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast.error(data.message || 'Failed to change password.', { style: { background: '#FDF3F2', color: '#000' } });
+        return;
+      }
+
+      toast.success('Password changed successfully!', { style: { background: '#FDF3F2', color: '#000' } });
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (err: any) {
+      toast.error(err.message || 'Error changing password', { style: { background: '#FDF3F2', color: '#000' } });
+    } finally {
+      setPasswordSaving(false);
     }
   };
 
@@ -410,6 +519,25 @@ toast.success('Profile updated successfully!', {
             </label>
           </div>
 
+          <div className="pt-6 border-t border-[#F3E5E6]">
+            <h3 className="font-serif text-xl text-[#211A1B] mb-4">Social Links</h3>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {['instagram', 'facebook', 'tiktok', 'x', 'youtube', 'linkedin', 'website'].map((platform) => (
+                <label key={platform} className="space-y-2 text-sm text-[#5E4D53]">
+                  <span className="capitalize">{platform}</span>
+                  <input
+                    type="text"
+                    value={(formData.socials as any)[platform]}
+                    onChange={(e) => setFormData({ ...formData, socials: { ...formData.socials, [platform]: e.target.value } })}
+                    placeholder={`https://${platform === 'website' ? 'yourdomain.com' : platform + '.com/yourprofile'}`}
+                    className="w-full rounded-xl px-4 py-3 outline-none transition-all focus:ring-2 focus:ring-[#B10E6B]/40"
+                    style={{ backgroundColor: '#FDF3F2', color: '#211A1B' }}
+                  />
+                </label>
+              ))}
+            </div>
+          </div>
+
           <div className="flex items-center justify-end gap-3 pt-3">
             <button
               type="button"
@@ -432,6 +560,91 @@ toast.success('Profile updated successfully!', {
               {saving ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
+        </article>
+
+        <article className="space-y-7 rounded-2xl bg-white p-6 shadow-[0_16px_32px_rgba(33,26,27,0.06)] md:p-8">
+          <div>
+            <h2 className="font-serif text-2xl text-[#211A1B]">Change Password</h2>
+            <p className="mt-2 text-sm text-[#5E4D53]">Ensure your account is using a long, random password to stay secure.</p>
+          </div>
+
+          <form onSubmit={handleChangePassword} className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <label className="space-y-2 text-sm text-[#5E4D53] md:col-span-2 relative">
+                <span>Current Password</span>
+                <div className="relative">
+                  <input
+                    type={showPasswords.current ? "text" : "password"}
+                    value={passwordData.currentPassword}
+                    onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                    className="w-full rounded-xl px-4 py-3 pr-10 outline-none transition-all focus:ring-2 focus:ring-[#B10E6B]/40"
+                    style={{ backgroundColor: '#FDF3F2', color: '#211A1B' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswords({ ...showPasswords, current: !showPasswords.current })}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#5E4D53] hover:text-[#B10E6B]"
+                  >
+                    {showPasswords.current ? <FiEyeOff size={18} /> : <FiEye size={18} />}
+                  </button>
+                </div>
+              </label>
+
+              <label className="space-y-2 text-sm text-[#5E4D53] relative">
+                <span>New Password</span>
+                <div className="relative">
+                  <input
+                    type={showPasswords.new ? "text" : "password"}
+                    value={passwordData.newPassword}
+                    onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                    className="w-full rounded-xl px-4 py-3 pr-10 outline-none transition-all focus:ring-2 focus:ring-[#B10E6B]/40"
+                    style={{ backgroundColor: '#FDF3F2', color: '#211A1B' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswords({ ...showPasswords, new: !showPasswords.new })}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#5E4D53] hover:text-[#B10E6B]"
+                  >
+                    {showPasswords.new ? <FiEyeOff size={18} /> : <FiEye size={18} />}
+                  </button>
+                </div>
+              </label>
+
+              <label className="space-y-2 text-sm text-[#5E4D53] relative">
+                <span>Confirm New Password</span>
+                <div className="relative">
+                  <input
+                    type={showPasswords.confirm ? "text" : "password"}
+                    value={passwordData.confirmPassword}
+                    onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                    className="w-full rounded-xl px-4 py-3 pr-10 outline-none transition-all focus:ring-2 focus:ring-[#B10E6B]/40"
+                    style={{ backgroundColor: '#FDF3F2', color: '#211A1B' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswords({ ...showPasswords, confirm: !showPasswords.confirm })}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#5E4D53] hover:text-[#B10E6B]"
+                  >
+                    {showPasswords.confirm ? <FiEyeOff size={18} /> : <FiEye size={18} />}
+                  </button>
+                </div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-end pt-3">
+              <button
+                type="submit"
+                disabled={passwordSaving}
+                className="px-5 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-widest text-white transition-transform hover:scale-[1.02] disabled:opacity-50"
+                style={{
+                  background: 'linear-gradient(135deg, #B10E6B, #D23284)',
+                  boxShadow: '0 8px 16px rgba(177,14,107,0.2)',
+                }}
+              >
+                {passwordSaving ? 'Updating...' : 'Update Password'}
+              </button>
+            </div>
+          </form>
         </article>
       </div>
     </section>
