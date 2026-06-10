@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Bell, ChevronDown, Globe, LogOut, Menu, Search, User } from 'lucide-react';
+import { ChevronDown, Globe, LogOut, Menu, User } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { logoutPhotographer } from '@/app/photographer-admin/auth';
-import { apiFetch } from '@/lib/api';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
 interface PhotographerNavbarProps {
   onMenuClick?: () => void;
@@ -15,10 +16,38 @@ interface PhotographerNavbarProps {
 export default function PhotographerNavbar({ onMenuClick }: PhotographerNavbarProps) {
   const pathname = usePathname();
   const [profileImage, setProfileImage] = useState('');
+  const [profileName, setProfileName] = useState('Photographer');
   const [profileOpen, setProfileOpen] = useState(false);
 
   useEffect(() => {
     const resolveAvatar = async () => {
+      // Try all possible token keys
+      const token =
+        localStorage.getItem('photographerToken') ||
+        localStorage.getItem('token') ||
+        localStorage.getItem('authToken') ||
+        localStorage.getItem('adminToken');
+
+      if (token) {
+        try {
+          const response = await fetch(`${API_URL}/auth/me`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (response.ok) {
+            const result = await response.json();
+            if (result.success && result.user) {
+              const u = result.user;
+              if (u.profilePic) setProfileImage(u.profilePic);
+              if (u.name) setProfileName(u.name);
+              return;
+            }
+          }
+        } catch (error) {
+          console.error('Failed to fetch profile from /auth/me:', error);
+        }
+      }
+
+      // Fallback to localStorage
       const userRaw = localStorage.getItem('user');
       const userDataRaw = localStorage.getItem('userData');
       let user: any = {};
@@ -30,35 +59,10 @@ export default function PhotographerNavbar({ onMenuClick }: PhotographerNavbarPr
         user = {};
         userData = {};
       }
-
-      // Try to fetch from backend
-      try {
-        const response = await apiFetch('/photographer/profile');
-        if (response.ok) {
-          const result = await response.json();
-          if (result.success && result.photographer?.profileImage) {
-            setProfileImage(result.photographer.profileImage);
-            return;
-          }
-        }
-      } catch (error) {
-        console.error('Failed to fetch profile image:', error);
-      }
-
-      // Fallback to localStorage
-      const value = user.profileImage || user.profilePic || userData.profileImage || userData.profilePic || '';
-
-      if (!value) {
-        setProfileImage('');
-        return;
-      }
-
-      if (value.startsWith('http') || value.startsWith('data:') || value.startsWith('blob:')) {
-        setProfileImage(value);
-        return;
-      }
-
-      setProfileImage(value);
+      const value = user.profilePic || user.profileImage || userData.profilePic || userData.profileImage || '';
+      if (value) setProfileImage(value);
+      const name = user.name || user.username || userData.name || userData.username || 'Photographer';
+      setProfileName(name);
     };
 
     resolveAvatar();
@@ -98,33 +102,13 @@ export default function PhotographerNavbar({ onMenuClick }: PhotographerNavbarPr
           <Menu size={24} style={{ color: '#b10e6b' }} />
         </button>
 
-        {/* Title - Hidden on mobile */}
-        <div className="hidden md:block min-w-55">
+        {/* Title */}
+        <div className="flex-1">
           <h2 className="font-serif text-2xl" style={{ color: '#C64D92' }}>{getNavTitle()}</h2>
         </div>
 
-        {/* Search Bar */}
-        <div className="flex-1 flex justify-center md:justify-end min-w-0">
-          <div className="flex items-center rounded-full px-5 py-3 w-full max-w-[320px] md:max-w-105 transition-all" style={{ backgroundColor: '#FEF0F1' }}>
-            <Search size={18} style={{ color: '#B8A7AF' }} className="shrink-0" />
-            <input
-              type="text"
-              placeholder="Search archive..."
-              className="bg-transparent border-none outline-none appearance-none focus:outline-none focus-visible:outline-none focus:ring-0 text-[14px] md:text-[15px] w-full pl-3 placeholder:text-[#B8A7AF] truncate"
-              style={{ color: '#4A2E39', boxShadow: 'none', outline: 'none' }}
-            />
-          </div>
-        </div>
-
-        {/* Right Side - Actions */}
-        <div className="flex items-center gap-3 md:gap-4 justify-end shrink-0">
-          <button
-            className="h-10 w-10 flex items-center justify-center transition-opacity hover:opacity-80"
-            title="Notifications"
-          >
-            <Bell size={22} strokeWidth={1.8} style={{ color: '#7B5B69' }} />
-          </button>
-
+        {/* Right Side - Profile only */}
+        <div className="flex items-center justify-end shrink-0">
           <div className="relative">
             <button
               type="button"
@@ -147,7 +131,7 @@ export default function PhotographerNavbar({ onMenuClick }: PhotographerNavbarPr
                 )}
               </div>
               <div className="hidden lg:flex flex-col items-start leading-tight">
-                <span className="text-xs font-semibold text-[#4A2E39]">Photographer</span>
+                <span className="text-xs font-semibold text-[#4A2E39]">{profileName}</span>
                 <span className="text-[10px] uppercase tracking-[0.16em] text-[#8D7980]">Account</span>
               </div>
               <ChevronDown size={16} style={{ color: '#7B5B69' }} className="hidden sm:block" />
@@ -170,10 +154,7 @@ export default function PhotographerNavbar({ onMenuClick }: PhotographerNavbarPr
                     transition={{ duration: 0.18 }}
                     className="absolute right-0 top-14 z-30 w-64 overflow-hidden rounded-2xl border border-[#8c0053]/10 bg-white shadow-[0_18px_50px_rgba(33,26,27,0.14)]"
                   >
-                     
-
                     <div className="p-2">
-                      
                       <Link
                         href="/"
                         onClick={() => setProfileOpen(false)}

@@ -198,27 +198,29 @@ const uploadRecentMedia = async (files: File[]) => {
     );
 
     if (!files.length) return;
-    setSelectedFiles(files);
-    setFilePreviews(
-      files.map((file) => ({
+    setSelectedFiles(prev => [...prev, ...files]);
+    setFilePreviews(prev => [
+      ...prev,
+      ...files.map((file) => ({
         name: file.name,
         type: getMediaTypeFromFile(file),
         previewUrl: URL.createObjectURL(file),
       }))
-    );
+    ]);
   };
 
   const handleUploadFormFileSelection = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
     if (!files.length) return;
-    setSelectedFiles(files);
-    setFilePreviews(
-      files.map((file) => ({
+    setSelectedFiles(prev => [...prev, ...files]);
+    setFilePreviews(prev => [
+      ...prev,
+      ...files.map((file) => ({
         name: file.name,
         type: getMediaTypeFromFile(file),
         previewUrl: URL.createObjectURL(file),
       }))
-    );
+    ]);
   };
 
   const openUploadForm = () => {
@@ -265,14 +267,16 @@ const uploadRecentMedia = async (files: File[]) => {
 
   const handleUploadModalFileSelection = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
-    setSelectedFiles(files);
-    setFilePreviews(
-      files.map((file) => ({
+    if (!files.length) return;
+    setSelectedFiles(prev => [...prev, ...files]);
+    setFilePreviews(prev => [
+      ...prev,
+      ...files.map((file) => ({
         name: file.name,
         type: getMediaTypeFromFile(file),
         previewUrl: URL.createObjectURL(file),
       }))
-    );
+    ]);
   };
 
   const uploadFolderMedia = async () => {
@@ -569,7 +573,7 @@ const uploadRecentMedia = async (files: File[]) => {
             ? folder.images.slice(0, 2).map((img: any) => img.url).filter(Boolean)
             : (Array.isArray(folder?.coverImages) ? folder.coverImages : []),
         })).filter(
-          (folder) => !/guest|interactive/i.test(folder?.name || '') && !/guest|interactive/i.test(folder?.category || '')
+          (folder) => !/guest|interactive|all photos|all media/i.test(folder?.name || '') && !/guest|interactive|all photos|all media/i.test(folder?.category || '')
         )
       : []),
   ];
@@ -1076,24 +1080,27 @@ const uploadRecentMedia = async (files: File[]) => {
                 )}
 
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300" />
-                {/* top-right action buttons */}
                 <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition duration-300">
                   <button
                     onClick={(event) => {
                       event.stopPropagation();
                       toggleFavorite(item.id);
                     }}
-                    className={`inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/70 bg-white/95 text-[#E91E63] shadow-lg transition hover:bg-white ${item.isFavorite ? 'bg-[#E91E63] text-white' : ''}`}
+                    className={`inline-flex h-11 w-11 items-center justify-center rounded-full border shadow-lg transition ${
+                      item.isFavorite 
+                        ? 'border-white bg-white text-[#d23284]' 
+                        : 'border-white bg-transparent text-white hover:bg-white/20'
+                    }`}
                     aria-label="Toggle favorite"
                   >
-                    <Heart className="w-5 h-5" />
+                    <Heart className="w-5 h-5" fill={item.isFavorite ? 'currentColor' : 'none'} />
                   </button>
                   <button
                     onClick={(event) => {
                       event.stopPropagation();
                       deleteMediaItem(item.id);
                     }}
-                    className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/70 bg-white/95 text-[#4b4b4b] shadow-lg transition hover:bg-white"
+                    className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white bg-transparent text-white shadow-lg transition hover:bg-white/20 hover:text-white"
                     aria-label="Delete media"
                   >
                     <Trash2 className="w-5 h-5" />
@@ -1103,10 +1110,14 @@ const uploadRecentMedia = async (files: File[]) => {
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-300 gap-4 pointer-events-none">
                   <button
                     onClick={(e) => { e.stopPropagation(); toggleFavorite(item.id); }}
-                    className={`pointer-events-auto inline-flex h-12 w-12 items-center justify-center rounded-full shadow-lg transition-colors ${item.isFavorite ? 'bg-[#E91E63] text-white' : 'bg-white text-[#E91E63]'}`}
+                    className={`pointer-events-auto inline-flex h-12 w-12 items-center justify-center rounded-full border shadow-lg transition ${
+                      item.isFavorite 
+                        ? 'border-white bg-white text-[#d23284]' 
+                        : 'border-white bg-transparent text-white hover:bg-white/20'
+                    }`}
                     aria-label="Toggle favorite"
                   >
-                    ♥
+                    <Heart className="w-6 h-6" fill={item.isFavorite ? 'currentColor' : 'none'} />
                   </button>
                   {item.type === 'video' && (
                     <div className="pointer-events-auto flex items-center justify-center rounded-full bg-white/15 p-3 text-white shadow-lg">

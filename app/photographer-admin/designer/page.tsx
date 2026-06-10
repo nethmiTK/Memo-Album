@@ -1272,7 +1272,7 @@ const CreateAlbum: React.FC = () => {
           dataUrl: item.dataUrl || '',
           order: index + 1,
         })),
-        status: options.status ?? 'save_draft',
+        status: options.status ?? selectedAlbumData?.status ?? 'save_draft',
         selectedTemplate: selectedTemplate,
         selectedAlbumId: selectedAlbum,
         mediaTransforms: transforms,
@@ -1917,8 +1917,8 @@ const CreateAlbum: React.FC = () => {
                               type="button"
                               onClick={() => setSelectedPreviewPage(page.pageIndex)}
                               className={`flex-shrink-0 rounded-xl border p-3 transition-all flex flex-col items-center gap-2 ${isActive
-                                  ? 'border-[#b10e6b] bg-[#fff0f4] shadow-sm'
-                                  : 'border-[#ecdbe2] bg-[#fff8f9] hover:border-[#b10e6b]/50'
+                                ? 'border-[#b10e6b] bg-[#fff0f4] shadow-sm'
+                                : 'border-[#ecdbe2] bg-[#fff8f9] hover:border-[#b10e6b]/50'
                                 }`}
                               style={{ width: '130px' }}
                             >
@@ -2078,13 +2078,13 @@ const CreateAlbum: React.FC = () => {
                       {(() => {
                         const slotW = activeCropSlotSpec?.width ? Number(activeCropSlotSpec.width) : 100;
                         const slotH = activeCropSlotSpec?.height ? Number(activeCropSlotSpec.height) : 100;
-                        
+
                         const bounds = cropSlot ? pageSlotBounds.get(cropSlot.pageIndex) : null;
                         const usesAbsolute = bounds?.usesAbsoluteLayout;
-                        
+
                         let aspectRatio = 1;
                         if (usesAbsolute) {
-                          const pageAspectRatio = 3/4; // aspect-3/4
+                          const pageAspectRatio = 3 / 4; // aspect-3/4
                           aspectRatio = (slotW / Math.max(1, slotH)) * pageAspectRatio;
                         } else {
                           const colSpan = Math.max(1, Math.min(2, slotW || 1));
@@ -2138,7 +2138,7 @@ const CreateAlbum: React.FC = () => {
                                 strokeWidth="2.5"
                               />
                               {/* Rule-of-thirds grid inside frame */}
-                              {[1/3, 2/3].map((t, i) => (
+                              {[1 / 3, 2 / 3].map((t, i) => (
                                 <line
                                   key={`vline-${i}`}
                                   x1={`${(100 - frameW) / 2 + frameW * t}%`}
@@ -2149,7 +2149,7 @@ const CreateAlbum: React.FC = () => {
                                   strokeWidth="1"
                                 />
                               ))}
-                              {[1/3, 2/3].map((t, i) => (
+                              {[1 / 3, 2 / 3].map((t, i) => (
                                 <line
                                   key={`hline-${i}`}
                                   x1={`${(100 - frameW) / 2}%`}
@@ -2264,18 +2264,7 @@ const CreateAlbum: React.FC = () => {
       <div className="px-4 md:px-12 py-5 flex flex-col gap-3 border-t border-[#f3d6df]" style={{ fontFamily: 'Manrope, "Segoe UI", sans-serif' }}>
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div className="space-y-1">
-            <p className="text-xs font-bold uppercase tracking-widest text-[#b10e6b]">Workflow Status</p>
-            <p className="text-sm text-[#211A1B]">
-              {!selectedAlbum ? (
-                <span className="text-[#7a6268]">Select an album to begin</span>
-              ) : !selectedTemplate ? (
-                <span className="text-[#7a6268]">Select a template design</span>
-              ) : filledSlotCount === 0 ? (
-                <span className="text-[#7a6268]">Add images to fill slots ({filledSlotCount} / {slotConfigs.length})</span>
-              ) : (
-                <span className="text-green-600 font-semibold">✓ Ready to save ({filledSlotCount} / {slotConfigs.length} filled)</span>
-              )}
-            </p>
+
           </div>
           <div className="flex flex-wrap gap-2 justify-end">
             <button
@@ -2283,7 +2272,7 @@ const CreateAlbum: React.FC = () => {
               title="Clear designer (data stays in curate album)"
               className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-[#54474d] border border-[#e1bec4] rounded-lg hover:border-red-500 hover:text-red-600 hover:bg-red-50/50 transition-all whitespace-nowrap"
             >
-              ✕ Discard
+              Discard
             </button>
 
             <button
@@ -2301,7 +2290,7 @@ const CreateAlbum: React.FC = () => {
                   Saving...
                 </span>
               ) : (
-                '💾 Draft Save'
+                'Draft Save'
               )}
             </button>
 
@@ -2315,17 +2304,8 @@ const CreateAlbum: React.FC = () => {
             </button>
           </div>
         </div>
-
-        {/* Auto-Save Indicator */}
-        {(bookAlbumId || isAutoSaving) && (
-          <div className="p-2 bg-green-50 border border-green-200 rounded-lg">
-            <p className="text-xs text-green-700 font-semibold">
-              {isAutoSaving ? '⌛ Auto-saving changes...' : '✓ Saved to album • Ready for next step'}
-            </p>
-          </div>
-        )}
       </div>
-    </div>
+    </div >
   );
 };
 
