@@ -99,10 +99,10 @@ type SlotMediaArray = Array<MediaItem | null>;
 
 const getMediaSrc = (item?: MediaItem | null) => item?.dataUrl || (item as any)?.src || (item as any)?.url || '';
 
-  const getSlotMediaItem = (items: SlotMediaArray, slotIndex: number): MediaItem | null => {
-    const item = items[slotIndex];
-    return item && hasMediaSrc(getMediaSrc(item)) ? item : null;
-  };
+const getSlotMediaItem = (items: SlotMediaArray, slotIndex: number): MediaItem | null => {
+  const item = items[slotIndex];
+  return item && hasMediaSrc(getMediaSrc(item)) ? item : null;
+};
 
 const padSlotMediaArray = (items: SlotMediaArray, slotCount: number): SlotMediaArray => {
   const next = items.map((item) => item ?? null);
@@ -283,7 +283,7 @@ const CreateAlbum: React.FC = () => {
         }, 100);
       }
 
-      // toast.success('End photo uploaded (auto-saving...)', toastStyle);
+      toast.success('End photo uploaded (auto-saving...)', toastStyle);
     };
     reader.readAsDataURL(file);
     e.target.value = '';
@@ -302,7 +302,7 @@ const CreateAlbum: React.FC = () => {
       }, 100);
     }
 
-    // toast.success('End photo removed (auto-saving...)', toastStyle);
+    toast.success('End photo removed (auto-saving...)', toastStyle);
   };
 
   useEffect(() => {
@@ -342,7 +342,7 @@ const CreateAlbum: React.FC = () => {
         }
       } catch (error) {
         console.error('Failed to fetch templates:', error);
-        // toast.error(error instanceof Error ? error.message : 'Failed to load templates', toastStyle);
+        toast.error(error instanceof Error ? error.message : 'Failed to load templates', toastStyle);
       }
     };
 
@@ -477,18 +477,18 @@ const CreateAlbum: React.FC = () => {
         const lowerValue = value.toLowerCase();
         const isDraftSearch = lowerValue.includes('draft');
         const isSavedSearch = lowerValue.includes('saved') || lowerValue.includes('publish');
-        
+
         if (isDraftSearch && album.status !== 'saved' && album.status !== 'published') {
           return true;
         }
         if (isSavedSearch && (album.status === 'saved' || album.status === 'published')) {
           return true;
         }
-        
+
         return fuzzyMatch(value, album.albumName, album.status, photographerLabel);
       });
-              setAlbumSuggestions(filtered.slice(0, 20));
-              setIsAlbumDropdownOpen(filtered.length > 0);
+      setAlbumSuggestions(filtered.slice(0, 20));
+      setIsAlbumDropdownOpen(filtered.length > 0);
       if (filtered.length === 1) {
         handleSelectAlbum(filtered[0]);
       } else {
@@ -499,7 +499,7 @@ const CreateAlbum: React.FC = () => {
         setMediaItems([]);
         if (filtered.length === 0 && lastAlbumNoMatchToastRef.current !== value) {
           lastAlbumNoMatchToastRef.current = value;
-          // toast.error(`No curates found matching "${value}"`, toastStyle);
+          toast.error(`No curates found matching "${value}"`, toastStyle);
         }
       }
     } else {
@@ -519,7 +519,7 @@ const CreateAlbum: React.FC = () => {
     if (value.trim()) {
       const filtered = templates.filter((template) => {
         const lowerValue = value.toLowerCase();
-        
+
         return fuzzyMatch(
           value,
           template.name,
@@ -528,7 +528,7 @@ const CreateAlbum: React.FC = () => {
           template._id
         );
       });
-       setTemplateSuggestions(filtered.slice(0, 20));
+      setTemplateSuggestions(filtered.slice(0, 20));
       setIsTemplateDropdownOpen(filtered.length > 0);
       if (filtered.length === 1) {
         handleSelectTemplate(filtered[0]);
@@ -537,7 +537,7 @@ const CreateAlbum: React.FC = () => {
         setSelectedTemplateData(null);
         if (filtered.length === 0 && lastTemplateNoMatchToastRef.current !== value) {
           lastTemplateNoMatchToastRef.current = value;
-          // toast.error(`No templates found matching "${value}"`, toastStyle);
+          toast.error(`No templates found matching "${value}"`, toastStyle);
         }
       }
     } else {
@@ -570,7 +570,7 @@ const CreateAlbum: React.FC = () => {
     }));
 
     setMediaItems(normalizedMedia);
-    // toast.success('Media loaded from curate', toastStyle);
+    toast.success('Media loaded from curate', toastStyle);
     return normalizedMedia;
   };
 
@@ -619,11 +619,11 @@ const CreateAlbum: React.FC = () => {
     setIsAlbumDropdownOpen(false);
     setSelectedPreviewPage(0);
     const loaded = applyCurateMedia(album);
-    
+
     // Show which album was selected
     const statusBadge = album.status === 'saved' || album.status === 'published' ? '✓ Saved' : '◆ Draft';
-    // toast.info(`${statusBadge} "${album.albumName}" loaded (${album.mediaItems?.length || 0} items)`, toastStyle);
-    
+    toast.info(`${statusBadge} "${album.albumName}" loaded (${album.mediaItems?.length || 0} items)`, toastStyle);
+
     if (selectedTemplate && loaded.length > 0) {
       void syncBookAlbum(album._id, selectedTemplate);
     }
@@ -636,18 +636,18 @@ const CreateAlbum: React.FC = () => {
     setSelectedTemplateData(template);
     setIsTemplateDropdownOpen(false);
     setSelectedPreviewPage(0);
-    
+
     // Show template selected with slot info
     const slotCount = (template.pages || []).reduce((sum, page) => sum + (page.slots?.length || 0), 0) + (template.slots?.length || 0);
-    // toast.info(`✓ Template "${template.name}" selected (${slotCount} slots)`, toastStyle);
-    
+    toast.info(`✓ Template "${template.name}" selected (${slotCount} slots)`, toastStyle);
+
     if (selectedAlbum && compactMediaItems(mediaItems).length > 0) {
       void syncBookAlbum(selectedAlbum, template._id);
       // Auto-save on template change
       void autoSaveCurateData(mediaItems);
     }
   };
-  
+
   const templatePages = selectedTemplateData?.pages || [];
 
   const slotConfigs = useMemo<SlotConfig[]>(() => {
@@ -788,7 +788,7 @@ const CreateAlbum: React.FC = () => {
       const targetSlot = resolveTargetSlot();
       await uploadFileToSlot(targetSlot, file);
       setPasteSlotIndex(null);
-      // toast.success('✓ Pasted image into slot', toastStyle);
+      toast.success('✓ Pasted image into slot', toastStyle);
     };
 
     window.addEventListener('paste', handlePaste as any);
@@ -811,9 +811,9 @@ const CreateAlbum: React.FC = () => {
           slotId: slot.slotId,
           mediaItem: item
             ? {
-                ...item,
-                cropTransform: mediaTransforms[item.id] || { zoom: 1, x: 0, y: 0 },
-              }
+              ...item,
+              cropTransform: mediaTransforms[item.id] || { zoom: 1, x: 0, y: 0 },
+            }
             : null,
         }),
       });
@@ -842,15 +842,15 @@ const CreateAlbum: React.FC = () => {
       if (slot) {
         void persistSlotMedia(slot, getSlotMediaItem(normalized, targetSlotIndex));
       }
-      
+
       // Auto-save to DB on drag/drop
       if (selectedAlbum && selectedTemplate) {
         void autoSaveCurateData(normalized);
       }
-      
+
       return normalized;
     });
-    // toast.success('✓ Media rearranged (auto-saving...)', toastStyle);
+    toast.success('✓ Media rearranged (auto-saving...)', toastStyle);
   };
 
   const moveMediaToPage = (targetPageIndex: number, mediaId: string) => {
@@ -860,32 +860,113 @@ const CreateAlbum: React.FC = () => {
     setSelectedPreviewPage(targetPageIndex);
   };
 
- const uploadFileToSlot = async (slotIndex: number, file: File) => {
-  if (!file) return;
-  const reader = new FileReader();
+  const uploadFileToSlot = async (slotIndex: number, file: File) => {
+    if (!file) return;
+    const reader = new FileReader();
 
-  reader.onload = () => {
-    const dataUrl = String(reader.result || '');
-    if (!dataUrl) return;
+    reader.onload = () => {
+      const dataUrl = String(reader.result || '');
+      if (!dataUrl) return;
 
-    const newMedia: MediaItem = {
-      id: `media-${Date.now()}-${Math.random()}`,
-      fileName: file.name,
-      fileType: file.type,
-      fileSize: file.size,
-      mediaKind: file.type.startsWith('video') ? 'video' : 'image',
-      dataUrl,
-      order: slotIndex + 1,
+      const newMedia: MediaItem = {
+        id: `media-${Date.now()}-${Math.random()}`,
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size,
+        mediaKind: file.type.startsWith('video') ? 'video' : 'image',
+        dataUrl,
+        order: slotIndex + 1,
+      };
+
+      setMediaItems((prev) => {
+        const next = padSlotMediaArray(prev, slotConfigs.length);
+        next[slotIndex] = newMedia;
+
+        const normalized = next.map((item, index) => (item ? { ...item, order: index + 1 } : null));
+        const slot = slotConfigs[slotIndex];
+        if (slot) {
+          void persistSlotMedia(slot, newMedia);
+        }
+
+        if (selectedAlbum && selectedTemplate) {
+          setTimeout(() => {
+            void autoSaveCurateData(normalized);
+          }, 100);
+        }
+
+        return normalized;
+      });
+
+      toast.success('✓ Slot image added (auto-saving...)', toastStyle);
     };
 
+    reader.readAsDataURL(file);
+  };
+
+  const handleUploadToSlot = (slotIndex: number, files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    uploadFileToSlot(slotIndex, files[0]);
+  };
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      handleFiles(Array.from(e.target.files));
+    }
+  };
+
+  const handleFiles = async (files: File[]) => {
+    let hasNewMedia = false;
+
+    for (const file of files) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const newMedia: MediaItem = {
+          id: `media-${Date.now()}-${Math.random()}`,
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+          mediaKind: file.type.startsWith('video') ? 'video' : 'image',
+          dataUrl: e.target?.result as string,
+          order: compactMediaItems(mediaItems).length + 1,
+        };
+
+        setMediaItems((prev) => {
+          const next = padSlotMediaArray(prev, slotConfigs.length);
+          const firstEmpty = next.findIndex((entry) => !entry || !hasMediaSrc(entry.dataUrl));
+          const targetIndex = firstEmpty >= 0 ? firstEmpty : next.length;
+
+          const padded = padSlotMediaArray(next, targetIndex + 1);
+          padded[targetIndex] = newMedia;
+
+          const normalized = padded.map((item, index) =>
+            item ? { ...item, order: index + 1 } : null
+          );
+
+          if (selectedAlbum && selectedTemplate) {
+            setTimeout(() => void autoSaveCurateData(normalized), 150);
+          }
+
+          return normalized;
+        });
+
+        hasNewMedia = true;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    toast.success('Images added (Auto Saving...)', toastStyle);
+  };
+
+  const clearSlotMedia = (slotIndex: number) => {
     setMediaItems((prev) => {
       const next = padSlotMediaArray(prev, slotConfigs.length);
-      next[slotIndex] = newMedia;
+      if (slotIndex < 0 || slotIndex >= next.length) return prev;
 
+      next[slotIndex] = null;
       const normalized = next.map((item, index) => (item ? { ...item, order: index + 1 } : null));
+
       const slot = slotConfigs[slotIndex];
       if (slot) {
-        void persistSlotMedia(slot, newMedia);
+        void persistSlotMedia(slot, null);
       }
 
       if (selectedAlbum && selectedTemplate) {
@@ -897,93 +978,12 @@ const CreateAlbum: React.FC = () => {
       return normalized;
     });
 
-    // toast.success('✓ Slot image added (auto-saving...)', toastStyle);
+    toast.success('✓ Slot cleared (auto-saving...)', toastStyle);
   };
-
-  reader.readAsDataURL(file);
-};
-
-const handleUploadToSlot = (slotIndex: number, files: FileList | null) => {
-  if (!files || files.length === 0) return;
-  uploadFileToSlot(slotIndex, files[0]);
-};
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      handleFiles(Array.from(e.target.files));
-    }
-  };
-
-  const handleFiles = async (files: File[]) => {
-  let hasNewMedia = false;
-
-  for (const file of files) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const newMedia: MediaItem = {
-        id: `media-${Date.now()}-${Math.random()}`,
-        fileName: file.name,
-        fileType: file.type,
-        fileSize: file.size,
-        mediaKind: file.type.startsWith('video') ? 'video' : 'image',
-        dataUrl: e.target?.result as string,
-        order: compactMediaItems(mediaItems).length + 1,
-      };
-
-      setMediaItems((prev) => {
-        const next = padSlotMediaArray(prev, slotConfigs.length);
-        const firstEmpty = next.findIndex((entry) => !entry || !hasMediaSrc(entry.dataUrl));
-        const targetIndex = firstEmpty >= 0 ? firstEmpty : next.length;
-        
-        const padded = padSlotMediaArray(next, targetIndex + 1);
-        padded[targetIndex] = newMedia;
-
-        const normalized = padded.map((item, index) => 
-          item ? { ...item, order: index + 1 } : null
-        );
-
-        if (selectedAlbum && selectedTemplate) {
-          setTimeout(() => void autoSaveCurateData(normalized), 150);
-        }
-
-        return normalized;
-      });
-
-      hasNewMedia = true;
-    };
-    reader.readAsDataURL(file);
-  }
-
-  // toast.success('Images added (Auto Saving...)', toastStyle);
-};
-
- const clearSlotMedia = (slotIndex: number) => {
-  setMediaItems((prev) => {
-    const next = padSlotMediaArray(prev, slotConfigs.length);
-    if (slotIndex < 0 || slotIndex >= next.length) return prev;
-
-    next[slotIndex] = null;
-    const normalized = next.map((item, index) => (item ? { ...item, order: index + 1 } : null));
-
-    const slot = slotConfigs[slotIndex];
-    if (slot) {
-      void persistSlotMedia(slot, null);
-    }
-
-    if (selectedAlbum && selectedTemplate) {
-      setTimeout(() => {
-        void autoSaveCurateData(normalized);
-      }, 100);
-    }
-
-    return normalized;
-  });
-
-  // toast.success('✓ Slot cleared (auto-saving...)', toastStyle);
-};
 
   const clearAllMedia = () => {
     setMediaItems([]);
-    // toast.success('All images cleared', toastStyle);
+    toast.success('All images cleared', toastStyle);
   };
 
   const handleDragStart = (item: MediaItem) => {
@@ -1052,7 +1052,7 @@ const handleUploadToSlot = (slotIndex: number, files: FileList | null) => {
 
     setCropMedia(null);
     setCropSlot(null);
-    // toast.success('✓ Crop applied (auto-saving...)', toastStyle);
+    toast.success('✓ Crop applied (auto-saving...)', toastStyle);
   };
 
   const handleCropPointerDown = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -1084,9 +1084,9 @@ const handleUploadToSlot = (slotIndex: number, files: FileList | null) => {
   const handleDiscard = () => {
     // Check if there's any data to discard
     const hasData = selectedAlbum || selectedTemplate || mediaItems.length > 0 || coverPhotoPreview;
-    
+
     if (!hasData) {
-      // toast.info('No data to discard', toastStyle);
+      toast.info('No data to discard', toastStyle);
       return;
     }
 
@@ -1114,9 +1114,9 @@ const handleUploadToSlot = (slotIndex: number, files: FileList | null) => {
     setMediaTransforms({});
     sessionStorage.removeItem('bookAlbumId');
     sessionStorage.removeItem('designerState');
-    
+
     // Show confirmation
-    // toast.success('✓ Designer cleared (your curate draft is safe)', toastStyle);
+    toast.success('✓ Designer cleared (your curate draft is safe)', toastStyle);
   };
 
   const saveCurateDraft = async (
@@ -1124,7 +1124,7 @@ const handleUploadToSlot = (slotIndex: number, files: FileList | null) => {
     saveStatus: 'save_draft' | 'saved' = 'saved'
   ) => {
     if (!selectedAlbum || !selectedTemplate) {
-      // toast.error('Please select album and template before saving', toastStyle);
+      toast.error('Please select album and template before saving', toastStyle);
       return false;
     }
 
@@ -1334,632 +1334,849 @@ const handleUploadToSlot = (slotIndex: number, files: FileList | null) => {
         <div className="flex flex-col gap-6">
           {/* Top Row - Selection Panel and Book Panel side by side */}
           <div className="flex flex-col xl:flex-row gap-6">
-          {/* SELECTION PANEL - Left Side */}
-          <div className="w-full xl:w-72 shrink-0">
-            <div className="w-full p-5 rounded-2xl shadow-lg bg-white border-l-4 border-[#b10e6b] min-h-[760px] overflow-hidden flex flex-col">
-              <h3 className="text-[11px] tracking-widest uppercase text-[#b10e6b] font-bold mb-4">SELECTION PANEL</h3>
-              
-              <div className="space-y-4 overflow-y-auto flex-1 pr-1">
-  {/* ALBUM SELECT */}
-  <div>
-    <label className="block text-[11px] font-bold uppercase mb-3 text-[#54474d]">
-      SELECT ALBUM
-    </label>
+            {/* SELECTION PANEL - Left Side */}
+            <div className="w-full xl:w-72 shrink-0">
+              <div className="w-full p-5 rounded-2xl shadow-lg bg-white border-l-4 border-[#b10e6b] h-[760px] overflow-hidden">
+                <h3 className="text-[11px] tracking-widest uppercase text-[#b10e6b] font-bold mb-4">SELECTION PANEL</h3>
 
-    <div className="relative" ref={albumRef}>
-      <input
-        type="text"
-        name="album-search"
-        autoComplete="off"
-        spellCheck={false}
-        placeholder="Search by name, status (draft/saved)..."
-        value={albumSearch}
-        onChange={(e) => handleAlbumSearch(e.target.value)}
-        onFocus={() => {
-          setAlbumSuggestions(albums.slice(0, 8));
-          setIsAlbumDropdownOpen(albums.length > 0);
-        }}
-        className="w-full bg-[#fff0f4] border-2 border-[#f3d6df] rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#b10e6b]/40 focus:border-[#b10e6b] transition-all"
-      />
+                <div className="space-y-4">
+                  {/* ALBUM SELECT */}
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase mb-3 text-[#54474d]">
+                      SELECT ALBUM
+                    </label>
 
-      {isAlbumDropdownOpen && albumSuggestions.length > 0 && (
-        <ul className="absolute z-50 left-0 right-0 mt-2 max-h-56 overflow-auto rounded-lg border border-[#eee] bg-white shadow-lg">
-          {albumSuggestions.map((album) => (
-            <li
-              key={album._id}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                handleSelectAlbum(album);
-              }}
-              className="cursor-pointer px-3 py-2 hover:bg-[#fff0f4]"
-            >
-              <div className="text-sm font-medium text-[#211A1B]">{album.albumName}</div>
-              <div className="text-xs text-[#54474d]">
-                {album.status || 'draft'}
-                {album.mediaItems?.length ? ` · ${album.mediaItems.length} items` : ''}
+                    <div className="relative" ref={albumRef}>
+                      <input
+                        type="text"
+                        name="album-search"
+                        autoComplete="off"
+                        spellCheck={false}
+                        placeholder="Search by name, status (draft/saved)..."
+                        value={albumSearch}
+                        onChange={(e) => handleAlbumSearch(e.target.value)}
+                        onFocus={() => {
+                          setAlbumSuggestions(albums.slice(0, 8));
+                          setIsAlbumDropdownOpen(albums.length > 0);
+                        }}
+                        className="w-full bg-[#fff0f4] border-2 border-[#f3d6df] rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#b10e6b]/40 focus:border-[#b10e6b] transition-all"
+                      />
+
+                      {isAlbumDropdownOpen && albumSuggestions.length > 0 && (
+                        <ul className="absolute z-50 left-0 right-0 mt-2 max-h-56 overflow-auto rounded-lg border border-[#eee] bg-white shadow-lg">
+                          {albumSuggestions.map((album) => (
+                            <li
+                              key={album._id}
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                handleSelectAlbum(album);
+                              }}
+                              className="cursor-pointer px-3 py-2 hover:bg-[#fff0f4]"
+                            >
+                              <div className="text-sm font-medium text-[#211A1B]">{album.albumName}</div>
+                              <div className="text-xs text-[#54474d]">
+                                {album.status || 'draft'}
+                                {album.mediaItems?.length ? ` · ${album.mediaItems.length} items` : ''}
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* TEMPLATE SELECT */}
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase mb-3 text-[#54474d]">
+                      SELECT TEMPLATE
+                    </label>
+
+                    <div className="relative" ref={templateRef}>
+                      <input
+                        type="text"
+                        name="template-search"
+                        autoComplete="off"
+                        spellCheck={false}
+                        placeholder="Search all templates..."
+                        value={templateSearch}
+                        onChange={(e) => handleTemplateSearch(e.target.value)}
+                        onFocus={() => {
+                          // open a basic suggestion list on focus
+                          setTemplateSuggestions(templates.slice(0, 8));
+                          setIsTemplateDropdownOpen(templates.length > 0);
+                        }}
+                        className="w-full bg-[#fff0f4] border-2 border-[#f3d6df] rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#b10e6b]/40 focus:border-[#b10e6b] transition-all"
+                      />
+
+                      {isTemplateDropdownOpen && templateSuggestions.length > 0 && (
+                        <ul className="absolute z-50 left-0 right-0 mt-2 bg-white border border-[#eee] rounded-lg shadow-lg max-h-48 overflow-auto">
+                          {templateSuggestions.map((t) => (
+                            <li
+                              key={t._id}
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                handleSelectTemplate(t);
+                                setIsTemplateDropdownOpen(false);
+                              }}
+                              className="px-3 py-2 hover:bg-[#fff0f4] cursor-pointer"
+                            >
+                              <div className="text-sm font-medium text-[#211A1B]">{t.name}</div>
+                              {t.description && <div className="text-xs text-[#54474d]">{t.description}</div>}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase mb-3 text-[#54474d]">
+                      ALBUM TYPE
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {albumTypeOptions.map((type) => {
+                        const isActive = albumType === type;
+                        return (
+                          <button
+                            key={type}
+                            type="button"
+                            onClick={() => setAlbumType(type)}
+                            className={`rounded-xl border px-4 py-3 text-sm font-semibold transition-all ${isActive
+                              ? 'border-[#b10e6b] bg-[#fff0f4] text-[#b10e6b] shadow-sm'
+                              : 'border-[#f3d6df] bg-white text-[#54474d] hover:border-[#e0a7c0] hover:bg-[#fff8fb]'
+                              }`}
+                          >
+                            {type}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p className="mt-2 text-[11px] text-[#7a6268]">
+                      Choose the album story style before saving.
+                    </p>
+                  </div>
+
+                  {/* COVER + END PHOTO (compact controls placed in selection panel) */}
+                  <div className="mt-4">
+                    <label className="block text-[11px] font-bold uppercase mb-3 text-[#54474d]">COVER & END</label>
+
+                    <div className="grid grid-cols-1 gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-20 h-20 rounded-xl overflow-hidden border border-[#e5c5d4] bg-[#fff8fb] flex items-center justify-center">
+                          {coverPhotoPreview || selectedAlbumData?.coverPhoto ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={coverPhotoPreview || selectedAlbumData?.coverPhoto || ''} alt="Cover" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="text-[10px] text-[#8d7d81] text-center px-2">No cover</div>
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => coverPhotoInputRef.current?.click()}
+                              className="rounded-lg border px-3 py-1 text-[11px] font-semibold bg-white"
+                            >
+                              Change Cover
+                            </button>
+                            <button
+                              type="button"
+                              onClick={clearCoverPhoto}
+                              className="rounded-lg border px-3 py-1 text-[11px] font-semibold text-[#b10e6b] bg-white"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                          <input
+                            ref={(el) => {
+                              coverPhotoInputRef.current = el;
+                            }}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleCoverPhotoChange}
+                          />
+                          <p className="mt-1 text-[10px] text-[#7a6268]">Cover shown in book preview</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <div className="w-20 h-20 rounded-xl overflow-hidden border border-[#e5c5d4] bg-[#fff8fb] flex items-center justify-center">
+                          {endPhotoPreview ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={endPhotoPreview} alt="End" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="text-[10px] text-[#8d7d81] text-center px-2">No end photo</div>
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => endPhotoInputRef.current?.click()}
+                              className="rounded-lg border px-3 py-1 text-[11px] font-semibold bg-white"
+                            >
+                              Change End
+                            </button>
+                            <button
+                              type="button"
+                              onClick={clearEndPhoto}
+                              className="rounded-lg border px-3 py-1 text-[11px] font-semibold text-[#b10e6b] bg-white"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                          <input
+                            ref={(el) => {
+                              endPhotoInputRef.current = el;
+                            }}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleEndPhotoChange}
+                          />
+                          <p className="mt-1 text-[10px] text-[#7a6268]">Optional end page photo</p>
+                        </div>
+                      </div>
+
+                      {/* Filled slots indicator */}
+                      <div className="mt-2">
+                        <div className="flex items-center justify-between text-[11px] font-semibold text-[#7a6268] mb-1">
+                          <span>Slots filled</span>
+                          <span className="text-sm text-[#211A1B] font-bold">{filledSlotCount} / {slotConfigs.length}</span>
+                        </div>
+                        <div className="w-full h-2 rounded-full bg-[#fdeff4] overflow-hidden">
+                          <div
+                            className="h-full bg-[#b10e6b]"
+                            style={{ width: `${Math.min(100, Math.round((filledSlotCount / Math.max(1, slotConfigs.length)) * 100))}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
               </div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  </div>
+            </div>
 
-  {/* TEMPLATE SELECT */}
-  <div>
-    <label className="block text-[11px] font-bold uppercase mb-3 text-[#54474d]">
-      SELECT TEMPLATE
-    </label>
+            {/* BOOK PANEL - Right Side */}
+            <div className="min-w-0 flex-1">
+              {/* Template Book Preview (flip book with curate images in slots) */}
+              {selectedTemplateData ? (
+                <div className="bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col border border-gray-100 h-[760px]">
+                  <div className="p-4 border-b border-gray-200 flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <h3 className="text-sm font-bold uppercase tracking-widest text-[#211A1B]">TEMPLATE BOOK</h3>
+                      <p className="text-xs text-[#211A1B]/70 mt-0.5">
+                        {selectedTemplateData.name}
+                        {isSyncingBook ? ' · Saving to album book…' : bookAlbumId ? ' · Saved' : ''}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsBookModalOpen(true)}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-[#b10e6b] px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#b10e6b] transition hover:bg-[#BE126F] hover:text-white"
+                    >
+                      <Maximize2 size={14} />
+                      Fullscreen Book
+                    </button>
+                  </div>
 
-    <div className="relative" ref={templateRef}>
-      <input
-        type="text"
-        name="template-search"
-        autoComplete="off"
-        spellCheck={false}
-        placeholder="Search all templates..."
-        value={templateSearch}
-        onChange={(e) => handleTemplateSearch(e.target.value)}
-        onFocus={() => {
-          // open a basic suggestion list on focus
-          setTemplateSuggestions(templates.slice(0, 8));
-          setIsTemplateDropdownOpen(templates.length > 0);
-        }}
-        className="w-full bg-[#fff0f4] border-2 border-[#f3d6df] rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#b10e6b]/40 focus:border-[#b10e6b] transition-all"
-      />
-
-      {isTemplateDropdownOpen && templateSuggestions.length > 0 && (
-        <ul className="absolute z-50 left-0 right-0 mt-2 bg-white border border-[#eee] rounded-lg shadow-lg max-h-48 overflow-auto">
-          {templateSuggestions.map((t) => (
-            <li
-              key={t._id}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                handleSelectTemplate(t);
-                setIsTemplateDropdownOpen(false);
-              }}
-              className="px-3 py-2 hover:bg-[#fff0f4] cursor-pointer"
-            >
-              <div className="text-sm font-medium text-[#211A1B]">{t.name}</div>
-              {t.description && <div className="text-xs text-[#54474d]">{t.description}</div>}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  </div>
-
-  <div>
-    <label className="block text-[11px] font-bold uppercase mb-3 text-[#54474d]">
-      ALBUM TYPE
-    </label>
-    <div className="grid grid-cols-2 gap-2">
-      {albumTypeOptions.map((type) => {
-        const isActive = albumType === type;
-        return (
-          <button
-            key={type}
-            type="button"
-            onClick={() => setAlbumType(type)}
-            className={`rounded-xl border px-4 py-3 text-sm font-semibold transition-all ${
-              isActive
-                ? 'border-[#b10e6b] bg-[#fff0f4] text-[#b10e6b] shadow-sm'
-                : 'border-[#f3d6df] bg-white text-[#54474d] hover:border-[#e0a7c0] hover:bg-[#fff8fb]'
-            }`}
-          >
-            {type}
-          </button>
-        );
-      })}
-    </div>
-    <p className="mt-2 text-[11px] text-[#7a6268]">
-      Choose the album story style before saving.
-    </p>
-  </div>
-
-  {/* COVER + END PHOTO (compact controls placed in selection panel) */}
-  <div className="mt-4">
-    <label className="block text-[11px] font-bold uppercase mb-3 text-[#54474d]">COVER & END</label>
-
-    <div className="grid grid-cols-1 gap-3">
-      <div className="flex items-center gap-3">
-        <div className="w-20 h-20 rounded-xl overflow-hidden border border-[#e5c5d4] bg-[#fff8fb] flex items-center justify-center">
-          {coverPhotoPreview || selectedAlbumData?.coverPhoto ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={coverPhotoPreview || selectedAlbumData?.coverPhoto || ''} alt="Cover" className="w-full h-full object-cover" />
-          ) : (
-            <div className="text-[10px] text-[#8d7d81] text-center px-2">No cover</div>
-          )}
-        </div>
-        <div className="flex-1">
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => coverPhotoInputRef.current?.click()}
-              className="rounded-lg border px-3 py-1 text-[11px] font-semibold bg-white"
-            >
-              Change Cover
-            </button>
-            <button
-              type="button"
-              onClick={clearCoverPhoto}
-              className="rounded-lg border px-3 py-1 text-[11px] font-semibold text-[#b10e6b] bg-white"
-            >
-              Remove
-            </button>
-          </div>
-          <input
-            ref={(el) => {
-              coverPhotoInputRef.current = el;
-            }}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleCoverPhotoChange}
-          />
-          <p className="mt-1 text-[10px] text-[#7a6268]">Cover shown in book preview</p>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-3">
-        <div className="w-20 h-20 rounded-xl overflow-hidden border border-[#e5c5d4] bg-[#fff8fb] flex items-center justify-center">
-          {endPhotoPreview ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={endPhotoPreview} alt="End" className="w-full h-full object-cover" />
-          ) : (
-            <div className="text-[10px] text-[#8d7d81] text-center px-2">No end photo</div>
-          )}
-        </div>
-        <div className="flex-1">
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => endPhotoInputRef.current?.click()}
-              className="rounded-lg border px-3 py-1 text-[11px] font-semibold bg-white"
-            >
-              Change End
-            </button>
-            <button
-              type="button"
-              onClick={clearEndPhoto}
-              className="rounded-lg border px-3 py-1 text-[11px] font-semibold text-[#b10e6b] bg-white"
-            >
-              Remove
-            </button>
-          </div>
-          <input
-            ref={(el) => {
-              endPhotoInputRef.current = el;
-            }}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleEndPhotoChange}
-          />
-          <p className="mt-1 text-[10px] text-[#7a6268]">Optional end page photo</p>
-        </div>
-      </div>
-
-      {/* Filled slots indicator */}
-      <div className="mt-2">
-        <div className="flex items-center justify-between text-[11px] font-semibold text-[#7a6268] mb-1">
-          <span>Slots filled</span>
-          <span className="text-sm text-[#211A1B] font-bold">{filledSlotCount} / {slotConfigs.length}</span>
-        </div>
-        <div className="w-full h-2 rounded-full bg-[#fdeff4] overflow-hidden">
-          <div
-            className="h-full bg-[#b10e6b]"
-            style={{ width: `${Math.min(100, Math.round((filledSlotCount / Math.max(1, slotConfigs.length)) * 100))}%` }}
-          />
-        </div>
-      </div>
-    </div>
-  </div>
-
-</div>
+                  <div className="p-3 bg-[#FFF8F8]">
+                    {filledSlotCount > 0 || selectedAlbumData?.coverPhoto ? (
+                      <div className="w-full h-[650px] rounded-xl overflow-hidden">
+                        <TemplateBookFlip
+                          template={selectedTemplateData}
+                          mediaItems={slotAlignedBookMedia}
+                          activeContentPage={activePreviewPage?.pageIndex || 0}
+                          coverPhoto={selectedAlbumData?.coverPhoto}
+                          coverPhotoName={selectedAlbumData?.albumName}
+                          coverWeddingDate={selectedAlbumData?.weddingDate}
+                          variant="single"
+                        />
+                      </div>
+                    ) : (
+                      <div className="min-h-32 py-4 px-4 text-left text-sm text-[#594045] flex flex-col items-start justify-center">
+                        <p>Select a curate with images to fill this template book.</p>
+                        <Link href="/photographer-admin/curate" className="mt-2 inline-block text-[#b10e6b] underline text-xs font-semibold">
+                          Go to Curate
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-white rounded-2xl border border-dashed border-gray-200 px-6 py-5 min-h-32 flex flex-col items-start justify-center text-left">
+                  <p className="text-sm font-medium text-gray-500">Select a template to open the book view</p>
+                  <p className="text-xs text-gray-400 mt-1">Curate images will map into template slots from the database</p>
+                </div>
+              )}
             </div>
           </div>
 
-        {/* BOOK PANEL - Right Side */}
-        <div className="min-w-0 flex-1">
-  {/* Template Book Preview (flip book with curate images in slots) */}
-  {selectedTemplateData ? (
-    <div className="bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col border border-gray-100 min-h-[760px] h-full">
-      <div className="p-4 border-b border-gray-200 flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h3 className="text-sm font-bold uppercase tracking-widest text-[#211A1B]">TEMPLATE BOOK</h3>
-          <p className="text-xs text-[#211A1B]/70 mt-0.5">
-            {selectedTemplateData.name}
-            {isSyncingBook ? ' · Saving to album book…' : bookAlbumId ? ' · Saved' : ''}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setIsBookModalOpen(true)}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-[#b10e6b] px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#b10e6b] transition hover:bg-[#BE126F] hover:text-white"
-        >
-          <Maximize2 size={14} />
-          Fullscreen Book
-        </button>
-      </div>
+          {/* NARRATIVE FLOW - Full Width Below */}
+          <div className="w-full">
+            {/* Narrative Flow - Media Upload */}
+            <div className="bg-white min-h-44 rounded-xl shadow-sm overflow-hidden flex flex-col border border-[#b10e6b]/5" style={{ fontFamily: 'Manrope, "Segoe UI", sans-serif' }}>
+              <div className="p-4 border-b flex justify-between items-center gap-3">
+                <div>
+                  <h3 className="label-sm tracking-widest uppercase text-[10px] text-[#211A1B] font-bold">NARRATIVE FLOW</h3>
+                  <p className="text-xs text-[#211A1B] mt-0.5">
+                    {selectedAlbum
+                      ? `Images and videos from "${albumSearch}"`
+                      : 'Select a curate album to load images'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider border border-[#b10e6b] text-[#b10e6b] rounded-lg hover:bg-[#fff0f4] shrink-0 cursor-pointer">
+                    <Upload size={14} />
+                    Upload Media
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*,video/*"
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
+                  </label>
+                  {filledSlotCount > 0 && (
+                    <button
+                      onClick={clearAllMedia}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider border border-red-500 text-red-500 rounded-lg hover:bg-red-50 shrink-0"
+                      title="Clear all images"
+                    >
+                      Clear All
+                    </button>
+                  )}
+                </div>
+              </div>
 
-      <div className="p-3 bg-[#FFF8F8] flex-1 flex flex-col">
-        {filledSlotCount > 0 || selectedAlbumData?.coverPhoto ? (
-            <div className="w-full h-full rounded-xl overflow-hidden">
-            <TemplateBookFlip
+              <div className="flex-1 p-4 flex flex-col items-center justify-center bg-white">
+                {filledSlotCount === 0 ? (
+                  <div className="text-center space-y-2">
+                    {selectedAlbum ? (
+                      <>
+                        <p className="text-sm text-[#211A1B] font-medium">No images or videos in this curate yet</p>
+                        <label className="inline-flex items-center gap-1 text-xs text-[#b10e6b] underline font-semibold cursor-pointer">
+                          <Upload size={12} />
+                          Upload media here
+                          <input
+                            type="file"
+                            multiple
+                            accept="image/*,video/*"
+                            onChange={handleFileChange}
+                            className="hidden"
+                          />
+                        </label>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-sm text-[#211A1B] font-medium">Select a curate album first</p>
+                        <p className="text-xs text-[#211A1B]/70 mb-2">
+                          Images and videos from your curate table will appear here
+                        </p>
+                        <label className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold uppercase tracking-wider border-2 border-dashed border-[#b10e6b] text-[#b10e6b] rounded-lg hover:bg-[#fff0f4] cursor-pointer transition-all">
+                          <Upload size={14} />
+                          Or Upload Media Directly
+                          <input
+                            type="file"
+                            multiple
+                            accept="image/*,video/*"
+                            onChange={handleFileChange}
+                            className="hidden"
+                          />
+                        </label>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <div className="w-full space-y-4">
+                    <div className="rounded-2xl border border-[#ebe7e8] bg-[#fffdfd] p-3 shadow-sm">
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <div>
+                          <p className="text-[9px] font-semibold uppercase tracking-[0.22em] text-[#7f6f74]">Template</p>
+                          <p className="text-[8px] text-[#a89094]">{selectedTemplateData?.name || 'Select template'}</p>
+                        </div>
+                        <p className="text-[11px] font-medium text-[#7a6d72]">
+                          {filledSlotCount} / {slotConfigs.length} filled
+                        </p>
+                      </div>
+                      <div
+                        className="mx-auto w-full rounded-2xl border border-[#ece8e9] bg-white p-3 shadow-sm h-full"
+                        style={{
+                          background: `linear-gradient(180deg, ${templateAccent}29 0%, #fffdfd 24%, #fff8fb 72%, ${templateAccent}1a 100%)`,
+                        }}
+                      >
+                        <div className="mb-2 text-xs text-[#7a6268]">
+                          <p className="font-semibold text-[#211A1B]">{activePreviewPage?.pageLabel || 'Page'}</p>
+                          <p className="text-[10px]">Slots: {activePreviewPage?.slots?.length || 0} available</p>
+                        </div>
+                        <div
+                          className={`relative w-full rounded-[1.1rem] border border-[#f2e8ec] bg-white h-full ${pageSlotBounds.get(activePreviewPage?.pageIndex || 0)?.usesAbsoluteLayout
+                            ? 'aspect-3/4 overflow-hidden'
+                            : 'min-h-48 h-full grid auto-rows-[minmax(80px,1fr)] grid-cols-2 gap-2 p-2'
+                            }`}
+                          style={{ backgroundColor: templatePages[activePreviewPage?.pageIndex]?.pageColor || undefined }}
+                        >
+                          {(activePreviewPage?.slots || []).map((slot) => {
+                            const item = getSlotMediaItem(mediaItems, slot.index);
+                            const transform = item ? mediaTransforms[item.id] || { zoom: 1, x: 0, y: 0 } : { zoom: 1, x: 0, y: 0 };
+                            const rawSlot = templatePages[slot.pageIndex]?.slots?.find((candidate) => (candidate.id || '') === slot.slotId);
+                            const rawPage = templatePages[slot.pageIndex] as { accent?: string; pageColor?: string } | undefined;
+                            const bounds = pageSlotBounds.get(slot.pageIndex);
+                            const usesAbsolute = Boolean(bounds?.usesAbsoluteLayout && rawSlot);
+                            const colSpan = Math.max(1, Math.min(2, Number(rawSlot?.width) || 1));
+                            const rowSpan = Math.max(1, Math.min(3, Number(rawSlot?.height) || 1));
+                            const left = Number.isFinite(Number(rawSlot?.x)) ? Number(rawSlot?.x) : 0;
+                            const top = Number.isFinite(Number(rawSlot?.y)) ? Number(rawSlot?.y) : 0;
+                            const width = Math.max(1, Number.isFinite(Number(rawSlot?.width)) ? Number(rawSlot?.width) : 1);
+                            const height = Math.max(1, Number.isFinite(Number(rawSlot?.height)) ? Number(rawSlot?.height) : 1);
+                            const slotSizeStr = width > 0 && height > 0 ? `${width}% × ${height}%` : 'Auto';
+
+                            return (
+                              <div
+                                key={`${slot.pageLabel}-${slot.slotLabel}-${slot.index}`}
+                                onDragOver={(e) => e.preventDefault()}
+                                onDrop={(e) => {
+                                  e.preventDefault();
+                                  const transferId =
+                                    e.dataTransfer.getData('text/plain') ||
+                                    e.dataTransfer.getData('application/x-media-id') ||
+                                    draggedItem?.id ||
+                                    (() => {
+                                      try {
+                                        return window.sessionStorage.getItem('designerDraggedMediaId') || '';
+                                      } catch {
+                                        return '';
+                                      }
+                                    })();
+                                  if (transferId) {
+                                    moveMediaToSlot(slot.index, transferId);
+                                  }
+                                }}
+                                className={`group overflow-hidden rounded-2xl border bg-[#faf8f9] ${usesAbsolute ? 'absolute cursor-pointer' : 'relative min-h-28'
+                                  }`}
+                                title={`${slot.pageLabel} · ${slot.slotLabel} (${slotSizeStr})`}
+                                style={{
+                                  borderColor: `${templateAccent}33`,
+                                  gridColumn: usesAbsolute ? undefined : `span ${colSpan}`,
+                                  gridRow: usesAbsolute ? undefined : `span ${rowSpan}`,
+                                  left: usesAbsolute ? `${left}%` : undefined,
+                                  top: usesAbsolute ? `${top}%` : undefined,
+                                  width: usesAbsolute ? `${width}%` : undefined,
+                                  height: usesAbsolute ? `${height}%` : undefined,
+                                  backgroundColor: rawPage?.pageColor || undefined,
+                                }}
+                              >
+                                {!item ? (
+                                  <div
+                                    className="absolute inset-0 flex flex-col items-center justify-center gap-2 border border-dashed border-[#e1bec4]/80 bg-[#fff8fb]"
+                                    style={{ backgroundColor: rawPage?.pageColor || '#fff8fb' }}
+                                  >
+                                    <div className="absolute top-1 left-1 text-[8px] font-bold uppercase tracking-wider text-[#8d7d81]">{slotSizeStr}</div>
+                                    <ImagePlus size={22} className="text-[#c1aeb3]" />
+                                    <button
+                                      type="button"
+                                      onClick={() => slotUploadInputRefs.current[slot.slotId]?.click()}
+                                      className="inline-flex items-center gap-1.5 rounded-full border border-[#e1bec4] bg-white px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#7a6268] hover:border-[#b10e6b] hover:text-[#b10e6b]"
+                                    >
+                                      <Upload size={14} />
+                                      Upload
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setPasteSlotIndex(slot.index);
+                                        toast.info('Press Ctrl+V / Cmd+V to paste an image into this slot', toastStyle);
+                                      }}
+                                      className="inline-flex items-center gap-1.5 rounded-full border border-[#e1bec4] bg-white px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#7a6268] hover:border-[#b10e6b] hover:text-[#b10e6b]"
+                                    >
+                                      <Clipboard size={14} />
+                                      Paste
+                                    </button>
+                                    <input
+                                      ref={(el) => {
+                                        slotUploadInputRefs.current[slot.slotId] = el;
+                                      }}
+                                      type="file"
+                                      accept="image/*,video/*"
+                                      className="hidden"
+                                      onChange={(e) => {
+                                        handleUploadToSlot(slot.index, e.target.files);
+                                        e.target.value = '';
+                                      }}
+                                    />
+                                  </div>
+                                ) : (
+                                  <div
+                                    className="absolute inset-0 cursor-move overflow-hidden"
+                                    draggable
+                                    onDragStart={(e) => {
+                                      handleDragStart(item);
+                                      e.dataTransfer.setData('text/plain', item.id);
+                                      e.dataTransfer.setData('application/x-media-id', item.id);
+                                      e.dataTransfer.effectAllowed = 'move';
+                                    }}
+                                    onDragEnd={handleDragEnd}
+                                  >
+                                    {item.mediaKind === 'image' && hasMediaSrc(item.dataUrl) ? (
+                                      <img
+                                        src={item.dataUrl}
+                                        alt={item.fileName}
+                                        className="absolute inset-0 h-full w-full object-cover transition-transform duration-200"
+                                        style={{ transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.zoom})` }}
+                                      />
+                                    ) : hasMediaSrc(item.dataUrl) ? (
+                                      <video src={item.dataUrl} className="absolute inset-0 h-full w-full object-cover" muted playsInline preload="metadata" controls={false} />
+                                    ) : (
+                                      <div className="absolute inset-0 flex items-center justify-center bg-linear-to-br from-gray-100 to-gray-300">
+                                        <span className="text-[10px] font-bold tracking-widest text-gray-600">VIDEO</span>
+                                      </div>
+                                    )}
+                                    {item.caption ? (
+                                      <div className="absolute left-2 bottom-2 rounded-full bg-black/70 px-2 py-1 text-[10px] text-white shadow-sm">
+                                        {item.caption}
+                                      </div>
+                                    ) : null}
+                                    <div className="absolute inset-0 flex items-center justify-center gap-2.5 bg-black/50 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setPreviewMedia(item);
+                                        }}
+                                        className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-lg transition hover:scale-105"
+                                        title="View"
+                                      >
+                                        <Eye size={16} className="text-[#211A1B]" />
+                                      </button>
+                                      {item.mediaKind === 'image' && (
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            openCropEditor(item);
+                                          }}
+                                          className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-lg transition hover:scale-105"
+                                          title="Crop"
+                                        >
+                                          <Edit3 size={16} className="text-[#211A1B]" />
+                                        </button>
+                                      )}
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          clearSlotMedia(slot.index);
+                                        }}
+                                        className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-red-500 shadow-lg transition hover:scale-105 hover:bg-red-600"
+                                        title="Remove"
+                                      >
+                                        <Trash2 size={16} className="text-white" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Page templates selection below */}
+                    <div className="rounded-2xl border border-[#f0e2e6] bg-white p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-[#8d7d81]">Page templates</p>
+                          <p className="text-[9px] text-[#8d7d81]/70">Select a page template to view and arrange its media slots</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-4 overflow-x-auto pb-3 pt-1 scrollbar-thin scrollbar-thumb-[#e0a7c0] scrollbar-track-transparent">
+                        {pagePreviewConfigs.map((page) => {
+                          const pageUsesAbsolute = pageSlotBounds.get(page.pageIndex)?.usesAbsoluteLayout;
+                          const isActive = selectedPreviewPage === page.pageIndex;
+                          return (
+                            <button
+                              key={`filmstrip-${page.pageIndex}`}
+                              type="button"
+                              onClick={() => setSelectedPreviewPage(page.pageIndex)}
+                              className={`flex-shrink-0 rounded-xl border p-3 transition-all flex flex-col items-center gap-2 ${
+                                isActive
+                                  ? 'border-[#b10e6b] bg-[#fff0f4] shadow-sm'
+                                  : 'border-[#ecdbe2] bg-[#fff8f9] hover:border-[#b10e6b]/50'
+                              }`}
+                              style={{ width: '130px' }}
+                            >
+                              <span className={`text-[9px] font-bold uppercase tracking-wider ${isActive ? 'text-[#b10e6b]' : 'text-[#8d7d81]'}`}>
+                                {page.pageLabel}
+                              </span>
+                              <div
+                                className={`relative h-24 w-20 overflow-hidden rounded-lg border border-[#ecdbe2] bg-white shadow-xs ${
+                                  pageUsesAbsolute ? '' : 'grid grid-cols-2 gap-0.5 p-0.5'
+                                }`}
+                              >
+                                {page.slots.map((slot) => {
+                                  const item = getSlotMediaItem(mediaItems, slot.index);
+                                  const miniSlot = templatePages[slot.pageIndex]?.slots?.find((candidate) => candidate.id === slot.slotId);
+                                  const miniAbsolute = pageUsesAbsolute && miniSlot;
+                                  return (
+                                    <div
+                                      key={`mini-${page.pageIndex}-${slot.slotId}`}
+                                      className={`overflow-hidden bg-[#f3e8ec] ${miniAbsolute ? 'absolute' : 'min-h-3'}`}
+                                      style={
+                                        miniAbsolute
+                                          ? {
+                                              left: `${Number(miniSlot?.x) || 0}%`,
+                                              top: `${Number(miniSlot?.y) || 0}%`,
+                                              width: `${Math.max(8, Number(miniSlot?.width) || 20)}%`,
+                                              height: `${Math.max(8, Number(miniSlot?.height) || 20)}%`,
+                                            }
+                                          : undefined
+                                      }
+                                    >
+                                      {item?.dataUrl ? (
+                                        item.mediaKind === 'video' ? (
+                                          <video src={item.dataUrl} className="h-full w-full object-cover" muted playsInline preload="metadata" />
+                                        ) : (
+                                          <img src={item.dataUrl} alt="" className="h-full w-full object-cover" />
+                                        )
+                                      ) : null}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {filledSlotCount > 0 && (
+                <div className="p-3 border-t bg-[#fef6f6] text-xs text-[#211A1B] flex items-center justify-between">
+                  <span className="font-semibold">{filledSlotCount} item{filledSlotCount !== 1 ? 's' : ''} in slots</span>
+                  <span className="text-[10px] text-[#54474d]"></span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Modals */}
+          {isBookModalOpen && selectedTemplateData && (
+            <FullscreenBook
               template={selectedTemplateData}
               mediaItems={slotAlignedBookMedia}
-              activeContentPage={activePreviewPage?.pageIndex || 0}
+              mediaTransforms={mediaTransforms}
               coverPhoto={selectedAlbumData?.coverPhoto}
               coverPhotoName={selectedAlbumData?.albumName}
               coverWeddingDate={selectedAlbumData?.weddingDate}
-              variant="single"
+              endPhoto={endPhotoPreview || undefined}
+              endPhotoName={endPageMedia?.fileName}
+              photographerName={photographerLabel}
+              photographerStudio="Lumina Editorial"
+              photographerWebsite={photographerLabel}
+              onClose={() => setIsBookModalOpen(false)}
             />
-          </div>
-        ) : (
-          <div className="min-h-32 py-4 px-4 text-left text-sm text-[#594045] flex flex-col items-start justify-center">
-            <p>Select a curate with images to fill this template book.</p>
-            <Link href="/photographer-admin/curate" className="mt-2 inline-block text-[#b10e6b] underline text-xs font-semibold">
-              Go to Curate
-            </Link>
-          </div>
-        )}
-      </div>
-    </div>
-  ) : (
-    <div className="bg-white rounded-2xl border border-dashed border-gray-200 px-6 py-5 min-h-32 flex flex-col items-start justify-center text-left">
-      <p className="text-sm font-medium text-gray-500">Select a template to open the book view</p>
-      <p className="text-xs text-gray-400 mt-1">Curate images will map into template slots from the database</p>
-    </div>
-  )}
-        </div>
-        </div>
-
-        {/* NARRATIVE FLOW - Full Width Below */}
-        <div className="w-full">
-  {/* Narrative Flow - Media Upload */}
-  <div className="bg-white min-h-44 rounded-xl shadow-sm overflow-hidden flex flex-col border border-[#b10e6b]/5" style={{ fontFamily: 'Manrope, "Segoe UI", sans-serif' }}>
-    <div className="p-4 border-b flex justify-between items-center gap-3">
-      <div>
-        <h3 className="label-sm tracking-widest uppercase text-[10px] text-[#211A1B] font-bold">NARRATIVE FLOW</h3>
-        <p className="text-xs text-[#211A1B] mt-0.5">
-          {selectedAlbum
-            ? `Images and videos from "${albumSearch}"`
-            : 'Select a curate album to load images'}
-        </p>
-      </div>
-      <div className="flex items-center gap-2">
-        <label className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider border border-[#b10e6b] text-[#b10e6b] rounded-lg hover:bg-[#fff0f4] shrink-0 cursor-pointer">
-          <Upload size={14} />
-          Upload Media
-          <input
-            type="file"
-            multiple
-            accept="image/*,video/*"
-            onChange={handleFileChange}
-            className="hidden"
-          />
-        </label>
-        {filledSlotCount > 0 && (
-          <button
-            onClick={clearAllMedia}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider border border-red-500 text-red-500 rounded-lg hover:bg-red-50 shrink-0"
-            title="Clear all images"
-          >
-            Clear All
-          </button>
-        )}
-      </div>
-    </div>
-
-    <div className="flex-1 p-4 flex flex-col items-stretch justify-start bg-white min-h-[720px]">
-      {filledSlotCount === 0 ? (
-        <div className="text-center space-y-2">
-          {selectedAlbum ? (
-            <>
-              <p className="text-sm text-[#211A1B] font-medium">No images or videos in this curate yet</p>
-              <label className="inline-flex items-center gap-1 text-xs text-[#b10e6b] underline font-semibold cursor-pointer">
-                <Upload size={12} />
-                Upload media here
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*,video/*"
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
-              </label>
-            </>
-          ) : (
-            <>
-              <p className="text-sm text-[#211A1B] font-medium">Select a curate album first</p>
-              <p className="text-xs text-[#211A1B]/70 mb-2">
-                Images and videos from your curate table will appear here
-              </p>
-              <label className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold uppercase tracking-wider border-2 border-dashed border-[#b10e6b] text-[#b10e6b] rounded-lg hover:bg-[#fff0f4] cursor-pointer transition-all">
-                <Upload size={14} />
-                Or Upload Media Directly
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*,video/*"
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
-              </label>
-            </>
           )}
-        </div>
-      ) : (
-        <div className="w-full min-h-[760px]">
-          <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
-            <div className="rounded-2xl border border-[#ebe7e8] bg-[#fffdfd] p-3 shadow-sm flex flex-col h-full min-h-[720px]">
-                <div className="mb-2 flex items-center justify-between gap-2">
+
+          {previewMedia && (
+            <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
+              <div className="relative w-full max-w-5xl overflow-hidden rounded-3xl bg-white shadow-2xl">
+                <div className="flex items-center justify-between border-b border-[#ead5dc] px-4 py-3">
                   <div>
-                    <p className="text-[9px] font-semibold uppercase tracking-[0.22em] text-[#7f6f74]">Template Preview</p>
-                    <p className="text-[8px] text-[#a89094]">{selectedTemplateData?.name || 'Select template'}</p>
+                    <p className="text-sm font-bold uppercase tracking-widest text-[#211A1B]">Media Preview</p>
+                    <p className="text-xs text-[#7a6268] truncate max-w-[70vw]">{previewMedia.fileName}</p>
                   </div>
-                  <p className="text-[10px] font-medium text-[#7a6d72]">
-                    {filledSlotCount} / {slotConfigs.length}
-                  </p>
-                </div>
-                <div
-                  className="mx-auto w-full rounded-xl border border-[#ece8e9] bg-white p-2 shadow-sm flex-1"
-                  style={{
-                    background: `linear-gradient(180deg, ${templateAccent}29 0%, #fffdfd 24%, #fff8fb 72%, ${templateAccent}1a 100%)`,
-                  }}
-                >
-                  <div className="mb-2 text-[9px] text-[#7a6268]">
-                    <p className="font-semibold text-[#211A1B]">All Pages</p>
-                    <p className="text-[8px]">Showing {pagePreviewConfigs.length} pages</p>
-                  </div>
-                  <div
-                    className="w-full rounded-lg border border-[#f2e8ec] bg-white flex-1 overflow-y-auto"
-                    style={{
-                      background: `linear-gradient(180deg, ${templateAccent}29 0%, #fffdfd 24%, #fff8fb 72%, ${templateAccent}1a 100%)`,
-                    }}
+                  <button
+                    type="button"
+                    onClick={() => setPreviewMedia(null)}
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#e1bec4] text-[#7a6268] transition hover:border-[#b10e6b] hover:text-[#b10e6b]"
+                    aria-label="Close preview"
                   >
-                    <div className="grid grid-cols-2 gap-3 p-2">
-                      {pagePreviewConfigs.map((page) => {
-                        const pageUsesAbsolute = pageSlotBounds.get(page.pageIndex)?.usesAbsoluteLayout;
-                        return (
-                          <div key={`page-grid-${page.pageIndex}`} className="rounded-lg border border-[#f2e8ec] bg-white p-2 overflow-hidden">
-                            <div className="mb-1 text-[8px] text-[#7a6268]">
-                              <p className="font-semibold text-[#211A1B]">{page.pageLabel}</p>
-                              <p className="text-[7px]">{page.slots?.length || 0} slots</p>
-                            </div>
-                            <div
-                              className={`relative w-full rounded border border-[#f2e8ec] bg-white ${
-                                pageUsesAbsolute
-                                  ? 'aspect-3/4 overflow-hidden'
-                                  : 'grid auto-rows-[minmax(30px,1fr)] grid-cols-2 gap-1 p-1'
-                              }`}
-                              style={{ backgroundColor: templatePages[page.pageIndex]?.pageColor || undefined }}
-                            >
-                              {page.slots.map((slot) => {
-                                const item = getSlotMediaItem(mediaItems, slot.index);
-                                return (
-                                  <div
-                                    key={`${page.pageIndex}-${slot.slotId}`}
-                                    className={`rounded border ${!item ? 'border-dashed border-[#e1bec4] bg-[#f9f0f3]' : 'border-[#b10e6b] bg-cover'}`}
-                                    style={{
-                                      backgroundImage: item?.dataUrl && item.mediaKind === 'image' ? `url(${item.dataUrl})` : 'none',
-                                    }}
-                                  />
-                                );
-                              })}
-                            </div>
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <div className="bg-[#111]">
+                  {hasMediaSrc(previewMedia.dataUrl) ? (
+                    previewMedia.mediaKind === 'video' ? (
+                      <video src={previewMedia.dataUrl} className="max-h-[80vh] w-full object-contain" controls autoPlay playsInline />
+                    ) : (
+                      <img src={previewMedia.dataUrl} alt={previewMedia.fileName} className="max-h-[80vh] w-full object-contain" />
+                    )
+                  ) : (
+                    <div className="flex min-h-[40vh] items-center justify-center bg-[#111] text-center text-sm text-white/70">
+                      Preview unavailable
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {cropMedia && cropMedia.mediaKind === 'image' && hasMediaSrc(cropMedia.dataUrl) && (
+            <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
+              <div className="relative w-full max-w-3xl overflow-hidden rounded-3xl bg-white shadow-2xl">
+                <div className="flex items-center justify-between border-b border-[#ead5dc] px-4 py-3">
+                  <div>
+                    <p className="text-sm font-bold uppercase tracking-widest text-[#211A1B]">Adjust Crop</p>
+                    <p className="max-w-[70vw] truncate text-xs text-[#7a6268]">{cropMedia.fileName}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCropMedia(null);
+                      setCropSlot(null);
+                    }}
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#e1bec4] text-[#7a6268] transition hover:border-[#b10e6b] hover:text-[#b10e6b]"
+                    aria-label="Close crop editor"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="grid gap-4 p-4 md:grid-cols-[minmax(0,1fr)_260px]">
+                  <div className="overflow-hidden rounded-xl border border-[#ead5dc] bg-[#111]">
+                    <div
+                      className={`relative h-88 overflow-hidden flex items-center justify-center ${isCropPanning ? 'cursor-grabbing' : 'cursor-grab'}`}
+                      onMouseDown={handleCropPointerDown}
+                      onMouseMove={handleCropPointerMove}
+                      onMouseUp={stopCropPanning}
+                      onMouseLeave={stopCropPanning}
+                    >
+                      {/* Slot frame overlay container */}
+                      <div className="absolute inset-0 flex items-center justify-center p-6">
+                        {/* Dimmed outer area */}
+                        <div className="absolute inset-0 bg-black/40 pointer-events-none" />
+
+                        {/* Bright slot frame area */}
+                        <div className="relative w-full h-full max-w-xs max-h-sm rounded-3xl border-4 border-[#b10e6b]/80 overflow-hidden bg-black/10 pointer-events-none shadow-2xl">
+                          {/* Image displayed within slot frame */}
+                          <img
+                            src={cropMedia.dataUrl}
+                            alt={cropMedia.fileName}
+                            className="absolute inset-0 h-full w-full object-cover select-none"
+                            draggable={false}
+                            style={{ transform: `translate(${cropDraft.x}px, ${cropDraft.y}px) scale(${cropDraft.zoom})` }}
+                          />
+
+                          {/* Grid overlay on slot frame */}
+                          <div className="pointer-events-none absolute inset-0">
+                            <div className="absolute inset-y-0 left-1/3 w-px bg-white/40" />
+                            <div className="absolute inset-y-0 left-2/3 w-px bg-white/40" />
+                            <div className="absolute inset-x-0 top-1/3 h-px bg-white/40" />
+                            <div className="absolute inset-x-0 top-2/3 h-px bg-white/40" />
                           </div>
-                        );
-                      })}
+
+                          {/* Corner guides */}
+                          <div className="pointer-events-none absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-[#b10e6b]" />
+                          <div className="pointer-events-none absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-[#b10e6b]" />
+                          <div className="pointer-events-none absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-[#b10e6b]" />
+                          <div className="pointer-events-none absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-[#b10e6b]" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <label className="block text-xs font-semibold text-[#54474d]">
+                      Zoom / Resize
+                      <div className="mt-1 flex items-center gap-3">
+                        <input
+                          type="range"
+                          min="1"
+                          max="2.5"
+                          step="0.01"
+                          value={cropDraft.zoom}
+                          onChange={(e) => setCropDraft((prev) => ({ ...prev, zoom: Number(e.target.value) }))}
+                          className="w-full"
+                        />
+                        <span className="text-[10px] text-[#7a6268]">{cropDraft.zoom.toFixed(2)}x</span>
+                      </div>
+                    </label>
+                    <label className="block text-xs font-semibold text-[#54474d]">
+                      Horizontal (drag image too)
+                      <input
+                        type="range"
+                        min="-140"
+                        max="140"
+                        step="1"
+                        value={cropDraft.x}
+                        onChange={(e) => setCropDraft((prev) => ({ ...prev, x: Number(e.target.value) }))}
+                        className="mt-1 w-full"
+                      />
+                    </label>
+                    <label className="block text-xs font-semibold text-[#54474d]">
+                      Vertical
+                      <input
+                        type="range"
+                        min="-140"
+                        max="140"
+                        step="1"
+                        value={cropDraft.y}
+                        onChange={(e) => setCropDraft((prev) => ({ ...prev, y: Number(e.target.value) }))}
+                        className="mt-1 w-full"
+                      />
+                    </label>
+                    <div className="rounded-2xl border border-[#e1bec4] bg-[#fff8fb] p-3 text-xs text-[#54474d]">
+                      <p className="font-semibold text-[#211A1B] mb-2">Slot guidance</p>
+                      <p>{cropSlot ? `${cropSlot.pageLabel} · ${cropSlot.slotLabel}` : 'Adjust image to fit the target slot.'}</p>
+                      <p className="mt-2">
+                        {activeCropSlotSpec
+                          ? `Slot size: ${activeCropSlotSpec.width || 'auto'} × ${activeCropSlotSpec.height || 'auto'}%`
+                          : 'Use the zoom and drag controls to fit the selected slot.'}
+                      </p>
+                      <p className="mt-2 text-[10px] text-[#7a6268]">Drag the image and use the slider to align the visible area with the slot frame.</p>
+                    </div>
+                    <div className="flex gap-2 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setCropDraft({ zoom: 1, x: 0, y: 0 })}
+                        className="rounded-lg border border-[#e1bec4] px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-[#7a6268]"
+                      >
+                        Reset
+                      </button>
+                      <button
+                        type="button"
+                        onClick={applyCropChanges}
+                        className="rounded-lg bg-[#b10e6b] px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-white"
+                      >
+                        Apply
+                      </button>
                     </div>
                   </div>
                 </div>
               </div>
-          </div>
-        </div>
-      )}
-    </div>
-  </div>
-
-  {/* Modals */}
-  {isBookModalOpen && selectedTemplateData && (
-    <FullscreenBook
-      template={selectedTemplateData}
-      mediaItems={slotAlignedBookMedia}
-      mediaTransforms={mediaTransforms}
-      coverPhoto={selectedAlbumData?.coverPhoto}
-      coverPhotoName={selectedAlbumData?.albumName}
-      coverWeddingDate={selectedAlbumData?.weddingDate}
-      endPhoto={endPhotoPreview || undefined}
-      endPhotoName={endPageMedia?.fileName}
-      photographerName={photographerLabel}
-      photographerStudio="Lumina Editorial"
-      photographerWebsite={photographerLabel}
-      onClose={() => setIsBookModalOpen(false)}
-    />
-  )}
-
-  {previewMedia && (
-    <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
-      <div className="relative w-full max-w-5xl overflow-hidden rounded-3xl bg-white shadow-2xl">
-        <div className="flex items-center justify-between border-b border-[#ead5dc] px-4 py-3">
-          <div>
-            <p className="text-sm font-bold uppercase tracking-widest text-[#211A1B]">Media Preview</p>
-            <p className="text-xs text-[#7a6268] truncate max-w-[70vw]">{previewMedia.fileName}</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setPreviewMedia(null)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#e1bec4] text-[#7a6268] transition hover:border-[#b10e6b] hover:text-[#b10e6b]"
-            aria-label="Close preview"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        <div className="bg-[#111]">
-          {hasMediaSrc(previewMedia.dataUrl) ? (
-            previewMedia.mediaKind === 'video' ? (
-              <video src={previewMedia.dataUrl} className="max-h-[80vh] w-full object-contain" controls autoPlay playsInline />
-            ) : (
-              <img src={previewMedia.dataUrl} alt={previewMedia.fileName} className="max-h-[80vh] w-full object-contain" />
-            )
-          ) : (
-            <div className="flex min-h-[40vh] items-center justify-center bg-[#111] text-center text-sm text-white/70">
-              Preview unavailable
             </div>
           )}
-        </div>
-      </div>
-    </div>
-  )}
-
-  {cropMedia && cropMedia.mediaKind === 'image' && hasMediaSrc(cropMedia.dataUrl) && (
-    <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
-      <div className="relative w-full max-w-3xl overflow-hidden rounded-3xl bg-white shadow-2xl">
-        <div className="flex items-center justify-between border-b border-[#ead5dc] px-4 py-3">
-          <div>
-            <p className="text-sm font-bold uppercase tracking-widest text-[#211A1B]">Adjust Crop</p>
-            <p className="max-w-[70vw] truncate text-xs text-[#7a6268]">{cropMedia.fileName}</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              setCropMedia(null);
-              setCropSlot(null);
-            }}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#e1bec4] text-[#7a6268] transition hover:border-[#b10e6b] hover:text-[#b10e6b]"
-            aria-label="Close crop editor"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        <div className="grid gap-4 p-4 md:grid-cols-[minmax(0,1fr)_260px]">
-          <div className="overflow-hidden rounded-xl border border-[#ead5dc] bg-[#111]">
-            <div
-              className={`relative h-88 overflow-hidden flex items-center justify-center ${isCropPanning ? 'cursor-grabbing' : 'cursor-grab'}`}
-              onMouseDown={handleCropPointerDown}
-              onMouseMove={handleCropPointerMove}
-              onMouseUp={stopCropPanning}
-              onMouseLeave={stopCropPanning}
-            >
-              {/* Slot frame overlay container */}
-              <div className="absolute inset-0 flex items-center justify-center p-6">
-                {/* Dimmed outer area */}
-                <div className="absolute inset-0 bg-black/40 pointer-events-none" />
-                
-                {/* Bright slot frame area */}
-                <div className="relative w-full h-full max-w-xs max-h-sm rounded-3xl border-4 border-[#b10e6b]/80 overflow-hidden bg-black/10 pointer-events-none shadow-2xl">
-                  {/* Image displayed within slot frame */}
-                  <img
-                    src={cropMedia.dataUrl}
-                    alt={cropMedia.fileName}
-                    className="absolute inset-0 h-full w-full object-cover select-none"
-                    draggable={false}
-                    style={{ transform: `translate(${cropDraft.x}px, ${cropDraft.y}px) scale(${cropDraft.zoom})` }}
-                  />
-                  
-                  {/* Grid overlay on slot frame */}
-                  <div className="pointer-events-none absolute inset-0">
-                    <div className="absolute inset-y-0 left-1/3 w-px bg-white/40" />
-                    <div className="absolute inset-y-0 left-2/3 w-px bg-white/40" />
-                    <div className="absolute inset-x-0 top-1/3 h-px bg-white/40" />
-                    <div className="absolute inset-x-0 top-2/3 h-px bg-white/40" />
-                  </div>
-                  
-                  {/* Corner guides */}
-                  <div className="pointer-events-none absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-[#b10e6b]" />
-                  <div className="pointer-events-none absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-[#b10e6b]" />
-                  <div className="pointer-events-none absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-[#b10e6b]" />
-                  <div className="pointer-events-none absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-[#b10e6b]" />
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="space-y-4">
-            <label className="block text-xs font-semibold text-[#54474d]">
-              Zoom / Resize
-              <div className="mt-1 flex items-center gap-3">
-                <input
-                  type="range"
-                  min="1"
-                  max="2.5"
-                  step="0.01"
-                  value={cropDraft.zoom}
-                  onChange={(e) => setCropDraft((prev) => ({ ...prev, zoom: Number(e.target.value) }))}
-                  className="w-full"
-                />
-                <span className="text-[10px] text-[#7a6268]">{cropDraft.zoom.toFixed(2)}x</span>
-              </div>
-            </label>
-            <label className="block text-xs font-semibold text-[#54474d]">
-              Horizontal (drag image too)
-              <input
-                type="range"
-                min="-140"
-                max="140"
-                step="1"
-                value={cropDraft.x}
-                onChange={(e) => setCropDraft((prev) => ({ ...prev, x: Number(e.target.value) }))}
-                className="mt-1 w-full"
-              />
-            </label>
-            <label className="block text-xs font-semibold text-[#54474d]">
-              Vertical
-              <input
-                type="range"
-                min="-140"
-                max="140"
-                step="1"
-                value={cropDraft.y}
-                onChange={(e) => setCropDraft((prev) => ({ ...prev, y: Number(e.target.value) }))}
-                className="mt-1 w-full"
-              />
-            </label>
-            <div className="rounded-2xl border border-[#e1bec4] bg-[#fff8fb] p-3 text-xs text-[#54474d]">
-              <p className="font-semibold text-[#211A1B] mb-2">Slot guidance</p>
-              <p>{cropSlot ? `${cropSlot.pageLabel} · ${cropSlot.slotLabel}` : 'Adjust image to fit the target slot.'}</p>
-              <p className="mt-2">
-                {activeCropSlotSpec
-                  ? `Slot size: ${activeCropSlotSpec.width || 'auto'} × ${activeCropSlotSpec.height || 'auto'}%`
-                  : 'Use the zoom and drag controls to fit the selected slot.'}
-              </p>
-              <p className="mt-2 text-[10px] text-[#7a6268]">Drag the image and use the slider to align the visible area with the slot frame.</p>
-            </div>
-            <div className="flex gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setCropDraft({ zoom: 1, x: 0, y: 0 })}
-                className="rounded-lg border border-[#e1bec4] px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-[#7a6268]"
-              >
-                Reset
-              </button>
-              <button
-                type="button"
-                onClick={applyCropChanges}
-                className="rounded-lg bg-[#b10e6b] px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-white"
-              >
-                Apply
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  )}
         </div>
       </div>
 
       {/* Action Buttons - Narrative Flow */}
       <div className="px-4 md:px-12 py-5 flex flex-col gap-3 border-t border-[#f3d6df]" style={{ fontFamily: 'Manrope, "Segoe UI", sans-serif' }}>
-        <div className="flex flex-col sm:flex-row justify-end items-end gap-3">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <div className="space-y-1">
+            <p className="text-xs font-bold uppercase tracking-widest text-[#b10e6b]">Workflow Status</p>
+            <p className="text-sm text-[#211A1B]">
+              {!selectedAlbum ? (
+                <span className="text-[#7a6268]">Select an album to begin</span>
+              ) : !selectedTemplate ? (
+                <span className="text-[#7a6268]">Select a template design</span>
+              ) : filledSlotCount === 0 ? (
+                <span className="text-[#7a6268]">Add images to fill slots ({filledSlotCount} / {slotConfigs.length})</span>
+              ) : (
+                <span className="text-green-600 font-semibold">✓ Ready to save ({filledSlotCount} / {slotConfigs.length} filled)</span>
+              )}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 justify-end">
             <button
               onClick={handleDiscard}
               title="Clear designer (data stays in curate album)"
               className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-[#54474d] border border-[#e1bec4] rounded-lg hover:border-red-500 hover:text-red-600 hover:bg-red-50/50 transition-all whitespace-nowrap"
             >
-              Discard
+              ✕ Discard
             </button>
 
             <button
@@ -1977,7 +2194,7 @@ const handleUploadToSlot = (slotIndex: number, files: FileList | null) => {
                   Saving...
                 </span>
               ) : (
-                ' Draft Save'
+                '💾 Draft Save'
               )}
             </button>
 
@@ -1992,7 +2209,14 @@ const handleUploadToSlot = (slotIndex: number, files: FileList | null) => {
           </div>
         </div>
 
-
+        {/* Auto-Save Indicator */}
+        {(bookAlbumId || isAutoSaving) && (
+          <div className="p-2 bg-green-50 border border-green-200 rounded-lg">
+            <p className="text-xs text-green-700 font-semibold">
+              {isAutoSaving ? '⌛ Auto-saving changes...' : '✓ Saved to album • Ready for next step'}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
