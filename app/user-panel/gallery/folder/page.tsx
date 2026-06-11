@@ -40,9 +40,17 @@ export default function FolderPage() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setShareUrl(window.location.href);
+      const url = new URL(window.location.href);
+      if (folderId === 'guest-folder') {
+        const userRaw = localStorage.getItem('user');
+        const userData = userRaw ? JSON.parse(userRaw) : {};
+        const userId = userData.id || userData._id || '';
+        setShareUrl(`${url.origin}/guest-upload/${userId}`);
+      } else {
+        setShareUrl(window.location.href);
+      }
     }
-  }, []);
+  }, [folderId]);
 
   useEffect(() => {
     // prevent background scroll when modal open
@@ -148,7 +156,7 @@ export default function FolderPage() {
           }));
 
           setFolder({
-            id: 'guest-folder',
+            id: guestFolder?.id || guestFolder?._id || 'guest-folder',
             name: 'Guest Contributions',
             category: 'Guest Uploads',
             images,
@@ -582,36 +590,15 @@ export default function FolderPage() {
                 </div>
 
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pt-4 border-t border-[#e7d5db]">
-                  <div className="flex flex-wrap gap-2">
-                    <button className="rounded-full border border-[#d8c1cb] bg-white px-5 py-2 text-xs font-medium text-[#5f3d4a] hover:bg-[#f6edee] transition-colors">
-                      🔒 Private
-                    </button>
-                    <button className="rounded-full border border-[#d8c1cb] bg-white px-5 py-2 text-xs font-medium text-[#5f3d4a] hover:bg-[#f6edee] transition-colors">
-                      🌐 Public
-                    </button>
+                  <div className="text-sm text-[#7f5a67] font-medium">
+                    Organize and manage your collection
                   </div>
-
                   <div className="flex flex-wrap items-center gap-3">
                     <button
-                      onClick={() => router.push('/user-panel/favorites')}
-                      className="rounded-full border border-[#C82B7D] bg-white px-5 py-2 text-xs font-medium text-[#C82B7D] hover:bg-[#f6edee] transition-colors flex items-center gap-2"
-                    >
-                      ♥ Favorites
-                    </button>
-                    <button
-                      onClick={() => window.alert('Share link copied')}
-                      className="rounded-full border border-[#d8c1cb] bg-white px-5 py-2 text-xs font-medium text-[#5f3d4a] hover:bg-[#f6edee] transition-colors flex items-center gap-2"
-                    >
-                      🔗 Share Link
-                    </button>
-                    <button className="rounded-full border border-[#d8c1cb] bg-white px-5 py-2 text-xs font-medium text-[#5f3d4a] hover:bg-[#f6edee] transition-colors flex items-center gap-2">
-                      📱 QR Code
-                    </button>
-                    <button
                       onClick={() => setShowUploadModal(true)}
-                      className="rounded-full bg-[#C82B7D] px-6 py-2 text-xs font-semibold text-white hover:bg-[#a02063] transition-colors flex items-center gap-2 ml-2"
+                      className="rounded-full bg-gradient-to-r from-[#890051] to-[#d23284] px-8 py-2.5 text-sm font-semibold text-white hover:shadow-lg hover:scale-105 transition-all flex items-center gap-2"
                     >
-                      <span>✨</span> New Assets
+                      <span className="text-lg">✨</span> Add New Assets
                     </button>
                   </div>
                 </div>
@@ -723,16 +710,7 @@ export default function FolderPage() {
                     </div>
                   ))}
 
-                  {folderId !== 'all-photos' && (
-                    <label className="flex aspect-3/4 flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed border-[#d8c1cb] bg-white px-6 py-8 text-center text-[#7f1940] cursor-pointer hover:border-[#C82B7D] hover:bg-[#fff1f4] transition-all group">
-                      <div className="text-5xl group-hover:scale-110 transition-transform">+</div>
-                      <div>
-                        <p className="font-semibold text-lg">Add More</p>
-                        <p className="text-xs text-[#8b6a75] mt-1">Upload new photos or videos</p>
-                      </div>
-                        <input type="file" accept="image/*,video/*" multiple className="hidden" onChange={handleFileSelection} />
-                    </label>
-                  )}
+
                 </div>
               )}
             </section>
@@ -749,8 +727,11 @@ export default function FolderPage() {
                   </div>
                   <div className="flex flex-col items-center justify-center rounded-2xl bg-white p-8 border border-[#e7d5db]">
                     {shareUrl ? (
-                      <div className="bg-white p-4 rounded-xl">
+                      <div className="bg-white p-4 rounded-xl flex flex-col items-center">
                         <QRCode value={shareUrl} size={180} level="M" />
+                        <a href={shareUrl} target="_blank" rel="noopener noreferrer" className="mt-4 text-sm font-medium text-[#C82B7D] underline break-all text-center">
+                          {shareUrl}
+                        </a>
                       </div>
                     ) : (
                       <div className="h-56 w-56 rounded-2xl bg-linear-to-br from-[#FFE8EE] to-[#f3e6eb] flex items-center justify-center text-[#C82B7D] text-4xl">
@@ -960,14 +941,13 @@ export default function FolderPage() {
       {/* Full-screen media viewer */}
       {previewImage && (
         <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/70">
-            <div className="relative max-w-[90vw] max-h-[90vh] w-full">
-              <div className="absolute left-3 top-3 z-50 flex items-center gap-2">
-                <button onClick={showPrev} className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-[#7f1940]" aria-label="Previous">◀</button>
-                <button onClick={showNext} className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-[#7f1940]" aria-label="Next">▶</button>
-              </div>
+            <div className="relative max-w-[90vw] max-h-[90vh] w-full flex items-center justify-center">
+              <button onClick={showPrev} className="absolute left-[-2rem] md:left-4 z-50 inline-flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-[#7f1940] hover:bg-white shadow-lg transition-all" aria-label="Previous">◀</button>
+              <button onClick={showNext} className="absolute right-[-2rem] md:right-4 z-50 inline-flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-[#7f1940] hover:bg-white shadow-lg transition-all" aria-label="Next">▶</button>
+              
               <button
                 onClick={closePreview}
-                className="absolute top-3 right-3 z-50 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-[#7f1940]"
+                className="absolute top-3 right-3 z-50 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-[#7f1940] hover:bg-white shadow-lg transition-all"
                 aria-label="Close preview"
               >
                 ✕
@@ -976,23 +956,23 @@ export default function FolderPage() {
                 <a
                   href={previewImage.url}
                   download
-                  className="absolute top-3 right-16 z-50 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-[#7f1940]"
+                  className="absolute top-3 right-16 z-50 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-[#7f1940] hover:bg-white shadow-lg transition-all"
                   aria-label="Download media"
                 >
                   ⬇️
                 </a>
               ) : null}
-              <button onClick={toggleZoom} className="absolute top-3 right-28 z-50 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-[#7f1940]" aria-label="Toggle zoom">🔍</button>
-              <div className="flex items-center justify-center w-full h-full overflow-hidden bg-black">
+              
+              <div className="flex items-center justify-center w-full h-full overflow-hidden bg-transparent">
                 {previewImage.mediaType === 'video' ? (
                   <video 
                     src={previewImage.url} 
                     controls 
                     autoPlay
-                    className={`max-w-full ${zoomed ? 'scale-125' : 'scale-100'} max-h-[90vh] rounded transition-transform`} 
+                    className="max-w-full max-h-[90vh] rounded" 
                   />
                 ) : (
-                  <img src={previewImage.url} alt={previewImage.title} className={`max-w-full ${zoomed ? 'scale-125' : 'scale-100'} max-h-[90vh] rounded transition-transform`} />
+                  <img src={previewImage.url} alt={previewImage.title} className="max-w-full max-h-[90vh] rounded object-contain" />
                 )}
               </div>
             </div>

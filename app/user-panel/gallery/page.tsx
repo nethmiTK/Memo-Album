@@ -1150,56 +1150,45 @@ const uploadRecentMedia = async (files: File[]) => {
         </div>
 
         {previewMedia && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-            <div className="relative w-full max-w-4xl rounded-3xl bg-[#fff5f7] shadow-2xl overflow-hidden">
-              <div className="absolute left-4 top-4 z-20 flex items-center gap-2">
-                <button onClick={showPrev} className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-[#7f1940] shadow-lg">◀</button>
-                <button onClick={showNext} className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-[#7f1940] shadow-lg">▶</button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="relative w-full max-w-5xl bg-white/5 rounded-2xl overflow-hidden flex flex-col shadow-2xl">
+            {/* Header / Actions */}
+            <div className="absolute top-0 inset-x-0 p-4 flex justify-between items-start z-20 bg-gradient-to-b from-black/50 to-transparent">
+              <div className="text-white drop-shadow-md">
+                <p className="font-semibold">{previewMedia.type === 'video' ? 'Video Preview' : 'Photo Preview'}</p>
+                <p className="text-sm opacity-80">{previewMedia.uploadedAt}</p>
               </div>
-              <button
-                type="button"
-                onClick={closePreview}
-                className="absolute right-4 top-4 z-10 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-[#7f1940] shadow-lg hover:bg-white"
-                aria-label="Close preview"
-              >
-                <span className="material-symbols-outlined">close</span>
-              </button>
-              <a href={previewMedia.url} download className="absolute right-16 top-4 z-10 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-[#7f1940] shadow-lg">⬇️</a>
-              <button onClick={toggleZoom} className="absolute right-28 top-4 z-10 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-[#7f1940] shadow-lg">🔍</button>
-              <div className="h-[80vh] w-full overflow-hidden bg-[#fde9f1] flex items-center justify-center">
+              <div className="flex items-center gap-3">
+                {previewMedia.url ? (
+                  <a href={previewMedia.url} download className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-[#7f1940] hover:bg-white shadow-lg transition-all text-xl" aria-label="Download media">⬇️</a>
+                ) : null}
+                <button onClick={closePreview} className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-[#7f1940] hover:bg-white shadow-lg transition-all text-xl" aria-label="Close preview">✕</button>
+              </div>
+            </div>
+
+            {/* Content Area */}
+            <div className="relative flex-1 min-h-[60vh] flex items-center justify-center bg-transparent">
+              <button onClick={showPrev} className="absolute left-[-1rem] md:left-4 z-50 inline-flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-[#7f1940] hover:bg-white shadow-lg transition-all text-xl" aria-label="Previous">◀</button>
+              <button onClick={showNext} className="absolute right-[-1rem] md:right-4 z-50 inline-flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-[#7f1940] hover:bg-white shadow-lg transition-all text-xl" aria-label="Next">▶</button>
+              
+              <div className="w-full h-full flex items-center justify-center p-4 pt-20 pb-16">
                 {previewMedia.url ? (
                   previewMedia.type === 'photo' ? (
-                    <img src={previewMedia.url} alt="Preview" className={`h-full max-h-[80vh] object-contain bg-[#fde9f1] transition-transform ${zoomed ? 'scale-125' : 'scale-100'}`} />
+                    <img src={previewMedia.url} alt="Preview" className="max-w-full max-h-[80vh] object-contain rounded" />
                   ) : (
-                    <video src={previewMedia.url} controls className={`h-full max-h-[80vh] object-contain bg-[#fde9f1] transition-transform ${zoomed ? 'scale-125' : 'scale-100'}`} />
+                    <video src={previewMedia.url} controls autoPlay className="max-w-full max-h-[80vh] object-contain rounded" />
                   )
                 ) : (
-                  <div className="h-full w-full flex items-center justify-center text-[#9f7a88]">
-                    <svg className="w-20 h-20 mr-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="24" height="24" rx="4" fill="#e2e8f0"/><path d="M8 12l2 2 4-4" stroke="#9f7a88" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                    <div className="text-lg">No preview available</div>
+                  <div className="text-white/50 flex flex-col items-center">
+                    <span className="text-4xl mb-2">⚠️</span>
+                    <p>Preview unavailable</p>
                   </div>
-                )}
-              </div>
-              <div className="flex flex-col gap-3 border-t border-[#e7d5db] bg-white p-5 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="font-semibold text-[#211a1b]">{previewMedia.type === 'video' ? 'Video Preview' : 'Photo Preview'}</p>
-                  <p className="text-sm text-[#7f5a67]">{previewMedia.uploadedAt}</p>
-                </div>
-                {previewMedia.url ? (
-                  <a
-                    href={previewMedia.url}
-                    download
-                    className="inline-flex items-center justify-center rounded-full bg-[#890051] px-5 py-3 text-sm font-semibold text-white shadow-lg hover:opacity-95"
-                  >
-                    Download
-                  </a>
-                ) : (
-                  <div className="inline-flex items-center justify-center rounded-full bg-[#f0eef0] px-5 py-3 text-sm font-semibold text-[#7f5a67]">No file</div>
                 )}
               </div>
             </div>
           </div>
-        )}
+        </div>
+      )}
           </>
         )}
       </section>

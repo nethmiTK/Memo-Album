@@ -20,7 +20,6 @@ export default function ProfilePage() {
     name: '',
     email: '',
   });
-  const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saveMessage, setSaveMessage] = useState('');
   const [saveError, setSaveError] = useState('');
@@ -114,7 +113,6 @@ export default function ProfilePage() {
       }));
 
       setSaveMessage('Profile saved successfully.');
-      setIsEditing(false);
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : 'Failed to save profile');
     } finally {
@@ -143,7 +141,6 @@ export default function ProfilePage() {
     reader.onload = () => {
       if (typeof reader.result === 'string') {
         setProfile((current) => ({ ...current, profileImage: reader.result as string }));
-        setIsEditing(true);
       }
     };
     reader.readAsDataURL(file);
@@ -165,7 +162,6 @@ export default function ProfilePage() {
                     </div>
                   )}
                 </div>
-                {isEditing ? (
                   <button
                     type="button"
                     onClick={handlePickProfileImage}
@@ -174,7 +170,6 @@ export default function ProfilePage() {
                   >
                     <ImagePlus size={18} />
                   </button>
-                ) : null}
               </div>
 
               <input
@@ -193,99 +188,61 @@ export default function ProfilePage() {
               <div className="w-full space-y-5 text-left">
                 <div>
                   <label className="mb-2 block text-xs font-bold uppercase tracking-wider" style={{ color: '#9B9095' }}>Full Name</label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={profile.name}
-                      onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-                      className="w-full rounded-xl border border-[#E5CCD4] px-4 py-3 focus:border-[#D23284] focus:outline-none"
-                    />
-                  ) : (
-                    <p className="rounded-xl border border-[#F1E0E6] bg-[#FFF9FB] px-4 py-3 text-[#2C1E26]">{profile.name || 'Not provided'}</p>
-                  )}
+                  <input
+                    type="text"
+                    value={profile.name}
+                    onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                    className="w-full rounded-xl border border-[#E5CCD4] px-4 py-3 focus:border-[#D23284] focus:outline-none bg-white text-[#2C1E26]"
+                  />
                 </div>
 
                 <div>
                   <label className="mb-2 block text-xs font-bold uppercase tracking-wider" style={{ color: '#9B9095' }}>Email Address</label>
-                  {isEditing ? (
-                    <input
-                      type="email"
-                      value={profile.email}
-                      onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                      className="w-full rounded-xl border border-[#E5CCD4] px-4 py-3 focus:border-[#D23284] focus:outline-none"
-                    />
-                  ) : (
-                    <p className="rounded-xl border border-[#F1E0E6] bg-[#FFF9FB] px-4 py-3 text-[#2C1E26]">{profile.email || 'Not provided'}</p>
-                  )}
+                  <input
+                    type="email"
+                    value={profile.email}
+                    readOnly
+                    className="w-full rounded-xl border border-[#F1E0E6] px-4 py-3 bg-[#FFF9FB] text-[#2C1E26] opacity-70 cursor-not-allowed focus:outline-none"
+                  />
                 </div>
 
                 <div>
                   <label className="mb-2 block text-xs font-bold uppercase tracking-wider" style={{ color: '#9B9095' }}>Phone Number</label>
-                  {isEditing ? (
-                    <input
-                      type="tel"
-                      value={profile.phone || ''}
-                      onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                      className="w-full rounded-xl border border-[#E5CCD4] px-4 py-3 focus:border-[#D23284] focus:outline-none"
-                    />
-                  ) : (
-                    <p className="rounded-xl border border-[#F1E0E6] bg-[#FFF9FB] px-4 py-3 text-[#2C1E26]">{profile.phone || 'Not provided'}</p>
-                  )}
+                  <input
+                    type="tel"
+                    value={profile.phone || ''}
+                    onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                    className="w-full rounded-xl border border-[#E5CCD4] px-4 py-3 focus:border-[#D23284] focus:outline-none bg-white text-[#2C1E26]"
+                  />
                 </div>
 
                 <div>
                   <label className="mb-2 block text-xs font-bold uppercase tracking-wider" style={{ color: '#9B9095' }}>Biography</label>
-                  {isEditing ? (
-                    <textarea
-                      value={profile.bio || ''}
-                      onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
-                      rows={4}
-                      className="w-full resize-none rounded-xl border border-[#E5CCD4] px-4 py-3 focus:border-[#D23284] focus:outline-none"
-                    />
-                  ) : (
-                    <p className="rounded-xl border border-[#F1E0E6] bg-[#FFF9FB] px-4 py-3 leading-7 text-[#2C1E26]">{profile.bio || 'Not provided'}</p>
-                  )}
+                  <textarea
+                    value={profile.bio || ''}
+                    onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
+                    rows={4}
+                    className="w-full resize-none rounded-xl border border-[#E5CCD4] px-4 py-3 focus:border-[#D23284] focus:outline-none bg-white text-[#2C1E26]"
+                  />
                 </div>
               </div>
 
               <div className="flex w-full gap-3 pt-2">
-                {isEditing ? (
-                  <>
-                    <button
-                      onClick={handleSaveProfile}
-                      disabled={isSaving}
-                      className="flex-1 rounded-xl bg-[#D23284] px-6 py-3 font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {isSaving ? 'Saving...' : 'Save'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsEditing(false);
-                        setSaveError('');
-                        setSaveMessage('');
-                      }}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#E5CCD4] px-4 py-3 font-semibold text-[#6B7387] transition hover:bg-[#FEF0F1]"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setProfile((current) => ({ ...current, profileImage: '' }))}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#E5CCD4] px-4 py-3 font-semibold text-[#6B7387] transition hover:bg-[#FEF0F1]"
-                    >
-                      <Trash2 size={16} />
-                      Remove Photo
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="flex-1 rounded-xl bg-[#D23284] px-6 py-3 font-semibold text-white transition hover:opacity-90"
-                  >
-                    Edit
-                  </button>
-                )}
+                <button
+                  onClick={handleSaveProfile}
+                  disabled={isSaving}
+                  className="flex-1 rounded-xl bg-[#D23284] px-6 py-3 font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isSaving ? 'Saving...' : 'Save Changes'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setProfile((current) => ({ ...current, profileImage: '' }))}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#E5CCD4] px-4 py-3 font-semibold text-[#6B7387] transition hover:bg-[#FEF0F1]"
+                >
+                  <Trash2 size={16} />
+                  Remove Photo
+                </button>
               </div>
 
               {saveMessage ? (
