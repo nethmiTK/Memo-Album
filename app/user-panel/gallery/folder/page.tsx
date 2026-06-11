@@ -36,7 +36,13 @@ export default function FolderPage() {
   const [showMoveModal, setShowMoveModal] = useState(false);
   const [mediaToMove, setMediaToMove] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
+  const [shareUrl, setShareUrl] = useState('');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setShareUrl(window.location.href);
+    }
+  }, []);
 
   useEffect(() => {
     // prevent background scroll when modal open

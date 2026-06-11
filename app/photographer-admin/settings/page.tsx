@@ -390,7 +390,7 @@ toast.success('Profile updated successfully!', {
     'https://lh3.googleusercontent.com/aida-public/AB6AXuC4KLFCK9wqKiWSOk5TSLyUg02B0K0CEenwg6Rv_90EVvNDbQoemOaUU_MJ4kxRYyVf15xRJ2OaAM4lE5SGp5Bk9IKU9fiwmYwJ7HyoKBBYzkFokru3bqt7T8Rd_VtpACeJTq24TiZj9aGDiAcDfBmkS5ghKfD3J_GpZWslnEGivWp0V4VuWHCwAkKYS_fX5UJWM-hFGZTs5J73Cr-nv2IB2jgG-mC6YirLA0REw440DDoxnXeBkyacaC1yIXQe7ZeNklXTXu3FqVw';
 
   return (
-    <section className="px-6 py-10 md:px-12" style={{ backgroundColor: '#FFF8F7' }}>
+    <section className="px-4 py-8 pb-20 md:px-6 lg:px-12 md:py-10 md:pb-10" style={{ backgroundColor: '#FFF8F7' }}>
       <div className="mx-auto max-w-4xl space-y-6">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: '#B10E6B' }}>

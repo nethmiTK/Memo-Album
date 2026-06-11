@@ -1312,17 +1312,17 @@ const CreateAlbum: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#FFF8F8', fontFamily: 'Manrope, "Segoe UI", sans-serif' }}>
       {/* Header */}
-      <div className="px-4 md:px-12 py-6 md:py-8 bg-gradient-to-r from-[#FFF1F3] to-[#FFF8F8]">
-        <div className="flex items-start justify-between gap-4 mb-4">
+      <div className="px-4 md:px-12 py-4 md:py-8 bg-gradient-to-r from-[#FFF1F3] to-[#FFF8F8]">
+        <div className="flex items-start justify-between gap-4 mb-2 md:mb-4">
           <div>
-            <span className="label-sm tracking-widest uppercase text-[#b10e6b] font-semibold text-xs mb-2 block">
+            <span className="label-sm tracking-widest uppercase text-[#b10e6b] font-semibold text-xs mb-1 md:mb-2 block">
               Workflow Step 02
             </span>
-            <h2 className="text-[60px] text-[#211A1B] mb-4" style={{ lineHeight: '75px', fontWeight: 400, letterSpacing: 'normal', fontFamily: 'Manrope, "Segoe UI", sans-serif' }}>
-              Designing the <br />
+            <h2 className="text-[32px] md:text-[60px] text-[#211A1B] mb-2 md:mb-4" style={{ lineHeight: '1.2', fontWeight: 400, letterSpacing: 'normal', fontFamily: 'Manrope, "Segoe UI", sans-serif' }}>
+              Designing the{' '}
               <span style={{ color: '#BE126F' }}>Perfect Template</span>
             </h2>
-            <p className="text-[#211A1B] mt-4 max-w-md" style={{ fontFamily: 'Manrope, "Segoe UI", sans-serif' }}>
+            <p className="text-sm text-[#211A1B] max-w-md hidden md:block" style={{ fontFamily: 'Manrope, "Segoe UI", sans-serif' }}>
               Select an album and template, then upload media to fill your design.
             </p>
           </div>
@@ -1330,13 +1330,13 @@ const CreateAlbum: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 px-4 md:px-9 py-6 overflow-hidden">
-        <div className="flex flex-col gap-6">
+      <div className="flex-1 px-3 md:px-9 py-4 md:py-6">
+        <div className="flex flex-col gap-4 md:gap-6">
           {/* Top Row - Selection Panel and Book Panel side by side */}
-          <div className="flex flex-col xl:flex-row gap-6">
+          <div className="flex flex-col xl:flex-row gap-4 md:gap-6">
             {/* SELECTION PANEL - Left Side */}
             <div className="w-full xl:w-72 shrink-0">
-              <div className="w-full p-5 rounded-2xl shadow-lg bg-white border-l-4 border-[#b10e6b] h-[760px] overflow-hidden">
+              <div className="w-full p-4 md:p-5 rounded-2xl shadow-lg bg-white border-l-4 border-[#b10e6b] xl:max-h-[760px] xl:overflow-y-auto">
                 <h3 className="text-[11px] tracking-widest uppercase text-[#b10e6b] font-bold mb-4">SELECTION PANEL</h3>
 
                 <div className="space-y-4">
@@ -1567,7 +1567,7 @@ const CreateAlbum: React.FC = () => {
             <div className="min-w-0 flex-1">
               {/* Template Book Preview (flip book with curate images in slots) */}
               {selectedTemplateData ? (
-                <div className="bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col border border-gray-100 h-[760px]">
+                <div className="bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col border border-gray-100 xl:h-[760px]">
                   <div className="p-4 border-b border-gray-200 flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <h3 className="text-sm font-bold uppercase tracking-widest text-[#211A1B]">TEMPLATE BOOK</h3>
@@ -1588,7 +1588,7 @@ const CreateAlbum: React.FC = () => {
 
                   <div className="p-3 bg-[#FFF8F8]">
                     {filledSlotCount > 0 || selectedAlbumData?.coverPhoto ? (
-                      <div className="w-full h-[650px] rounded-xl overflow-hidden">
+                      <div className="w-full h-72 md:h-[650px] rounded-xl overflow-hidden">
                         <TemplateBookFlip
                           template={selectedTemplateData}
                           mediaItems={slotAlignedBookMedia}

@@ -483,17 +483,17 @@ export default function NewCollectionPage() {
   };
 
   return (
-    <div className="min-h-screen px-4 md:px-12 py-6 md:py-8 bg-[#fdf9f8]">
+    <div className="min-h-screen px-4 md:px-12 py-6 md:py-8 pb-20 md:pb-8 bg-[#fdf9f8]">
       {/* Header */}
-      <section className="mb-12">
+      <section className="mb-6 md:mb-12">
         <span className="label-sm tracking-widest uppercase text-[#b10e6b] font-semibold text-xs mb-2 block">
           Workflow Step 01
         </span>
-        <h2 className="serif text-5xl md:text-6xl text-[#211a1b] leading-tight mb-4">
-          Curating the <br />
+        <h2 className="serif text-3xl md:text-5xl lg:text-6xl text-[#211a1b] leading-tight mb-3 md:mb-4">
+          Curating the{' '}
           <span className="italic" style={{ color: '#d23284' }}>Next Masterpiece</span>
         </h2>
-        <p className="text-gray-600 mt-4 max-w-md">
+        <p className="text-gray-600 max-w-md text-sm md:text-base hidden md:block">
           Every love story is unique. Begin by defining the atmosphere and accessibility of this digital archive.
         </p>
       </section>

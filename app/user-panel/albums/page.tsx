@@ -69,7 +69,7 @@ export default function AlbumsPage() {
   const totalPhotos = albums.reduce((sum, album) => sum + album.photoCount, 0);
 
   return (
-    <div className="min-h-screen pb-24 md:pb-8">
+    <div className="min-h-screen pb-20 md:pb-8">
       {/* Editorial Header Section */}
       <section className="px-4 md:px-8 lg:px-12 pt-12 md:pt-20 pb-12 md:pb-16">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-end justify-between gap-8">

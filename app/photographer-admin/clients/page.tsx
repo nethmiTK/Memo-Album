@@ -362,7 +362,7 @@ export default function CuratePage() {
   };
 
   return (
-    <div className="min-h-full bg-[#FFF8F7] p-4 sm:p-6 md:p-8">
+    <div className="min-h-full bg-[#FFF8F7] p-4 pb-20 sm:p-6 md:p-8 md:pb-8">
       {toastMessage ? (
         <div className="fixed right-5 top-5 z-50 rounded-2xl bg-[#1f1a1b] px-4 py-3 text-sm text-white shadow-2xl">
           {toastMessage}

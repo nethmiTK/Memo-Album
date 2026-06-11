@@ -340,8 +340,8 @@ export default function GalleryPage() {
     <div className="min-h-screen bg-[#fff8f7]">
       <Toast message={message} />
 
-      <div className="px-6 md:px-12 py-12">
-        <div className="mx-auto max-w-7xl space-y-12">
+      <div className="px-4 md:px-6 lg:px-12 py-8 md:py-12 pb-20 md:pb-12">
+        <div className="mx-auto max-w-7xl space-y-8 md:space-y-12">
           <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div className="max-w-2xl">
               <span className="mb-2 block text-[10px] font-bold uppercase tracking-[0.2em] text-[#b10e6b]">Portfolio Overview</span>

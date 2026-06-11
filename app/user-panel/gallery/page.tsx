@@ -579,15 +579,15 @@ const uploadRecentMedia = async (files: File[]) => {
   ];
 
   return (
-    <div className="w-full min-h-screen" style={{ backgroundColor: '#FFE8EE' }}>
+    <div className="w-full min-h-screen pb-20 md:pb-0" style={{ backgroundColor: '#FFE8EE' }}>
       {/* Main Content */}
       <div className="w-full">
         {/* Header */}
-        <div className="px-8 py-12 bg-linear-to-r from-[#fff8f7] to-[#fff5f7] border-b border-[#f0e0e6]">
+        <div className="px-4 md:px-8 py-8 md:py-12 bg-linear-to-r from-[#fff8f7] to-[#fff5f7] border-b border-[#f0e0e6]">
         <div className="flex items-center justify-between">
           <div>
             <h1
-              className="text-5xl font-normal mb-2 tracking-tight"
+              className="text-3xl md:text-5xl font-normal mb-2 tracking-tight"
               style={{
                 fontFamily: 'Newsreader',
                 color: '#211a1b',
@@ -601,8 +601,8 @@ const uploadRecentMedia = async (files: File[]) => {
       </div>
 
       {/* Gallery Folders Section */}
-      <section className="px-8 py-12">
-        <div className="flex items-center justify-between mb-8">
+      <section className="px-4 md:px-8 py-8 md:py-12">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 md:mb-8 gap-4">
           <h2
             className="text-3xl font-normal tracking-tight"
             style={{
