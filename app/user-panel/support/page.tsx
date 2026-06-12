@@ -93,9 +93,8 @@ export default function SupportPage() {
                     {faq.question}
                   </span>
                   <svg
-                    className={`w-5 h-5 flex-shrink-0 transition-transform duration-300 ${
-                      expandedFAQ === index ? 'rotate-180' : ''
-                    }`}
+                    className={`w-5 h-5 flex-shrink-0 transition-transform duration-300 ${expandedFAQ === index ? 'rotate-180' : ''
+                      }`}
                     style={{ color: '#D23284' }}
                     fill="none"
                     stroke="currentColor"
@@ -123,92 +122,7 @@ export default function SupportPage() {
           </div>
         </div>
 
-        {/* Contact Form */}
-        <div>
-          <div
-            className="rounded-2xl p-6 sticky top-24"
-            style={{ backgroundColor: '#FFFFFF', border: '1px solid #E5CCD4' }}
-          >
-            <div className="flex items-center gap-3 mb-6">
-              <div
-                className="w-12 h-12 rounded-full flex items-center justify-center"
-                style={{ backgroundColor: '#FEF0F1' }}
-              >
-                <MessageCircle size={24} style={{ color: '#D23284' }} />
-              </div>
-              <h3 className="text-lg font-semibold" style={{ color: '#2C1E26' }}>
-                Contact Us
-              </h3>
-            </div>
 
-            <p className="text-sm text-gray-600 mb-6" style={{ color: '#6B7387' }}>
-              Have a question? Send us a message and we'll get back to you soon.
-            </p>
-
-            <div className="space-y-4">
-              {/* Email Input */}
-              <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: '#2C1E26' }}>
-                  Email
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="your@email.com"
-                  className="w-full px-3 py-2 rounded-lg border-2 focus:outline-none focus:border-[#D23284] transition-colors text-sm"
-                  style={{ borderColor: '#E5CCD4' }}
-                />
-              </div>
-
-              {/* Message Input */}
-              <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: '#2C1E26' }}>
-                  Message
-                </label>
-                <textarea
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder="How can we help?"
-                  rows={4}
-                  className="w-full px-3 py-2 rounded-lg border-2 focus:outline-none focus:border-[#D23284] transition-colors text-sm resize-none"
-                  style={{ borderColor: '#E5CCD4' }}
-                />
-              </div>
-
-              {/* Submit Button */}
-              <button
-                onClick={handleSubmitMessage}
-                disabled={submitted}
-                className="w-full py-3 px-4 text-white font-semibold rounded-lg transition-all hover:shadow-md flex items-center justify-center gap-2"
-                style={{ background: 'linear-gradient(180deg, #C41474 0%, #B50F69 100%)' }}
-              >
-                <Send size={16} />
-                Send Message
-              </button>
-
-              {submitted && (
-                <div
-                  className="text-center text-sm font-medium p-3 rounded-lg"
-                  style={{ backgroundColor: '#E8F5E9', color: '#2E7D32' }}
-                >
-                  Message sent! We'll be in touch soon.
-                </div>
-              )}
-            </div>
-
-            {/* Additional Help */}
-            <div className="mt-6 pt-6 border-t space-y-3" style={{ borderColor: 'rgba(229, 204, 212, 0.2)' }}>
-              <div className="flex items-start gap-3">
-                <HelpCircle size={18} style={{ color: '#D23284', marginTop: '2px' }} />
-                <div className="text-sm" style={{ color: '#6B7387' }}>
-                  <p className="font-medium">Response time</p>
-                  <p>We typically respond within 24 hours</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

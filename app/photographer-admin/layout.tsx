@@ -25,7 +25,6 @@ export default function PhotographerAdminLayout({
             {children}
           </div>
         </main>
-        <MobileBottomNav />
       </div>
     </div>
   );
