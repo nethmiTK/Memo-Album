@@ -195,7 +195,7 @@ export default function CuratePage() {
     }
   };
 
-  useEffect(() => {
+  /*useEffect(() => {
     loadAlbums();
     loadInvites();
 
@@ -204,6 +204,36 @@ export default function CuratePage() {
 
     if (paymentStatus === "success") {
       toast("Payment successful — invitation sent!");
+      window.history.replaceState({}, "", window.location.pathname);
+    } else if (paymentStatus === "failed") {
+      showToast("Payment was not completed. Please try again.");
+      window.history.replaceState({}, "", window.location.pathname);
+    } else if (paymentStatus === "cancelled") {
+      showToast("Payment cancelled.");
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);*/
+
+  useEffect(() => {
+    loadAlbums();
+    loadInvites();
+
+    const params = new URLSearchParams(window.location.search);
+    const paymentStatus = params.get("payment");
+    const orderId = params.get("order_id");
+
+    if (paymentStatus === "success" && orderId) {
+      apiFetch(`/payment/verify/${orderId}`)
+        .then((r) => r.json())
+        .then((result) => {
+          if (result.status === "paid") {
+            toast("Payment successful — invitation sent!");
+            loadInvites();
+          } else {
+            showToast("Payment is being processed...");
+          }
+        })
+        .catch(() => showToast("Could not verify payment"));
       window.history.replaceState({}, "", window.location.pathname);
     } else if (paymentStatus === "failed") {
       showToast("Payment was not completed. Please try again.");
@@ -317,6 +347,49 @@ export default function CuratePage() {
       setIsSubmitting(false);
     }
   }; */
+
+  /*const handleSendInvitation = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!primaryEmail.trim() || !secondaryEmail.trim()) {
+      showToast("Enter both email addresses");
+      return;
+    }
+    if (!selectedAlbumId) {
+      showToast("Please select an album");
+      return;
+    }
+    setShowPaymentSummary(true);
+  };
+
+  const handleContinueToPayment = async () => {
+    setIsPaymentProcessing(true);
+    try {
+      const response = await apiFetch("/payment/initiate", {
+        method: "POST",
+        body: JSON.stringify({
+          albumId: selectedAlbumId,
+          clientEmails: [primaryEmail, secondaryEmail],
+        }),
+      });
+
+      if (response.status === 401) {
+        handleAuthError(response);
+        return;
+      }
+
+      const result = await response.json();
+      if (!result.success || !result.redirectUrl) {
+        throw new Error(result.message || "Failed to initiate payment");
+      }
+
+      window.location.href = result.redirectUrl;
+    } catch (error) {
+      showToast(
+        error instanceof Error ? error.message : "Payment initiation failed",
+      );
+      setIsPaymentProcessing(false);
+    }
+  };*/
 
   const handleSendInvitation = async (event: React.FormEvent) => {
     event.preventDefault();
