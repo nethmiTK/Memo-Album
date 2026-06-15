@@ -145,6 +145,8 @@ export default function CuratePage() {
   const [isLoadingBookPreview, setIsLoadingBookPreview] = useState(false);
   const [showPaymentSummary, setShowPaymentSummary] = useState(false);
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
+  const [paymentReference, setPaymentReference] = useState("");
+  const [pendingRedirectUrl, setPendingRedirectUrl] = useState("");
 
   const showToast = (value: string) => {
     setToastMessage(value);
@@ -401,37 +403,49 @@ export default function CuratePage() {
       showToast("Please select an album");
       return;
     }
+    // Reset reference on each new attempt
+    setPaymentReference("");
+    setPendingRedirectUrl("");
     setShowPaymentSummary(true);
   };
 
   const handleContinueToPayment = async () => {
-    setIsPaymentProcessing(true);
-    try {
-      const response = await apiFetch("/payment/initiate", {
-        method: "POST",
-        body: JSON.stringify({
-          albumId: selectedAlbumId,
-          clientEmails: [primaryEmail, secondaryEmail],
-        }),
-      });
+    // Step 1 — call initiate, show reference number
+    if (!pendingRedirectUrl) {
+      setIsPaymentProcessing(true);
+      try {
+        const response = await apiFetch("/payment/initiate", {
+          method: "POST",
+          body: JSON.stringify({
+            albumId: selectedAlbumId,
+            clientEmails: [primaryEmail, secondaryEmail],
+          }),
+        });
 
-      if (response.status === 401) {
-        handleAuthError(response);
-        return;
+        if (response.status === 401) {
+          handleAuthError(response);
+          return;
+        }
+
+        const result = await response.json();
+        if (!result.success || !result.redirectUrl) {
+          throw new Error(result.message || "Failed to initiate payment");
+        }
+
+        setPaymentReference(result.paymentReference || "");
+        setPendingRedirectUrl(result.redirectUrl);
+        setIsPaymentProcessing(false);
+      } catch (error) {
+        showToast(
+          error instanceof Error ? error.message : "Payment initiation failed",
+        );
+        setIsPaymentProcessing(false);
       }
-
-      const result = await response.json();
-      if (!result.success || !result.redirectUrl) {
-        throw new Error(result.message || "Failed to initiate payment");
-      }
-
-      window.location.href = result.redirectUrl;
-    } catch (error) {
-      showToast(
-        error instanceof Error ? error.message : "Payment initiation failed",
-      );
-      setIsPaymentProcessing(false);
+      return;
     }
+
+    // Step 2 — reference shown, now redirect to Genie
+    window.location.href = pendingRedirectUrl;
   };
 
   return (
@@ -659,6 +673,7 @@ export default function CuratePage() {
       {showPaymentSummary && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#211a1b]/55 px-4">
           <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+            {/* Header */}
             <div
               className="px-6 py-5"
               style={{
@@ -672,17 +687,27 @@ export default function CuratePage() {
                 className="text-2xl font-semibold text-white"
                 style={{ fontFamily: "'Newsreader', serif" }}
               >
-                Order Summary
+                Payment Summary
               </h2>
+              {paymentReference ? (
+                <p className="text-[10px] text-white/60 mt-1">
+                  Ref:{" "}
+                  <span className="font-mono font-bold text-white">
+                    {paymentReference}
+                  </span>
+                </p>
+              ) : null}
             </div>
 
             <div className="px-6 py-5">
+              {/* Album name */}
               <div className="inline-flex items-center gap-2 bg-[#FFF0F7] border border-[#f4c0d1] rounded-lg px-3 py-2 mb-5">
                 <span className="text-xs font-bold text-[#b10e6b]">
                   {selectedAlbum?.albumName || "Selected Album"}
                 </span>
               </div>
 
+              {/* Payable row */}
               <div className="flex justify-between py-2.5 border-b border-[#f0e8ec] text-sm">
                 <span className="text-gray-400">Payable</span>
                 <span className="font-medium text-[#211a1b]">
@@ -690,6 +715,17 @@ export default function CuratePage() {
                 </span>
               </div>
 
+              {/* Reference row — appears after initiate is called */}
+              {paymentReference ? (
+                <div className="flex justify-between py-2.5 border-b border-[#f0e8ec] text-sm">
+                  <span className="text-gray-400">Payment Reference</span>
+                  <span className="font-mono font-bold text-[#b10e6b]">
+                    {paymentReference}
+                  </span>
+                </div>
+              ) : null}
+
+              {/* Subtotal bar */}
               <div
                 className="flex justify-between px-6 py-3 -mx-6 mt-0"
                 style={{
@@ -705,6 +741,7 @@ export default function CuratePage() {
                 </span>
               </div>
 
+              {/* CTA button */}
               <button
                 onClick={handleContinueToPayment}
                 disabled={isPaymentProcessing}
@@ -715,12 +752,18 @@ export default function CuratePage() {
                 }}
               >
                 {isPaymentProcessing
-                  ? "Redirecting to payment..."
-                  : "Continue to Payment →"}
+                  ? "Preparing payment..."
+                  : pendingRedirectUrl
+                    ? "Proceed to Pay →"
+                    : "Continue to Payment →"}
               </button>
 
               <button
-                onClick={() => setShowPaymentSummary(false)}
+                onClick={() => {
+                  setShowPaymentSummary(false);
+                  setPaymentReference("");
+                  setPendingRedirectUrl("");
+                }}
                 className="w-full mt-2 py-2.5 rounded-xl text-[#b10e6b] font-semibold text-sm border border-[#b10e6b]"
               >
                 Cancel
