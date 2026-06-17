@@ -70,7 +70,8 @@ export default function GalleryPage() {
     return headers;
   };
 
-  const getMediaTypeFromFile = (file: File) => (file.type.startsWith('video') ? 'video' : 'photo');
+  const getMediaTypeFromFile = (file: File): 'photo' | 'video' => 
+    file.type.startsWith('video') ? 'video' : 'photo';
 
   const fileToDataUrl = (file: File) =>
     new Promise<string>((resolve, reject) => {
