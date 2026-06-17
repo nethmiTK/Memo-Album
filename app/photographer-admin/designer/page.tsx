@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { apiFetch, getUser, handleAuthError } from '@/lib/api';
 import { Eye, Trash2, Upload, Maximize2, X, Edit3, ImagePlus, Clipboard } from 'lucide-react';
@@ -2309,4 +2310,19 @@ const CreateAlbum: React.FC = () => {
   );
 };
 
-export default CreateAlbum;
+export default function Page() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-[#FFF8F8]">
+          <div className="text-center">
+            <div className="animate-spin h-12 w-12 mx-auto mb-6 border-4 border-[#b10e6b] border-t-transparent rounded-full"></div>
+            <p className="text-[#211A1B] text-lg">Loading Designer...</p>
+          </div>
+        </div>
+      }
+    >
+      <CreateAlbum />
+    </Suspense>
+  );
+}
