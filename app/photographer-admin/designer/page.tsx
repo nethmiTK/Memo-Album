@@ -1596,7 +1596,7 @@ const CreateAlbum: React.FC = () => {
                           coverPhoto={selectedAlbumData?.coverPhoto}
                           coverPhotoName={selectedAlbumData?.albumName}
                           coverWeddingDate={selectedAlbumData?.weddingDate}
-                          variant="single"
+                          variant="inline"
                         />
                       </div>
                     ) : (
