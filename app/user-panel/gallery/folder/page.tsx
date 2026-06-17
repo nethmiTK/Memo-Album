@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import React, { useEffect, useState, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -1026,5 +1027,22 @@ export default function FolderPage() {
           </div>
         </div>
       )}    </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-[#FFE8EE]">
+          <div className="text-center">
+            <div className="animate-spin h-12 w-12 mx-auto mb-6 border-4 border-[#C82B7D] border-t-transparent rounded-full"></div>
+            <p className="text-[#211a1b] text-lg">Loading Folder...</p>
+          </div>
+        </div>
+      }
+    >
+      <FolderPage />
+    </Suspense>
   );
 }
