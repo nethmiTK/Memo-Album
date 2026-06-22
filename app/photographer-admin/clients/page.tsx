@@ -672,10 +672,10 @@ export default function CuratePage() {
 
       {showPaymentSummary && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#211a1b]/55 px-4">
-          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+          <div className="bg-white rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl">
             {/* Header */}
             <div
-              className="px-6 py-5"
+              className="px-8 py-6"
               style={{
                 background: "linear-gradient(135deg, #b10e6b 0%, #d23284 100%)",
               }}
@@ -683,12 +683,14 @@ export default function CuratePage() {
               <p className="text-[9px] tracking-[0.18em] font-bold uppercase text-white/70 mb-1">
                 Album Permission Console
               </p>
+
               <h2
-                className="text-2xl font-semibold text-white"
+                className="text-3xl font-semibold text-white"
                 style={{ fontFamily: "'Newsreader', serif" }}
               >
                 Payment Summary
               </h2>
+
               {paymentReference ? (
                 <p className="text-[10px] text-white/60 mt-1">
                   Ref:{" "}
@@ -699,25 +701,25 @@ export default function CuratePage() {
               ) : null}
             </div>
 
-            <div className="px-6 py-5">
+            <div className="px-8 py-7">
               {/* Album name */}
-              <div className="inline-flex items-center gap-2 bg-[#FFF0F7] border border-[#f4c0d1] rounded-lg px-3 py-2 mb-5">
-                <span className="text-xs font-bold text-[#b10e6b]">
+              <div className="inline-flex items-center gap-2 bg-[#FFF0F7] border border-[#f4c0d1] rounded-lg px-4 py-3 mb-6">
+                <span className="text-sm font-bold text-[#b10e6b]">
                   {selectedAlbum?.albumName || "Selected Album"}
                 </span>
               </div>
 
               {/* Payable row */}
-              <div className="flex justify-between py-2.5 border-b border-[#f0e8ec] text-sm">
+              <div className="flex justify-between py-3 border-b border-[#f0e8ec] text-base">
                 <span className="text-gray-400">Payable</span>
                 <span className="font-medium text-[#211a1b]">
                   LKR 10,000.00
                 </span>
               </div>
 
-              {/* Reference row — appears after initiate is called */}
+              {/* Reference row */}
               {paymentReference ? (
-                <div className="flex justify-between py-2.5 border-b border-[#f0e8ec] text-sm">
+                <div className="flex justify-between py-3 border-b border-[#f0e8ec] text-base">
                   <span className="text-gray-400">Payment Reference</span>
                   <span className="font-mono font-bold text-[#b10e6b]">
                     {paymentReference}
@@ -727,16 +729,17 @@ export default function CuratePage() {
 
               {/* Subtotal bar */}
               <div
-                className="flex justify-between px-6 py-3 -mx-6 mt-0"
+                className="flex justify-between px-8 py-4 -mx-8 mt-0"
                 style={{
                   background:
                     "linear-gradient(135deg, #b10e6b 0%, #d23284 100%)",
                 }}
               >
-                <span className="text-sm font-bold text-white/85">
+                <span className="text-base font-bold text-white/85">
                   Sub total (1 invite)
                 </span>
-                <span className="text-base font-bold text-white">
+
+                <span className="text-lg font-bold text-white">
                   LKR 10,000.00
                 </span>
               </div>
@@ -745,7 +748,7 @@ export default function CuratePage() {
               <button
                 onClick={handleContinueToPayment}
                 disabled={isPaymentProcessing}
-                className="w-full mt-4 py-3 rounded-xl text-white font-bold text-sm disabled:opacity-60 transition-opacity"
+                className="w-full mt-5 py-4 rounded-xl text-white font-bold text-base disabled:opacity-60 transition-opacity"
                 style={{
                   background:
                     "linear-gradient(135deg, #b10e6b 0%, #d23284 100%)",
@@ -758,18 +761,19 @@ export default function CuratePage() {
                     : "Continue to Payment →"}
               </button>
 
+              {/* Cancel button */}
               <button
                 onClick={() => {
                   setShowPaymentSummary(false);
                   setPaymentReference("");
                   setPendingRedirectUrl("");
                 }}
-                className="w-full mt-2 py-2.5 rounded-xl text-[#b10e6b] font-semibold text-sm border border-[#b10e6b]"
+                className="w-full mt-3 py-3 rounded-xl text-[#b10e6b] font-semibold text-base border border-[#b10e6b]"
               >
                 Cancel
               </button>
 
-              <p className="text-center text-[10px] text-gray-400 mt-3">
+              <p className="text-center text-xs text-gray-400 mt-4">
                 🔒 Secured with AES-256 · 256 bit keys
               </p>
             </div>
