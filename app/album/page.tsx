@@ -188,7 +188,7 @@ const MOCK_VIDEOS: Video[] = [
 
 const getImageUrl = (img: string) => {
   if (!img) return '';
-  if (img.startsWith('http')) return img;
+  if (img.startsWith('http') || img.startsWith('data:')) return img;
   if (img.startsWith('/')) return img;
   return `/uploads/${img}`;
 };
@@ -418,10 +418,10 @@ function UniqueHero3D({ albums, videos, categories, heroOpacity, heroScale }: { 
                 className="absolute inset-0 bg-white rounded-[2rem] md:rounded-[3rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.15)] border border-[#edd9e6] overflow-hidden"
               >
                 <img
-                  src={(albums.length > 0 && albums[0]?.cover_image) ? getImageUrl(albums[0].cover_image) : (albums.length > 0 && getImageArray(albums[0]?.images).length > 0) ? getImageUrl(getImageArray(albums[0].images)[0]) : "/images/album.png"}
+                  src={(albums.length > 0 && albums[0]?.cover_image) ? getImageUrl(albums[0].cover_image) : (albums.length > 0 && getImageArray(albums[0]?.images).length > 0) ? getImageUrl(getImageArray(albums[0].images)[0]) : "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800"}
                   className="w-full h-full object-cover"
                   alt="Featured wedding album"
-                  onError={(e) => { e.currentTarget.src = "/images/album.png"; }}
+                  onError={(e) => { e.currentTarget.src = "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800"; }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
               </motion.div>
@@ -432,10 +432,10 @@ function UniqueHero3D({ albums, videos, categories, heroOpacity, heroScale }: { 
                 className="absolute -top-5 -right-5 md:-top-10 md:-right-10 w-32 h-44 md:w-48 md:h-64 bg-white rounded-2xl md:rounded-3xl shadow-2xl border border-[#edd9e6] overflow-hidden rotate-6"
               >
                 <img
-                  src={(albums.length > 1 && albums[1]?.cover_image) ? getImageUrl(albums[1].cover_image) : (albums.length > 1 && getImageArray(albums[1]?.images).length > 0) ? getImageUrl(getImageArray(albums[1].images)[0]) : "/images/album-stack-1.jpg"}
+                  src={(albums.length > 1 && albums[1]?.cover_image) ? getImageUrl(albums[1].cover_image) : (albums.length > 1 && getImageArray(albums[1]?.images).length > 0) ? getImageUrl(getImageArray(albums[1].images)[0]) : "https://images.unsplash.com/photo-1520854221256-17451cc331bf?auto=format&fit=crop&q=80&w=800"}
                   className="w-full h-full object-cover"
                   alt="Wedding moments preview"
-                  onError={(e) => { e.currentTarget.src = "/images/album-stack-1.jpg"; }}
+                  onError={(e) => { e.currentTarget.src = "https://images.unsplash.com/photo-1520854221256-17451cc331bf?auto=format&fit=crop&q=80&w=800"; }}
                 />
               </motion.div>
 

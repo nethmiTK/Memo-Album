@@ -78,7 +78,7 @@ export default function HomePage() {
           .map((u: any) => ({
             name: u.name || 'Photographer',
             role: u.role || u.roleName || (u.roleId?.roleName || 'photographer'),
-            image: u.profileImage || u.image || u.profilePic || '/images/album.png',
+            image: u.profileImage || u.image || u.profilePic || 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800',
             social: {
               instagram: u.instagram || '',
               facebook: u.facebook || '',
@@ -165,18 +165,28 @@ export default function HomePage() {
 
   const closePublicBook = () => setSelectedPublicBook(null);
   const getImageUrl = (url: string | undefined) => {
-    if (!url) return '/images/album.png';
-    if (url.startsWith('http') || url.startsWith('/images/')) return url;
+    if (!url) return 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800';
+    if (url.startsWith('http') || url.startsWith('data:')) return url;
+    if (url.startsWith('/images/')) return 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800';
     return `${API_URL}${url.startsWith('/') ? '' : '/'}${url}`;
   };
 
   const journalCards =
     publicBookAlbums.length > 0
-      ? publicBookAlbums.map((book) => ({
-          title: book.albumName || book.curateId?.albumName || 'Album',
-          image: getImageUrl(book.curateId?.coverPhoto || book.curateId?.coverPhotoName),
-          raw: book,
-        }))
+      ? publicBookAlbums.map((book) => {
+          let coverImg = book.curateId?.coverPhoto || book.curateId?.coverPhotoName;
+          if (!coverImg && Array.isArray(book.curateId?.mediaItems) && book.curateId.mediaItems.length > 0) {
+            coverImg = book.curateId.mediaItems[0].dataUrl || book.curateId.mediaItems[0].fileName;
+          } else if (!coverImg && Array.isArray(book.pageLayouts) && book.pageLayouts.length > 0) {
+            const firstSlot = book.pageLayouts[0].slotAssignments?.[0];
+            if (firstSlot?.dataUrl) coverImg = firstSlot.dataUrl;
+          }
+          return {
+            title: book.albumName || book.curateId?.albumName || 'Album',
+            image: getImageUrl(coverImg),
+            raw: book,
+          };
+        })
       : journalEntries;
 
   const socialLinks = (social: Record<string, string | undefined> = {}) => [
