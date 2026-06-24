@@ -410,6 +410,15 @@ export default function NewCollectionPage() {
         return false;
       }
 
+      // ✅ FIX — if curateId is stale (record deleted from DB), clear it and retry
+      if (response.status === 404 && curateId) {
+        setCurateId('');
+        clearDraftCache();
+        toast.error('Previous draft not found. Please save again.', toastStyle);
+        setIsSaving(false);
+        return false;
+      }
+
       const result = await parseApiJson(response);
 
       if (!response.ok || !result.success) {
