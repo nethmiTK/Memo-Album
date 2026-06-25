@@ -7,6 +7,7 @@ import {
   ChevronRight,
   ExternalLink,
   Plus,
+  X,
 } from "lucide-react";
 import { apiFetch, handleAuthError } from "@/lib/api";
 import { FullscreenBook } from "@/app/Components/photographer-admin/FullscreenBook";
@@ -671,110 +672,93 @@ export default function CuratePage() {
       </div>
 
       {showPaymentSummary && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#211a1b]/55 px-4">
-          <div className="bg-white rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl">
-            {/* Header */}
-            <div
-              className="px-8 py-6"
-              style={{
-                background: "linear-gradient(135deg, #b10e6b 0%, #d23284 100%)",
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#211a1b]/40 backdrop-blur-md px-4 transition-all duration-300">
+          <div className="bg-[#FFF8F7]/95 backdrop-blur-2xl border border-white/60 rounded-3xl w-full max-w-lg shadow-[0_30px_60px_rgba(0,0,0,0.15)] overflow-hidden relative">
+            
+            <button
+              onClick={() => {
+                setShowPaymentSummary(false);
+                setPaymentReference("");
+                setPendingRedirectUrl("");
               }}
+              className="absolute top-4 right-4 p-2 text-gray-400 hover:text-[#b10e6b] hover:bg-[#b10e6b]/10 rounded-full transition-colors z-10"
+              title="Close"
             >
-              <p className="text-[9px] tracking-[0.18em] font-bold uppercase text-white/70 mb-1">
-                Album Permission Console
-              </p>
+              <X size={20} />
+            </button>
 
-              <h2
-                className="text-3xl font-semibold text-white"
-                style={{ fontFamily: "'Newsreader', serif" }}
-              >
-                Payment Summary
-              </h2>
-
-              {paymentReference ? (
-                <p className="text-[10px] text-white/60 mt-1">
-                  Ref:{" "}
-                  <span className="font-mono font-bold text-white">
-                    {paymentReference}
-                  </span>
+            <div className="px-6 py-8 md:px-8">
+              <div className="flex flex-col items-center text-center mb-6">
+                <div className="w-14 h-14 rounded-2xl bg-white shadow-lg shadow-[#b10e6b]/10 mb-3 overflow-hidden border border-[#f4c0d1]/30 flex items-center justify-center p-2.5">
+                   <img src="/favicon.ico" alt="Logo" className="w-full h-full object-contain" />
+                </div>
+                <h2 className="text-2xl font-semibold text-[#211a1b]" style={{ fontFamily: "'Newsreader', serif" }}>
+                  Payment Summary
+                </h2>
+                <p className="text-gray-500 mt-1 text-[13px] leading-relaxed">
+                  Complete your payment to send the invitation for <br/>
+                  <strong className="text-[#b10e6b]">{selectedAlbum?.albumName || "Selected Album"}</strong>
                 </p>
-              ) : null}
-            </div>
-
-            <div className="px-8 py-7">
-              {/* Album name */}
-              <div className="inline-flex items-center gap-2 bg-[#FFF0F7] border border-[#f4c0d1] rounded-lg px-4 py-3 mb-6">
-                <span className="text-sm font-bold text-[#b10e6b]">
-                  {selectedAlbum?.albumName || "Selected Album"}
-                </span>
               </div>
 
-              {/* Payable row */}
-              <div className="flex justify-between py-3 border-b border-[#f0e8ec] text-base">
-                <span className="text-gray-400">Payable</span>
-                <span className="font-medium text-[#211a1b]">
-                  LKR 10,000.00
-                </span>
-              </div>
+              <div className="bg-white/80 rounded-2xl border border-[#f4c0d1]/30 p-5 shadow-sm mb-6 space-y-3">
+                {paymentReference ? (
+                  <div className="flex justify-between items-center pb-3 border-b border-[#f0e8ec]">
+                    <span className="text-gray-500 text-sm font-medium">Payment Reference</span>
+                    <span className="font-mono font-bold text-[#b10e6b] bg-[#b10e6b]/10 px-2.5 py-1 rounded-lg text-sm">
+                      {paymentReference}
+                    </span>
+                  </div>
+                ) : null}
 
-              {/* Reference row */}
-              {paymentReference ? (
-                <div className="flex justify-between py-3 border-b border-[#f0e8ec] text-base">
-                  <span className="text-gray-400">Payment Reference</span>
-                  <span className="font-mono font-bold text-[#b10e6b]">
-                    {paymentReference}
+                <div className="flex justify-between items-start pb-3 border-b border-[#f0e8ec]">
+                  <span className="text-gray-500 text-sm font-medium pt-0.5">Invitation Access</span>
+                  <div className="flex flex-col items-end gap-1.5 max-w-[200px]">
+                    <span className="font-semibold text-[#b10e6b] text-xs bg-[#FFF0F7] px-3 py-1.5 rounded-lg border border-[#f4c0d1]/50 truncate w-full text-right" title={primaryEmail}>
+                      {primaryEmail}
+                    </span>
+                    <span className="font-semibold text-[#b10e6b] text-xs bg-[#FFF0F7] px-3 py-1.5 rounded-lg border border-[#f4c0d1]/50 truncate w-full text-right" title={secondaryEmail}>
+                      {secondaryEmail}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center pt-1">
+                  <span className="text-gray-600 font-semibold text-sm">Total Payable</span>
+                  <span className="text-xl font-bold text-[#211a1b]">
+                    LKR 10,000.00
                   </span>
                 </div>
-              ) : null}
-
-              {/* Subtotal bar */}
-              <div
-                className="flex justify-between px-8 py-4 -mx-8 mt-0"
-                style={{
-                  background:
-                    "linear-gradient(135deg, #b10e6b 0%, #d23284 100%)",
-                }}
-              >
-                <span className="text-base font-bold text-white/85">
-                  Sub total (1 invite)
-                </span>
-
-                <span className="text-lg font-bold text-white">
-                  LKR 10,000.00
-                </span>
               </div>
 
-              {/* CTA button */}
               <button
                 onClick={handleContinueToPayment}
                 disabled={isPaymentProcessing}
-                className="w-full mt-5 py-4 rounded-xl text-white font-bold text-base disabled:opacity-60 transition-opacity"
+                className="w-full py-4 mt-2 rounded-2xl text-white font-bold text-[17px] tracking-wide shadow-[0_8px_20px_rgba(177,14,107,0.25)] hover:shadow-[0_12px_25px_rgba(177,14,107,0.4)] hover:-translate-y-0.5 transition-all disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none relative overflow-hidden group"
                 style={{
-                  background:
-                    "linear-gradient(135deg, #b10e6b 0%, #d23284 100%)",
+                  background: "linear-gradient(135deg, #b10e6b 0%, #d23284 100%)",
                 }}
               >
-                {isPaymentProcessing
-                  ? "Preparing payment..."
-                  : pendingRedirectUrl
-                    ? "Proceed to Pay →"
-                    : "Continue to Payment →"}
+                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
+                <span className="relative z-10 flex items-center justify-center gap-2">
+                  {isPaymentProcessing
+                    ? "Processing..."
+                    : pendingRedirectUrl
+                      ? "Proceed to Pay"
+                      : "Continue to Payment"}
+                  {!isPaymentProcessing && (
+                     <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                     </svg>
+                  )}
+                </span>
               </button>
 
-              {/* Cancel button */}
-              <button
-                onClick={() => {
-                  setShowPaymentSummary(false);
-                  setPaymentReference("");
-                  setPendingRedirectUrl("");
-                }}
-                className="w-full mt-3 py-3 rounded-xl text-[#b10e6b] font-semibold text-base border border-[#b10e6b]"
-              >
-                Cancel
-              </button>
-
-              <p className="text-center text-xs text-gray-400 mt-4">
-                🔒 Secured with AES-256 · 256 bit keys
+              <p className="text-center text-[11px] text-gray-400 mt-4 flex items-center justify-center gap-1.5">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                Secured with AES-256 · 256 bit keys
               </p>
             </div>
           </div>
