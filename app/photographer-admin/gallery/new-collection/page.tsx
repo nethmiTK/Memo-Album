@@ -310,7 +310,8 @@ export default function NewCollectionPage() {
               <div className="flex items-center gap-3">
                 <button
                   type="button"
-                  onClick={() => router.push('/photographer-admin/curate/template')}
+                  //onClick={() => router.push('/photographer-admin/curate/template')}
+                  onClick={() => router.push('/photographer-admin/curate')}
                   className="px-6 py-3 rounded-lg text-[13px] font-bold uppercase tracking-wider transition-all hover:opacity-90"
                   style={{ backgroundColor: '#EADFE2', color: '#B10E6B' }}
                 >
