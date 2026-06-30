@@ -98,7 +98,7 @@ export default function PhotographerSidebar({ isMobileOpen, onClose }: Photograp
       {/* New Collection Button */}
       <div className="px-3 py-4">
         <Link
-          href="/photographer-admin/gallery/new-collection"
+          href="/photographer-admin/curate"
           onClick={onClose}
           className="w-full py-3 px-4 text-white font-semibold text-[15px] rounded-xl hover:shadow-lg transition-shadow duration-200 flex items-center justify-center"
           style={{ background: 'linear-gradient(180deg, #C41474 0%, #B50F69 100%)' }}
