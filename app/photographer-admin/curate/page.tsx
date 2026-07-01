@@ -1,15 +1,15 @@
-'use client';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Upload, X } from 'lucide-react';
-import { toast } from 'react-toastify';
-import LiveContentFeed from './LiveContentFeed';
-import { apiFetch, handleAuthError } from '@/lib/api';
+"use client";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Upload, X } from "lucide-react";
+import { toast } from "react-toastify";
+import LiveContentFeed from "./LiveContentFeed";
+import { apiFetch, handleAuthError } from "@/lib/api";
 
 interface FormData {
   albumName: string;
   weddingDate: string;
-  accessControl: 'public' | 'private';
+  accessControl: "public" | "private";
 }
 
 interface PersistedMediaItem {
@@ -18,7 +18,7 @@ interface PersistedMediaItem {
   fileName: string;
   fileType: string;
   fileSize: number;
-  mediaKind: 'image' | 'video' | 'other';
+  mediaKind: "image" | "video" | "other";
   dataUrl?: string;
 }
 
@@ -39,13 +39,15 @@ interface CachedCurateDraft {
   files: CachedFileItem[];
 }
 
-const CURATE_DRAFT_CACHE_KEY = 'memo.photographer-admin.curate.page.v1';
+const CURATE_DRAFT_CACHE_KEY = "memo.photographer-admin.curate.page.v1";
 
 function readDraftCache(): CachedCurateDraft | null {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === "undefined") return null;
 
   try {
-    const raw = window.sessionStorage.getItem(CURATE_DRAFT_CACHE_KEY) || window.localStorage.getItem(CURATE_DRAFT_CACHE_KEY);
+    const raw =
+      window.sessionStorage.getItem(CURATE_DRAFT_CACHE_KEY) ||
+      window.localStorage.getItem(CURATE_DRAFT_CACHE_KEY);
     if (!raw) return null;
     return JSON.parse(raw) as CachedCurateDraft;
   } catch {
@@ -54,7 +56,7 @@ function readDraftCache(): CachedCurateDraft | null {
 }
 
 function writeDraftCache(value: CachedCurateDraft) {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
 
   try {
     const payload = JSON.stringify(value);
@@ -66,7 +68,7 @@ function writeDraftCache(value: CachedCurateDraft) {
 }
 
 function clearDraftCache() {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
 
   try {
     window.sessionStorage.removeItem(CURATE_DRAFT_CACHE_KEY);
@@ -81,15 +83,17 @@ export default function NewCollectionPage() {
   const hasHydratedRef = useRef(false);
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState<FormData>({
-    albumName: '',
-    weddingDate: '',
-    accessControl: 'public',
+    albumName: "",
+    weddingDate: "",
+    accessControl: "public",
   });
 
   const [isDragging, setIsDragging] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
-  const [persistedMediaItems, setPersistedMediaItems] = useState<PersistedMediaItem[]>([]);
-  const [curateId, setCurateId] = useState('');
+  const [persistedMediaItems, setPersistedMediaItems] = useState<
+    PersistedMediaItem[]
+  >([]);
+  const [curateId, setCurateId] = useState("");
   const [uploadProgress, setUploadProgress] = useState(0);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -108,15 +112,19 @@ export default function NewCollectionPage() {
     });
   };
 
-  const normalizePersistedMediaItem = (item: PersistedMediaItem): PersistedMediaItem => ({
+  const normalizePersistedMediaItem = (
+    item: PersistedMediaItem,
+  ): PersistedMediaItem => ({
     ...item,
-    dataUrl: item.dataUrl || (item as any).url || (item as any).src || '',
+    dataUrl: item.dataUrl || (item as any).url || (item as any).src || "",
     mediaKind:
-      item.mediaKind === 'video'
-        ? 'video'
-        : item.mediaKind === 'other'
-          ? 'other'
-          : (item.fileType?.startsWith('video') ? 'video' : 'image'),
+      item.mediaKind === "video"
+        ? "video"
+        : item.mediaKind === "other"
+          ? "other"
+          : item.fileType?.startsWith("video")
+            ? "video"
+            : "image",
   });
 
   const normalizePersistedMediaItems = (items: PersistedMediaItem[]) =>
@@ -124,8 +132,8 @@ export default function NewCollectionPage() {
 
   const toastStyle = {
     style: {
-      background: '#FDF3F2',
-      color: '#000',
+      background: "#FDF3F2",
+      color: "#000",
     },
   } as const;
 
@@ -135,20 +143,26 @@ export default function NewCollectionPage() {
     try {
       return rawText ? JSON.parse(rawText) : {};
     } catch {
-      const htmlResponse = rawText.trim().startsWith('<!DOCTYPE') || rawText.trim().startsWith('<html');
+      const htmlResponse =
+        rawText.trim().startsWith("<!DOCTYPE") ||
+        rawText.trim().startsWith("<html");
       const statusInfo = `${response.status} ${response.statusText}`;
-      const requestUrl = response.url || 'unknown URL';
+      const requestUrl = response.url || "unknown URL";
       throw new Error(
         htmlResponse
           ? `Server returned HTML instead of JSON at ${requestUrl} (${statusInfo}). Check API URL/backend server and login session.`
-          : `Invalid API response format from ${requestUrl} (${statusInfo}).`
+          : `Invalid API response format from ${requestUrl} (${statusInfo}).`,
       );
     }
   };
 
   const mergeFiles = (incomingFiles: File[]) => {
     setFiles((previousFiles) => {
-      const existingKeys = new Set(previousFiles.map((file) => `${file.name}-${file.size}-${file.lastModified}`));
+      const existingKeys = new Set(
+        previousFiles.map(
+          (file) => `${file.name}-${file.size}-${file.lastModified}`,
+        ),
+      );
       const mergedFiles = [...previousFiles];
 
       incomingFiles.forEach((file) => {
@@ -166,8 +180,9 @@ export default function NewCollectionPage() {
   const fileToDataUrl = (file: File) =>
     new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result || ''));
-      reader.onerror = () => reject(new Error(`Failed to read file: ${file.name}`));
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () =>
+        reject(new Error(`Failed to read file: ${file.name}`));
       reader.readAsDataURL(file);
     });
 
@@ -177,12 +192,30 @@ export default function NewCollectionPage() {
     if (cachedDraft) {
       const restoreCachedDraft = async () => {
         try {
-          const restoredFiles = await Promise.all((cachedDraft.files || []).map((item) => dataUrlToFile(item)));
+          const restoredFiles = await Promise.all(
+            (cachedDraft.files || []).map((item) => dataUrlToFile(item)),
+          );
 
-          setFormData(cachedDraft.formData || { albumName: '', weddingDate: '', accessControl: 'public' });
-          setPersistedMediaItems(normalizePersistedMediaItems(Array.isArray(cachedDraft.persistedMediaItems) ? cachedDraft.persistedMediaItems : []));
-          setCurateId(cachedDraft.curateId || '');
-          setUploadProgress(Number.isFinite(Number(cachedDraft.uploadProgress)) ? Number(cachedDraft.uploadProgress) : 0);
+          setFormData(
+            cachedDraft.formData || {
+              albumName: "",
+              weddingDate: "",
+              accessControl: "public",
+            },
+          );
+          setPersistedMediaItems(
+            normalizePersistedMediaItems(
+              Array.isArray(cachedDraft.persistedMediaItems)
+                ? cachedDraft.persistedMediaItems
+                : [],
+            ),
+          );
+          setCurateId(cachedDraft.curateId || "");
+          setUploadProgress(
+            Number.isFinite(Number(cachedDraft.uploadProgress))
+              ? Number(cachedDraft.uploadProgress)
+              : 0,
+          );
           setCoverPreview(cachedDraft.coverPreview || null);
           setFiles(restoredFiles);
         } catch {
@@ -199,7 +232,7 @@ export default function NewCollectionPage() {
 
     const loadCurrentDraft = async () => {
       try {
-        const response = await apiFetch('/curate/current');
+        const response = await apiFetch("/curate/current");
 
         if (response.status === 401) {
           handleAuthError(response);
@@ -217,20 +250,30 @@ export default function NewCollectionPage() {
         }
 
         const curate = result.curate;
-        setCurateId(curate._id || '');
+        setCurateId(curate._id || "");
         setFormData({
-          albumName: curate.albumName || '',
-          weddingDate: curate.weddingDate ? String(curate.weddingDate).slice(0, 10) : '',
-          accessControl: curate.accessControl === 'private' ? 'private' : 'public',
+          albumName: curate.albumName || "",
+          weddingDate: curate.weddingDate
+            ? String(curate.weddingDate).slice(0, 10)
+            : "",
+          accessControl:
+            curate.accessControl === "private" ? "private" : "public",
         });
-        setPersistedMediaItems(normalizePersistedMediaItems(Array.isArray(curate.mediaItems) ? curate.mediaItems : []));
-        setUploadProgress(Number.isFinite(Number(curate.progress)) ? Number(curate.progress) : 0);
+        setPersistedMediaItems(
+          normalizePersistedMediaItems(
+            Array.isArray(curate.mediaItems) ? curate.mediaItems : [],
+          ),
+        );
+        setUploadProgress(
+          Number.isFinite(Number(curate.progress))
+            ? Number(curate.progress)
+            : 0,
+        );
         setCoverPreview(curate.coverPhoto || null);
         clearDraftCache();
       } catch {
         // Keep the empty draft state if loading fails.
-      }
-      finally {
+      } finally {
         hasHydratedRef.current = true;
         setLoading(false);
       }
@@ -253,7 +296,7 @@ export default function NewCollectionPage() {
             size: file.size,
             lastModified: file.lastModified,
             dataUrl: await fileToDataUrl(file),
-          }))
+          })),
         );
 
         if (cancelled) return;
@@ -276,9 +319,15 @@ export default function NewCollectionPage() {
     return () => {
       cancelled = true;
     };
-  }, [formData, persistedMediaItems, curateId, uploadProgress, coverPreview, files]);
+  }, [
+    formData,
+    persistedMediaItems,
+    curateId,
+    uploadProgress,
+    coverPreview,
+    files,
+  ]);
 
- 
   useEffect(() => {
     if (files.length > 0) {
       setUploadProgress(0);
@@ -300,14 +349,14 @@ export default function NewCollectionPage() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleAccessControlChange = (type: 'public' | 'private') => {
+  const handleAccessControlChange = (type: "public" | "private") => {
     setFormData((prev) => ({ ...prev, accessControl: type }));
   };
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDragging(e.type === 'dragenter' || e.type === 'dragover');
+    setIsDragging(e.type === "dragenter" || e.type === "dragover");
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -335,24 +384,53 @@ export default function NewCollectionPage() {
     setCoverPreview(null);
     setCoverFile(null);
     if (coverInputRef.current) {
-      coverInputRef.current.value = '';
+      coverInputRef.current.value = "";
     }
-    toast.success('Cover photo removed', toastStyle);
+    toast.success("Cover photo removed", toastStyle);
   };
 
   const removeUploadAt = (indexToRemove: number) => {
-    setFiles((current) => current.filter((_, index) => index !== indexToRemove));
-    toast.success('Image removed', toastStyle);
+    setFiles((current) =>
+      current.filter((_, index) => index !== indexToRemove),
+    );
+    toast.success("Image removed", toastStyle);
   };
 
   const removePersistedMedia = (mediaId: string) => {
-    setPersistedMediaItems((current) => current.filter((item) => item.id !== mediaId));
-    toast.success('Saved image removed', toastStyle);
+    setPersistedMediaItems((current) =>
+      current.filter((item) => item.id !== mediaId),
+    );
+    toast.success("Saved image removed", toastStyle);
+  };
+
+  const resetDraftState = () => {
+    clearDraftCache();
+    setFormData({
+      albumName: "",
+      weddingDate: "",
+      accessControl: "public",
+    });
+    setFiles([]);
+    setPersistedMediaItems([]);
+    setCurateId("");
+    setUploadProgress(0);
+    setCoverPreview(null);
+    setCoverFile(null);
+    setSaveMessage(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+    if (coverInputRef.current) {
+      coverInputRef.current.value = "";
+    }
   };
 
   const totalStorageUsed = useMemo(() => {
     const fileBytes = files.reduce((sum, file) => sum + file.size, 0);
-    const persistedBytes = persistedMediaItems.reduce((sum, item) => sum + (Number(item.fileSize) || 0), 0);
+    const persistedBytes = persistedMediaItems.reduce(
+      (sum, item) => sum + (Number(item.fileSize) || 0),
+      0,
+    );
     return fileBytes + persistedBytes;
   }, [files, persistedMediaItems]);
 
@@ -361,7 +439,9 @@ export default function NewCollectionPage() {
     return `${gb.toFixed(gb >= 1 ? 1 : 2)} GB`;
   };
 
-  const saveCurateDraft = async (status: 'save_draft' | 'saved' = 'save_draft') => {
+  const saveCurateDraft = async (
+    status: "save_draft" | "saved" = "save_draft",
+  ) => {
     setIsSaving(true);
     setSaveMessage(null);
 
@@ -373,35 +453,36 @@ export default function NewCollectionPage() {
           fileName: file.name,
           fileType: file.type,
           fileSize: file.size,
-          mediaKind: file.type.startsWith('video') ? 'video' : 'image',
+          mediaKind: file.type.startsWith("video") ? "video" : "image",
           dataUrl: await fileToDataUrl(file),
-        }))
+        })),
       );
 
-      const mediaItems = files.length > 0
-        ? [
-            ...persistedMediaItems.map((item, index) => ({
-              ...item,
-              order: index + 1,
-            })),
-            ...uploadedMediaItems,
-          ]
-        : persistedMediaItems;
+      const mediaItems =
+        files.length > 0
+          ? [
+              ...persistedMediaItems.map((item, index) => ({
+                ...item,
+                order: index + 1,
+              })),
+              ...uploadedMediaItems,
+            ]
+          : persistedMediaItems;
 
       const payload = {
         curateId,
         albumName: formData.albumName,
         weddingDate: formData.weddingDate,
         accessControl: formData.accessControl,
-        coverPhoto: coverPreview || '',
-        coverPhotoName: coverFile?.name || '',
+        coverPhoto: coverPreview || "",
+        coverPhotoName: coverFile?.name || "",
         mediaItems,
         progress: uploadProgress,
         status,
       };
 
-      const response = await apiFetch('/curate', {
-        method: 'POST',
+      const response = await apiFetch("/curate", {
+        method: "POST",
         body: JSON.stringify(payload),
       });
 
@@ -412,9 +493,9 @@ export default function NewCollectionPage() {
 
       // ✅ FIX — if curateId is stale (record deleted from DB), clear it and retry
       if (response.status === 404 && curateId) {
-        setCurateId('');
+        setCurateId("");
         clearDraftCache();
-        toast.error('Previous draft not found. Please save again.', toastStyle);
+        toast.error("Previous draft not found. Please save again.", toastStyle);
         setIsSaving(false);
         return false;
       }
@@ -422,11 +503,16 @@ export default function NewCollectionPage() {
       const result = await parseApiJson(response);
 
       if (!response.ok || !result.success) {
-        throw new Error(result.message || 'Failed to save curate draft');
+        throw new Error(result.message || "Failed to save curate draft");
       }
 
-      if (result.curate?.mediaItems && Array.isArray(result.curate.mediaItems)) {
-        setPersistedMediaItems(normalizePersistedMediaItems(result.curate.mediaItems));
+      if (
+        result.curate?.mediaItems &&
+        Array.isArray(result.curate.mediaItems)
+      ) {
+        setPersistedMediaItems(
+          normalizePersistedMediaItems(result.curate.mediaItems),
+        );
       }
       if (result.curate?._id) {
         setCurateId(result.curate._id);
@@ -434,12 +520,22 @@ export default function NewCollectionPage() {
 
       setFiles([]);
 
-      toast.success(status === 'saved' ? 'Curate saved' : 'Draft saved', toastStyle);
-      setSaveMessage(status === 'saved' ? 'Saved and moved to next step' : 'Draft saved');
+      toast.success(
+        status === "saved" ? "Curate saved" : "Draft saved",
+        toastStyle,
+      );
+      setSaveMessage(
+        status === "saved" ? "Saved and moved to next step" : "Draft saved",
+      );
       return true;
     } catch (error) {
-      setSaveMessage(error instanceof Error ? error.message : 'Failed to save draft');
-      toast.error(error instanceof Error ? error.message : 'Failed to save draft', toastStyle);
+      setSaveMessage(
+        error instanceof Error ? error.message : "Failed to save draft",
+      );
+      toast.error(
+        error instanceof Error ? error.message : "Failed to save draft",
+        toastStyle,
+      );
       return false;
     } finally {
       setIsSaving(false);
@@ -447,15 +543,15 @@ export default function NewCollectionPage() {
   };
 
   const handleNext = async () => {
-    const saved = await saveCurateDraft('saved');
+    const saved = await saveCurateDraft("saved");
     if (saved) {
-      // toast.success('Saved to curate table', toastStyle);
-      router.push('/photographer-admin/designer');
+      resetDraftState();
+      router.push("/photographer-admin/designer");
     }
   };
 
-  const handleDiscard = async () => {
-    clearDraftCache();
+  /*const handleDiscard = async () => {
+    resetDraftState();
     setFormData({
       albumName: '',
       weddingDate: '',
@@ -489,6 +585,28 @@ export default function NewCollectionPage() {
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to discard draft', toastStyle);
     }
+  };*/
+
+  const handleDiscard = async () => {
+    resetDraftState();
+
+    try {
+      const response = await apiFetch("/curate/current", { method: "DELETE" });
+      if (response.status === 401) {
+        handleAuthError(response);
+        return;
+      }
+      if (response.status !== 404 && !response.ok) {
+        throw new Error("Failed to discard draft");
+      }
+      toast.success("Draft discarded", toastStyle);
+      router.push("/photographer-admin/curate");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to discard draft",
+        toastStyle,
+      );
+    }
   };
 
   return (
@@ -499,21 +617,25 @@ export default function NewCollectionPage() {
           Workflow Step 01
         </span>
         <h2 className="serif text-3xl md:text-5xl lg:text-6xl text-[#211a1b] leading-tight mb-3 md:mb-4">
-          Curating the{' '}
-          <span className="italic" style={{ color: '#d23284' }}>Next Masterpiece</span>
+          Curating the{" "}
+          <span className="italic" style={{ color: "#d23284" }}>
+            Next Masterpiece
+          </span>
         </h2>
         <p className="text-gray-600 max-w-md text-sm md:text-base hidden md:block">
-          Every love story is unique. Begin by defining the atmosphere and accessibility of this digital archive.
+          Every love story is unique. Begin by defining the atmosphere and
+          accessibility of this digital archive.
         </p>
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* LEFT COLUMN - ACCESS CONTROLS ON TOP */}
         <div className="lg:col-span-4 space-y-6">
-          
-
           {/* Album Identity */}
-          <div className="p-8 rounded-xl shadow-sm bg-white" style={{ borderLeft: '4px solid rgba(177, 14, 107, 0.2)' }}>
+          <div
+            className="p-8 rounded-xl shadow-sm bg-white"
+            style={{ borderLeft: "4px solid rgba(177, 14, 107, 0.2)" }}
+          >
             <h3 className="label-sm tracking-widest uppercase text-[10px] text-zinc-400 mb-6 font-bold">
               ALBUM IDENTITY
             </h3>
@@ -551,32 +673,58 @@ export default function NewCollectionPage() {
             </h3>
             <div className="space-y-3">
               <label className="flex items-center p-4 bg-[#fdf1f3] rounded-xl cursor-pointer">
-                <input type="radio" checked={formData.accessControl === 'public'} onChange={() => handleAccessControlChange('public')} className="accent-[#b10e6b]" />
+                <input
+                  type="radio"
+                  checked={formData.accessControl === "public"}
+                  onChange={() => handleAccessControlChange("public")}
+                  className="accent-[#b10e6b]"
+                />
                 <div className="ml-4">
                   <p className="font-semibold">Public Gallery</p>
-                  <p className="text-xs text-[#9a8a8e]">Discoverable via search and SEO</p>
+                  <p className="text-xs text-[#9a8a8e]">
+                    Discoverable via search and SEO
+                  </p>
                 </div>
               </label>
 
               <label className="flex items-center p-4 bg-[#fdf1f3] rounded-xl cursor-pointer">
-                <input type="radio" checked={formData.accessControl === 'private'} onChange={() => handleAccessControlChange('private')} className="accent-[#b10e6b]" />
+                <input
+                  type="radio"
+                  checked={formData.accessControl === "private"}
+                  onChange={() => handleAccessControlChange("private")}
+                  className="accent-[#b10e6b]"
+                />
                 <div className="ml-4">
                   <p className="font-semibold">Private Link</p>
-                  <p className="text-xs text-[#9a8a8e]">Accessible only via unique URL</p>
+                  <p className="text-xs text-[#9a8a8e]">
+                    Accessible only via unique URL
+                  </p>
                 </div>
               </label>
             </div>
           </div>
-            {/* Active Monograph Cover Upload */}
+          {/* Active Monograph Cover Upload */}
           <div className="bg-white rounded-xl shadow-sm p-8">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="label-sm tracking-widest uppercase text-[10px] text-[#9a8a8e] font-bold">COVER UPLOAD </h3>
-             </div>
+              <h3 className="label-sm tracking-widest uppercase text-[10px] text-[#9a8a8e] font-bold">
+                COVER UPLOAD{" "}
+              </h3>
+            </div>
             <label className="group relative block aspect-video rounded-xl overflow-hidden cursor-pointer border-2 border-dashed border-[#b10e6b]/30 hover:border-[#b10e6b]">
-              <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverChange} />
+              <input
+                ref={coverInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleCoverChange}
+              />
               {coverPreview ? (
                 <>
-                  <img src={coverPreview} alt="Cover" className="w-full h-full object-cover" />
+                  <img
+                    src={coverPreview}
+                    alt="Cover"
+                    className="w-full h-full object-cover"
+                  />
                   <button
                     type="button"
                     onClick={(event) => {
@@ -593,8 +741,12 @@ export default function NewCollectionPage() {
               ) : (
                 <div className="h-full flex flex-col items-center justify-center bg-[#fff8f7] px-6 text-center">
                   <Upload size={64} className="text-[#b10e6b] mb-3" />
-                  <p className="text-sm md:text-base font-medium text-[#211a1b]">Drop cover photo here</p>
-                  <p className="mt-1 text-xs md:text-sm text-gray-500">Recommended 1920×1080px</p>
+                  <p className="text-sm md:text-base font-medium text-[#211a1b]">
+                    Drop cover photo here
+                  </p>
+                  <p className="mt-1 text-xs md:text-sm text-gray-500">
+                    Recommended 1920×1080px
+                  </p>
                 </div>
               )}
             </label>
@@ -603,38 +755,58 @@ export default function NewCollectionPage() {
 
         {/* RIGHT COLUMN */}
         <div className="lg:col-span-8 space-y-8">
-         
-
           {/* Media Repository */}
           <div className="bg-white min-h-13 rounded-xl shadow-sm overflow-hidden flex flex-col border border-[#b10e6b]/5">
             <div className="p-8 border-b flex justify-between items-center">
               <div>
-                <h3 className="label-sm tracking-widest uppercase text-[10px] text-[#9a8a8e] font-bold">MEDIA REPOSITORY</h3>
-                <p className="text-xs text-[#9a8a8e] mt-1">Accepting RAW, JPG, and 4K MOV</p>
+                <h3 className="label-sm tracking-widest uppercase text-[10px] text-[#9a8a8e] font-bold">
+                  MEDIA REPOSITORY
+                </h3>
+                <p className="text-xs text-[#9a8a8e] mt-1">
+                  Accepting RAW, JPG, and 4K MOV
+                </p>
               </div>
               <div className="text-right">
-                <p className="text-[10px] font-bold text-[#b10e6b] uppercase">STORAGE USED</p>
-                <p className="text-xs">{formatStorage(totalStorageUsed)} / 5.0 GB</p>
+                <p className="text-[10px] font-bold text-[#b10e6b] uppercase">
+                  STORAGE USED
+                </p>
+                <p className="text-xs">
+                  {formatStorage(totalStorageUsed)} / 5.0 GB
+                </p>
               </div>
             </div>
 
             <div
-              className={`flex-1 p-12 flex flex-col items-center justify-center cursor-pointer transition-colors ${isDragging ? 'bg-[#fcf1f6]' : ''}`}
+              className={`flex-1 p-12 flex flex-col items-center justify-center cursor-pointer transition-colors ${isDragging ? "bg-[#fcf1f6]" : ""}`}
               onClick={() => fileInputRef.current?.click()}
               onDragEnter={handleDrag}
               onDragOver={handleDrag}
               onDragLeave={handleDrag}
               onDrop={handleDrop}
             >
-              <input ref={fileInputRef} type="file" multiple onChange={handleFileChange} className="hidden" accept="image/*,video/*,.raw" />
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                onChange={handleFileChange}
+                className="hidden"
+                accept="image/*,video/*,.raw"
+              />
 
               <div className="text-center space-y-6">
-                <div className="w-24 h-24 rounded-full flex items-center justify-center mx-auto" style={{ backgroundColor: '#f7ecef' }}>
-                  <Upload size={56} style={{ color: '#b10e6b' }} />
+                <div
+                  className="w-24 h-24 rounded-full flex items-center justify-center mx-auto"
+                  style={{ backgroundColor: "#f7ecef" }}
+                >
+                  <Upload size={56} style={{ color: "#b10e6b" }} />
                 </div>
-                <p className="serif text-3xl text-[#211a1b]">Drag your memories here</p>
+                <p className="serif text-3xl text-[#211a1b]">
+                  Drag your memories here
+                </p>
                 <p className="text-sm text-[#9a8a8e]">
-                  or <span className="text-[#b10e6b] underline">browse files</span> from your workstation
+                  or{" "}
+                  <span className="text-[#b10e6b] underline">browse files</span>{" "}
+                  from your workstation
                 </p>
               </div>
 
@@ -642,10 +814,15 @@ export default function NewCollectionPage() {
                 <div className="mt-8 w-96 p-4 rounded-lg bg-[#FEF5F6]">
                   <div className="flex justify-between mb-2">
                     <span className="truncate">{files[0]?.name}</span>
-                    <span className="text-[#b10e6b] font-bold">{uploadProgress}%</span>
+                    <span className="text-[#b10e6b] font-bold">
+                      {uploadProgress}%
+                    </span>
                   </div>
                   <div className="h-2 bg-gray-200 rounded-full">
-                    <div className="h-2 bg-[#b10e6b] rounded-full transition-all" style={{ width: `${uploadProgress}%` }} />
+                    <div
+                      className="h-2 bg-[#b10e6b] rounded-full transition-all"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
                   </div>
                 </div>
               )}
@@ -653,24 +830,34 @@ export default function NewCollectionPage() {
           </div>
 
           {/* Live Content Feed */}
-          <LiveContentFeed files={files || []} persistedMediaItems={persistedMediaItems} onRemoveUpload={removeUploadAt} onRemovePersisted={removePersistedMedia} />
-          {saveMessage ? <p className="text-sm text-[#b10e6b] px-1">{saveMessage}</p> : null}
+          <LiveContentFeed
+            files={files || []}
+            persistedMediaItems={persistedMediaItems}
+            onRemoveUpload={removeUploadAt}
+            onRemovePersisted={removePersistedMedia}
+          />
+          {saveMessage ? (
+            <p className="text-sm text-[#b10e6b] px-1">{saveMessage}</p>
+          ) : null}
         </div>
       </div>
 
       {/* Action Buttons */}
       <div className="mt-12 flex flex-wrap gap-4 justify-end">
-        <button onClick={handleDiscard} className="px-8 py-4 text-sm font-bold uppercase tracking-wider text-gray-400 hover:text-gray-600">
+        <button
+          onClick={handleDiscard}
+          className="px-8 py-4 text-sm font-bold uppercase tracking-wider text-gray-400 hover:text-gray-600"
+        >
           Discard Draft
         </button>
         <button
-          onClick={() => saveCurateDraft('save_draft')}
+          onClick={() => saveCurateDraft("save_draft")}
           disabled={isSaving}
           className="px-8 py-4 text-sm font-bold uppercase tracking-wider bg-[#EADFE2] text-[#B10E6B] rounded-lg disabled:opacity-60"
         >
           Save Draft
         </button>
-        <button 
+        <button
           onClick={handleNext}
           disabled={isSaving}
           className="px-8 py-4 text-sm font-bold uppercase tracking-wider bg-[#b10e6b] text-white rounded-lg disabled:opacity-60"
