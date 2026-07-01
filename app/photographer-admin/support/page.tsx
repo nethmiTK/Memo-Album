@@ -142,58 +142,6 @@ export default function SupportPage() {
           ))}
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <section className="rounded-[1.6rem] border border-[#ead7df] bg-white p-6 shadow-[0_16px_40px_rgba(33,26,27,0.06)] md:p-8">
-            <div className="flex items-center justify-between gap-4 border-b border-[#f0e5ea] pb-4">
-              <div>
-                <p className="text-[10px] uppercase tracking-[0.28em] text-[#920857]">Admin Contact</p>
-                <h3 className="mt-2 text-3xl text-[#211a1b]" style={{ fontFamily: 'Newsreader, serif' }}>
-                  Reach the right desk
-                </h3>
-              </div>
-              <FiMail className="text-[#b10e6b]" size={22} />
-            </div>
-
-            <div className="mt-6 space-y-3">
-              {adminContacts.map((contact) => (
-                <div key={contact.label} className="rounded-2xl border border-[#f0e5ea] bg-[#fbf7f8] px-5 py-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#7b6c71]">{contact.label}</p>
-                      <p className="mt-1 text-lg text-[#211a1b]">{contact.value}</p>
-                    </div>
-                    <FiArrowRight className="mt-1 text-[#b10e6b]" size={16} />
-                  </div>
-                  <p className="mt-2 text-sm text-[#5d4f54]">{contact.note}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="rounded-[1.6rem] border border-[#ead7df] bg-[#fffafb] p-6 shadow-[0_16px_40px_rgba(33,26,27,0.06)] md:p-8">
-            <div className="flex items-center justify-between gap-4 border-b border-[#f0e5ea] pb-4">
-              <div>
-                <p className="text-[10px] uppercase tracking-[0.28em] text-[#920857]">Template UI</p>
-                <h3 className="mt-2 text-3xl text-[#211a1b]" style={{ fontFamily: 'Newsreader, serif' }}>
-                  Quick guides and resources
-                </h3>
-              </div>
-              <FiBookOpen className="text-[#b10e6b]" size={22} />
-            </div>
-
-            <div className="mt-6 grid gap-4 sm:grid-cols-2">
-              {templateGuides.map((guide) => (
-                <article key={guide.title} className="rounded-2xl border border-[#f1e3ea] bg-white p-5">
-                  <div className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[#f5e8ed] text-[#b10e6b]">
-                    {guide.icon}
-                  </div>
-                  <h4 className="mt-4 text-lg text-[#211a1b]" style={{ fontFamily: 'Newsreader, serif' }}>{guide.title}</h4>
-                  <p className="mt-2 text-sm leading-6 text-[#5d4f54]">{guide.subtitle}</p>
-                </article>
-              ))}
-            </div>
-          </section>
-        </div>
 
         <div className="overflow-hidden rounded-[1.6rem] border border-[#ead7df] bg-gradient-to-r from-[#181214] via-[#2a1f25] to-[#8d5a73] p-6 text-white md:p-8">
           <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
