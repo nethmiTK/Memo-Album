@@ -347,6 +347,19 @@ const CreateAlbum: React.FC = () => {
       }
     };
 
+    // Load gallery cache for faster initial load
+    try {
+      const cachedGalleryRaw = sessionStorage.getItem('memo.gallery.page.v3') || localStorage.getItem('memo.gallery.page.v3');
+      if (cachedGalleryRaw) {
+        const cachedGallery = JSON.parse(cachedGalleryRaw);
+        if (cachedGallery.albums && Array.isArray(cachedGallery.albums)) {
+          setAlbums(cachedGallery.albums);
+        }
+      }
+    } catch (e) {
+      console.debug('Failed to restore gallery cache:', e);
+    }
+
     // Load from session storage if available
     try {
       const savedState = sessionStorage.getItem('designerState');

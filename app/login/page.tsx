@@ -105,7 +105,7 @@ export default function LoginPage() {
       >
         <div className="absolute inset-0 bg-linear-to-t from-black via-black/40 to-black/60 z-10" />
         <img
-          src="/images/login.png"
+          src="/images/logobg.png"
           alt="Wedding Background"
           className="w-full h-full object-cover"
         />

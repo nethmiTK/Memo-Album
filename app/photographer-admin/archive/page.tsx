@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useRef } from 'react';
 import { Plus, ChevronDown, Folder, FileText, BookOpen, Trash2, Edit2, Search, Image as ImageIcon, Upload, X, Calendar, Zap } from 'lucide-react';
 import { apiFetch, handleAuthError } from '@/lib/api';
 import { FullscreenBook } from '@/app/Components/photographer-admin/FullscreenBook';
+import { toast } from 'react-toastify';
 
 type CurateAlbum = {
   _id: string;
@@ -390,9 +391,9 @@ export default function ArchivePage() {
       persistArchiveCache(albums, nextArchives);
       setExpandedArchiveId((current) => (current === archiveId ? null : current));
       setSelectedFullscreenBook((current) => (current && current._id === archiveId ? null : current));
-      setMessage('Archive removed successfully');
+      toast.success('Archive removed successfully', { style: { background: '#1f1a1b', color: 'white', borderRadius: '16px' } });
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Failed to delete archive');
+      toast.error(error instanceof Error ? error.message : 'Failed to delete archive', { style: { background: '#1f1a1b', color: 'white', borderRadius: '16px' } });
     }
   };
 
@@ -443,9 +444,9 @@ export default function ArchivePage() {
 
       setExpandedArchiveId((current) => (current === folderName ? null : current));
       await loadData();
-      setMessage('Folder deleted successfully');
+      toast.success('Folder deleted successfully', { style: { background: '#1f1a1b', color: 'white', borderRadius: '16px' } });
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Failed to delete folder');
+      toast.error(error instanceof Error ? error.message : 'Failed to delete folder', { style: { background: '#1f1a1b', color: 'white', borderRadius: '16px' } });
     }
   };
 

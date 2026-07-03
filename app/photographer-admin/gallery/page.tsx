@@ -9,9 +9,11 @@ import {
   Folder,
   Plus,
   Search,
+  Trash2,
 } from 'lucide-react';
 import { apiFetch, handleAuthError } from '@/lib/api';
 import { useRouter } from 'next/navigation';
+import { toast } from 'react-toastify';
 import { FullscreenBook } from '@/app/Components/photographer-admin/FullscreenBook';
 
 type CurateAlbum = {
@@ -207,6 +209,38 @@ export default function GalleryPage() {
     }
   };
 
+  const handleDeleteAlbum = async (albumId: string) => {
+    if (!window.confirm("Are you sure you want to delete this album? This action cannot be undone.")) return;
+    
+    setIsLoading(true);
+    try {
+      const response = await apiFetch(`/curate/${albumId}`, {
+        method: 'DELETE',
+      });
+      
+      if (response.status === 401) {
+        handleAuthError(response);
+        return;
+      }
+      
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || 'Failed to delete album');
+      }
+      
+      toast.success('Album deleted successfully', {
+        style: { background: '#1f1a1b', color: 'white', borderRadius: '16px' }
+      });
+      void loadGallery(); // Refresh the gallery
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to delete album', {
+        style: { background: '#1f1a1b', color: 'white', borderRadius: '16px' }
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const openDesignerView = (album: CurateAlbum) => {
     const linkedBook = bookByCurateId.get(album._id);
     const templateId = typeof linkedBook?.templateId === 'string' ? linkedBook.templateId : linkedBook?.templateId?._id || '';
@@ -287,17 +321,17 @@ export default function GalleryPage() {
 
       if (albumResponse.ok && albumResult.success) {
         nextAlbums = Array.isArray(albumResult.curates) ? albumResult.curates : [];
-        setAlbums(nextAlbums);
+        setAlbums(prev => JSON.stringify(prev) === JSON.stringify(nextAlbums) ? prev : nextAlbums);
       }
 
       if (archiveResponse.ok && archiveResult.success) {
         nextArchives = Array.isArray(archiveResult.archives) ? archiveResult.archives : [];
-        setArchives(nextArchives);
+        setArchives(prev => JSON.stringify(prev) === JSON.stringify(nextArchives) ? prev : nextArchives);
       }
 
       if (bookAlbumResponse.ok && bookAlbumResult.success) {
         nextBookAlbums = Array.isArray(bookAlbumResult.bookAlbums) ? bookAlbumResult.bookAlbums : [];
-        setBookAlbums(nextBookAlbums);
+        setBookAlbums(prev => JSON.stringify(prev) === JSON.stringify(nextBookAlbums) ? prev : nextBookAlbums);
       }
 
       writeSessionCache(GALLERY_PAGE_CACHE_KEY, {
@@ -441,8 +475,22 @@ export default function GalleryPage() {
                     src={album.coverPhoto || fallbackCover}
                     alt={album.albumName}
                   />
-                  <div className="absolute left-4 top-4 rounded-full bg-[#e8def8] px-3 py-1 text-[10px] font-bold uppercase tracking-tighter text-[#1f1a24]">
-                    {bookByCurateId.get(album._id) ? album.status || 'saved' : 'Not Assigned Template'}
+                  <div className="absolute left-4 top-4 flex items-center gap-2">
+                    <div className="rounded-full bg-[#e8def8] px-3 py-1 text-[10px] font-bold uppercase tracking-tighter text-[#1f1a24]">
+                      {bookByCurateId.get(album._id) ? album.status || 'saved' : 'Not Assigned Template'}
+                    </div>
+                    {!bookByCurateId.get(album._id) && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/photographer-admin/designer?curateId=${album._id}`);
+                        }}
+                        className="rounded-full bg-white p-1.5 text-[#b10e6b] shadow-sm hover:bg-gray-50 transition-colors"
+                        title="Assign Template"
+                      >
+                        <Edit2 size={14} />
+                      </button>
+                    )}
                   </div>
                 </div>
                 <div className="p-6">
@@ -455,6 +503,16 @@ export default function GalleryPage() {
                         {album.albumName}
                       </h4>
                     </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void handleDeleteAlbum(album._id);
+                      }}
+                      className="text-red-500 hover:text-red-700 transition-colors rounded-full p-2 hover:bg-red-50"
+                      title="Delete Album"
+                    >
+                      <Trash2 size={20} />
+                    </button>
                   </div>
                 </div>
               </article>
