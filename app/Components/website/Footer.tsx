@@ -105,13 +105,20 @@ const Footer = () => {
             <span>© 2026 Memo Album. All rights reserved. Made with ❤️ in</span>
 
             <span className="group inline-flex items-center">
-              <Image
-                src="/images/CodeBuilder.png"
-                alt="CodeBuilder"
-                width={70}
-                height={24}
-                className="animate-float transition-transform duration-300 hover:scale-110"
-              />
+              <Link
+                href="https://www.codebuilder.it.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Visit CodeBuilder"
+              >
+                <Image
+                  src="/images/CodeBuilder.png"
+                  alt="CodeBuilder"
+                  width={70}
+                  height={24}
+                  className="animate-float transition-transform duration-300 hover:scale-110"
+                />
+              </Link>
             </span>
           </p>
         </div>
