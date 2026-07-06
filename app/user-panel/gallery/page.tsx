@@ -125,7 +125,7 @@ const uploadRecentMedia = async (files: File[]) => {
 
     setUploadProgress(30);
 
-    const response = await fetch(`${API_BASE}/api/gallery/media`, {
+    const response = await fetch(`${API_BASE}/gallery/media`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ items }),
@@ -301,7 +301,7 @@ const uploadRecentMedia = async (files: File[]) => {
         }))
       );
 
-      const response = await fetch(`${API_BASE}/api/gallery/media`, {
+      const response = await fetch(`${API_BASE}/gallery/media`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({ items }),
@@ -364,9 +364,9 @@ const uploadRecentMedia = async (files: File[]) => {
 
   try {
     const [folderRes, mediaRes, summaryRes] = await Promise.all([
-      fetch(`${API_BASE}/api/gallery/folders`, { headers: getAuthHeaders() }),
-      fetch(`${API_BASE}/api/gallery/media`, { headers: getAuthHeaders() }),
-      fetch(`${API_BASE}/api/gallery/summary`, { headers: getAuthHeaders() }),
+      fetch(`${API_BASE}/gallery/folders`, { headers: getAuthHeaders() }),
+      fetch(`${API_BASE}/gallery/media`, { headers: getAuthHeaders() }),
+      fetch(`${API_BASE}/gallery/summary`, { headers: getAuthHeaders() }),
     ]);
 
     if (folderRes.ok) {
@@ -414,7 +414,7 @@ const uploadRecentMedia = async (files: File[]) => {
     });
 
     try {
-      const response = await fetch(`${API_BASE}/api/gallery/media/${id}/favorite`, {
+      const response = await fetch(`${API_BASE}/gallery/media/${id}/favorite`, {
         method: 'PATCH',
         headers: getAuthHeaders(),
       });
@@ -469,7 +469,7 @@ const uploadRecentMedia = async (files: File[]) => {
     setMediaItems((prev) => prev.filter((item) => item.id !== id));
 
     try {
-      const response = await fetch(`${API_BASE}/api/gallery/media/${id}`, {
+      const response = await fetch(`${API_BASE}/gallery/media/${id}`, {
         method: 'DELETE',
         headers: getAuthHeaders(),
       });
@@ -490,7 +490,7 @@ const uploadRecentMedia = async (files: File[]) => {
     const payload = { name: newFolderName.trim(), category: 'Custom' };
 
     try {
-      const response = await fetch(`${API_BASE}/api/gallery/folders`, {
+      const response = await fetch(`${API_BASE}/gallery/folders`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify(payload),

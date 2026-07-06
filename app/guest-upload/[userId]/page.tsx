@@ -19,7 +19,7 @@ export default function GuestUploadPage({ params }: { params: Promise<{ userId: 
     // Fetch the guest folder ID to use when uploading
     const fetchGuestFolder = async () => {
       try {
-        const response = await fetch(`${API_BASE}/api/gallery/guest-folders/${userId}`);
+        const response = await fetch(`${API_BASE}/gallery/guest-folders/${userId}`);
         if (response.ok) {
           const data = await response.json();
           const folder = data?.data;
@@ -85,7 +85,7 @@ export default function GuestUploadPage({ params }: { params: Promise<{ userId: 
         }))
       );
 
-      const response = await fetch(`${API_BASE}/api/gallery/guest-media/${userId}`, {
+      const response = await fetch(`${API_BASE}/gallery/guest-media/${userId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ items }),

@@ -110,7 +110,7 @@ function FolderPage() {
         let data;
 
         if (folderId === 'all-photos') {
-          response = await fetch(`${API_BASE}/api/gallery/media`, {
+          response = await fetch(`${API_BASE}/gallery/media`, {
             headers: getAuthHeaders(),
           });
           if (!response.ok) {
@@ -137,7 +137,7 @@ function FolderPage() {
         }
 
         if (folderId === 'guest-folder') {
-          response = await fetch(`${API_BASE}/api/gallery/folders`, {
+          response = await fetch(`${API_BASE}/gallery/folders`, {
             headers: getAuthHeaders(),
           });
           if (!response.ok) {
@@ -167,7 +167,7 @@ function FolderPage() {
         }
 
         if (folderId === 'album') {
-          response = await fetch(`${API_BASE}/api/gallery/folders`, {
+          response = await fetch(`${API_BASE}/gallery/folders`, {
             headers: getAuthHeaders(),
           });
           if (!response.ok) {
@@ -198,7 +198,7 @@ function FolderPage() {
           return;
         }
 
-        response = await fetch(`${API_BASE}/api/gallery/folders`, {
+        response = await fetch(`${API_BASE}/gallery/folders`, {
           headers: getAuthHeaders(),
         });
         if (!response.ok) {
@@ -293,7 +293,7 @@ function FolderPage() {
 
   const deleteMedia = async (mediaId: string) => {
     try {
-      const response = await fetch(`${API_BASE}/api/gallery/media/${mediaId}`, {
+      const response = await fetch(`${API_BASE}/gallery/media/${mediaId}`, {
         method: 'DELETE',
         headers: getAuthHeaders(),
       });
@@ -328,7 +328,7 @@ function FolderPage() {
         }))
       );
 
-      const response = await fetch(`${API_BASE}/api/gallery/media`, {
+      const response = await fetch(`${API_BASE}/gallery/media`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({ items }),
@@ -388,7 +388,7 @@ function FolderPage() {
         fileName: file.name,
       };
 
-      const response = await fetch(`${API_BASE}/api/gallery/media`, {
+      const response = await fetch(`${API_BASE}/gallery/media`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({ items: [item] }),
@@ -436,7 +436,7 @@ function FolderPage() {
 
   const toggleFavorite = async (mediaId: string) => {
     try {
-      const response = await fetch(`${API_BASE}/api/gallery/media/${mediaId}/favorite`, {
+      const response = await fetch(`${API_BASE}/gallery/media/${mediaId}/favorite`, {
         method: 'PATCH',
         headers: getAuthHeaders(),
       });
@@ -478,7 +478,7 @@ function FolderPage() {
 
   const fetchAllFolders = async () => {
     try {
-      const response = await fetch(`${API_BASE}/api/gallery/folders`, {
+      const response = await fetch(`${API_BASE}/gallery/folders`, {
         headers: getAuthHeaders(),
       });
       if (response.ok) {
@@ -495,7 +495,7 @@ function FolderPage() {
 
     try {
       // Call backend to move
-      const response = await fetch(`${API_BASE}/api/gallery/media/${mediaToMove}`, {
+      const response = await fetch(`${API_BASE}/gallery/media/${mediaToMove}`, {
         method: 'PATCH',
         headers: getAuthHeaders(),
         body: JSON.stringify({ folderId: destinationFolderId }),
