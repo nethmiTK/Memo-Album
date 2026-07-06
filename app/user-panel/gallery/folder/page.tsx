@@ -549,30 +549,7 @@ function FolderPage() {
     <div className="min-h-screen bg-[#FFE8EE] text-[#211a1b]">
       <div className="max-w-400 mx-auto px-6 py-8">
         <div className="flex flex-col lg:flex-row gap-6">
-          <aside className="hidden xl:flex w-72 flex-col rounded-3xl border border-[#e7d5db] bg-white p-6 shadow-sm">
-            <div className="mb-8">
-              <h1 className="text-xl font-semibold text-[#7f1940]">Gallery</h1>
-              <p className="text-sm uppercase text-[#8b6a75] tracking-[0.18em] mt-1">Media Manager</p>
-            </div>
-            <nav className="flex-1 space-y-3 text-sm text-[#5c4a53]">
-              <div className="flex items-center gap-3 rounded-2xl bg-[#f7e6ea] px-4 py-3 text-[#7f1940] font-semibold">
-                <span className="material-symbols-outlined">photo_library</span>
-                Gallery
-              </div>
-            </nav>
-            <button
-              onClick={() => router.push('/user-panel/albums')}
-              className="mt-6 rounded-full border border-[#FFE8EE] bg-[#FFE8EE] px-4 py-3 text-sm font-semibold text-[#C82B7D] hover:bg-[#C82B7D] hover:text-white active:bg-[#C82B7D] active:text-white transition-colors"
-            >
-              Wedding Album
-            </button>
-            <button
-              onClick={() => router.push('/user-panel/gallery')}
-              className="mt-3 rounded-full border border-[#d8c1cb] bg-[#f8f2f5] px-4 py-3 text-[#5f3d4a] font-semibold hover:bg-[#f1e5ea]"
-            >
-              Back to Gallery
-            </button>
-          </aside>
+
 
           <main className="flex-1 space-y-8">
             <header className="flex flex-col gap-6 rounded-none px-0 py-0">
@@ -581,7 +558,7 @@ function FolderPage() {
                   <div className="flex items-center gap-4">
                     <button
                       onClick={() => router.push('/user-panel/gallery')}
-                      className="inline-flex items-center gap-2 rounded-full border border-[#d8c1cb] bg-white px-3 py-2 text-sm font-medium text-[#5f3d4a] hover:bg-[#f6edee] transition-colors"
+                      className="inline-flex items-center gap-2 rounded-full border border-[#d8c1cb] bg-[#FFE8EE] px-3 py-2 text-sm font-medium text-[#5f3d4a] hover:bg-[#f6edee] transition-colors"
                     >
                       ← Back
                     </button>
