@@ -5,7 +5,11 @@ import { ChevronLeft, ChevronRight, Download, X } from 'lucide-react';
 import { TemplateRecord, TemplatePage, TemplateMediaAsset, getTemplatePages, buildSlotMediaMap, toTemplateMedia, CurateMediaInput } from '@/lib/template-book-media';
 import HTMLFlipBook from 'react-pageflip';
 import JSZip from 'jszip';
+import { motion } from 'framer-motion';
+import { Great_Vibes } from 'next/font/google';
 import { EndPage } from './endpage';
+
+const greatVibes = Great_Vibes({ subsets: ['latin'], weight: '400' });
 
 const FlipBook = HTMLFlipBook as any;
 
@@ -37,8 +41,18 @@ interface FullscreenBookProps {
   endPhoto?: string;
   endPhotoName?: string;
   photographerName?: string;
+  photographerPhoto?: string;
   photographerStudio?: string;
   photographerWebsite?: string;
+  photographerSocials?: {
+    instagram?: string;
+    facebook?: string;
+    tiktok?: string;
+    x?: string;
+    youtube?: string;
+    linkedin?: string;
+    website?: string;
+  };
   onClose: () => void;
 }
 
@@ -117,25 +131,91 @@ const pageLayoutsToMediaMap = (
   return mediaMap;
 };
 
-function CoverPage({ template, accent, coverPhoto, coverPhotoName, coverWeddingDate }: { template: TemplateRecord; accent: string; coverPhoto?: string; coverPhotoName?: string; coverWeddingDate?: string | Date }) {
+function CoverPage({
+  template,
+  accent,
+  coverPhoto,
+  coverPhotoName,
+  coverWeddingDate,
+  firstPhoto,
+}: {
+  template: TemplateRecord;
+  accent: string;
+  coverPhoto?: string;
+  coverPhotoName?: string;
+  coverWeddingDate?: string | Date;
+  firstPhoto?: string;
+}) {
   const coverImage = coverPhoto || template.coverImage;
+  const bottomImage = firstPhoto || coverImage;
   const coverTitle = coverPhotoName || template.name || 'Album Book';
-  const weddingDate = coverWeddingDate ? new Date(coverWeddingDate).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : '';
+  const weddingDate = coverWeddingDate
+    ? new Date(coverWeddingDate).toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      })
+    : '';
 
   return (
     <div className="h-full w-full p-2" style={{ background: `linear-gradient(180deg, ${hexToRgba(accent, 0.20)} 0%, ${hexToRgba(accent, 0.08)} 100%)` }}>
-      <div className="relative h-full w-full overflow-hidden rounded-[1.15rem] border bg-linear-to-b from-[#fff0f5] via-[#ffe5f0] to-[#fbe7f2] shadow-[0_16px_38px_rgba(0,0,0,0.08)]" style={{ borderColor: hexToRgba(accent, 0.24) }}>
+      <div className="relative h-full w-full overflow-hidden rounded-[1.15rem] border bg-black shadow-[0_16px_38px_rgba(0,0,0,0.08)]" style={{ borderColor: hexToRgba(accent, 0.24) }}>
         {coverImage ? (
           <>
-            <img src={coverImage} alt={coverTitle} className="h-full w-full object-cover" />
-            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(15,10,12,0.08),rgba(15,10,12,0.58))]" />
-            <div className="absolute inset-x-0 bottom-0 p-6 md:p-8 text-center text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.45)]">
-              <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-white/40 bg-black/20 px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.26em] text-white/90 motion-safe:animate-pulse">
-                Cover Story
+            {/* Main Background Image with opacity */}
+            <img src={coverImage} alt={coverTitle} className="absolute inset-0 h-full w-full object-cover opacity-[0.55]" />
+            
+            {/* Bottom Strip Image */}
+            {bottomImage && (
+              <div className="absolute bottom-0 left-0 right-0 h-[25%] border-t-2 border-white/30 overflow-hidden">
+                <img src={bottomImage} alt="Bottom Strip" className="h-full w-full object-cover" />
+                <div className="absolute inset-0 bg-black/10" />
               </div>
-              <div className="mx-auto mt-4 w-fit rounded-[0.9rem] border border-white/45 bg-black/25 px-5 py-4 backdrop-blur-sm">
-                <h1 className="font-['Libre_Caslon_Text'] text-[clamp(2.4rem,5.6vw,5rem)] leading-[0.94] tracking-[0.02em] text-white">{coverTitle}</h1>
-                {weddingDate ? <p className="mt-3 text-[10px] font-semibold uppercase tracking-[0.34em] text-white/90">{weddingDate}</p> : null}
+            )}
+
+            {/* Text Overlay */}
+            <div className="absolute inset-0 flex flex-col justify-between py-12 px-8 text-white z-10 drop-shadow-md pointer-events-none">
+              {/* Top Text */}
+              <div className="text-center">
+                <p className="text-[12px] md:text-sm font-bold uppercase tracking-[0.4em] text-white">
+                  Our Wedding
+                </p>
+                {weddingDate && (
+                  <p className="mt-2 text-[10px] font-medium tracking-[0.2em] text-white/80 uppercase">
+                    {weddingDate}
+                  </p>
+                )}
+              </div>
+
+              {/* Center Text */}
+              <div className="text-center flex-1 flex flex-col justify-center pb-[25%]">
+                <motion.h1 
+                  className={`${greatVibes.className} text-5xl md:text-7xl lg:text-8xl px-2 md:px-4 leading-[1.2] tracking-normal text-white drop-shadow-lg break-words`}
+                  initial="hidden"
+                  animate="visible"
+                  variants={{
+                    visible: { transition: { staggerChildren: 0.08 } },
+                    hidden: {}
+                  }}
+                >
+                  {coverTitle.split(' ').map((word, wordIndex, wordsArr) => (
+                    <span key={wordIndex} className="inline-block whitespace-nowrap">
+                      {word.split('').map((char, index) => (
+                        <motion.span
+                          key={index}
+                          className="inline-block"
+                          variants={{
+                            hidden: { opacity: 0, y: 10 },
+                            visible: { opacity: 1, y: 0 }
+                          }}
+                        >
+                          {char}
+                        </motion.span>
+                      ))}
+                      {wordIndex !== wordsArr.length - 1 && <span className="mr-3 md:mr-5 lg:mr-6"> </span>}
+                    </span>
+                  ))}
+                </motion.h1>
               </div>
             </div>
           </>
@@ -288,8 +368,10 @@ export function FullscreenBook({
   endPhoto,
   endPhotoName,
   photographerName,
+  photographerPhoto,
   photographerStudio,
   photographerWebsite,
+  photographerSocials,
   onClose,
 }: FullscreenBookProps) {
   const bookRef = useRef<any>(null);
@@ -306,6 +388,7 @@ export function FullscreenBook({
   const [mediaZoom, setMediaZoom] = useState(100);
   const [bookSize, setBookSize] = useState({ width: 600, height: 800 });
   const [bookScale, setBookScale] = useState(80);
+  const [isDownloading, setIsDownloading] = useState(false);
   const normalizedTransforms = useMemo(() => mediaTransforms || {}, [mediaTransforms]);
   const isMobileLayout = bookSize.width < 520;
   const isScrollMode = viewMode === 'scroll';
@@ -383,7 +466,9 @@ export function FullscreenBook({
       const response = await fetch(url);
       return response.blob();
     }
-    const response = await fetch(url, { mode: 'cors' });
+    // Proxy through our Next.js backend to bypass CORS restrictions
+    const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(url)}`;
+    const response = await fetch(proxyUrl);
     if (!response.ok) throw new Error('Failed to fetch media');
     return response.blob();
   };
@@ -406,6 +491,8 @@ export function FullscreenBook({
   };
 
   const handleDownloadAlbum = async () => {
+    if (isDownloading) return;
+    setIsDownloading(true);
     try {
       const zip = new JSZip();
       const entries = scrollMediaItems.filter((item, index, arr) => arr.findIndex((x) => x.src === item.src) === index);
@@ -424,6 +511,8 @@ export function FullscreenBook({
       downloadBlob(zipBlob, `${(template.name || 'album').replace(/[^\w\-]+/g, '_')}_media.zip`);
     } catch (error) {
       console.error('Failed to download album:', error);
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -514,7 +603,7 @@ export function FullscreenBook({
       } catch (e) {
         // ignore
       }
-    }, 320);
+    }, 30000);
 
     return () => window.clearTimeout(id);
   }, [template, pages.length]);
@@ -611,9 +700,18 @@ export function FullscreenBook({
     const children: React.ReactNode[] = [];
 
     // Always add cover page
+    const firstPhotoSrc = draftedMedia.find(m => m.mediaKind === 'image' && m.src !== coverPhoto)?.src || coverPhoto;
+
     children.push(
       <div key="cover-page">
-        <CoverPage template={template} accent={accent} coverPhoto={coverPhoto} coverPhotoName={coverPhotoName} coverWeddingDate={coverWeddingDate} />
+        <CoverPage 
+          template={template} 
+          accent={accent} 
+          coverPhoto={coverPhoto} 
+          coverPhotoName={coverPhotoName} 
+          coverWeddingDate={coverWeddingDate}
+          firstPhoto={firstPhotoSrc} 
+        />
       </div>
     );
 
@@ -649,16 +747,18 @@ export function FullscreenBook({
     if (endPhoto) {
       children.push(
         <div key="end-page">
-          <EndPage
-            endPhoto={endPhoto}
-            endPhotoName={endPhotoName}
-            photographerName={photographerName}
-            photographerStudio={photographerStudio}
-            photographerWebsite={photographerWebsite}
-            accent={accent}
-            albumName={coverPhotoName}
-            weddingDate={coverWeddingDate}
-          />
+            <EndPage
+              endPhoto={endPhoto}
+              endPhotoName={endPhotoName}
+              photographerName={photographerName}
+              photographerPhoto={photographerPhoto}
+              photographerStudio={photographerStudio}
+              photographerWebsite={photographerWebsite}
+              photographerSocials={photographerSocials}
+              accent={accent}
+              albumName={coverPhotoName}
+              weddingDate={coverWeddingDate}
+            />
         </div>
       );
     }
@@ -689,7 +789,7 @@ export function FullscreenBook({
                 playFlipSound();
               }}
               onClick={(e) => e.stopPropagation()}
-              className="pointer-events-auto absolute left-0 top-0 h-full w-[22%] cursor-pointer bg-transparent"
+              className="pointer-events-auto absolute left-0 top-[10%] h-[80%] w-[22%] cursor-pointer bg-transparent"
             >
               <span className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full border border-white/80 bg-white/90 px-3 py-2 text-xs font-bold uppercase tracking-[0.18em] text-[#9b0044] shadow-lg">
                 <ChevronLeft size={16} className="inline-block align-middle" /> Prev
@@ -705,7 +805,7 @@ export function FullscreenBook({
                 playFlipSound();
               }}
               onClick={(e) => e.stopPropagation()}
-              className="pointer-events-auto absolute right-0 top-0 h-full w-[22%] cursor-pointer bg-transparent"
+              className="pointer-events-auto absolute right-0 top-[10%] h-[80%] w-[22%] cursor-pointer bg-transparent"
             >
               <span className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full border border-white/80 bg-white/90 px-3 py-2 text-xs font-bold uppercase tracking-[0.18em] text-[#9b0044] shadow-lg">
                 Next <ChevronRight size={16} className="inline-block align-middle" />
@@ -727,7 +827,7 @@ export function FullscreenBook({
               playFlipSound();
             }}
             onClick={(e) => e.stopPropagation()}
-            className="pointer-events-auto absolute left-0 top-0 h-full w-[22%] bg-transparent"
+            className="pointer-events-auto absolute left-0 top-[10%] h-[80%] w-[22%] bg-transparent"
           />
           <button
             type="button"
@@ -739,7 +839,7 @@ export function FullscreenBook({
               playFlipSound();
             }}
             onClick={(e) => e.stopPropagation()}
-            className="pointer-events-auto absolute right-0 top-0 h-full w-[22%] bg-transparent"
+            className="pointer-events-auto absolute right-0 top-[10%] h-[80%] w-[22%] bg-transparent"
           />
         </div>
       )}
@@ -756,10 +856,11 @@ export function FullscreenBook({
             <button
               type="button"
               onClick={handleDownloadAlbum}
-              className="inline-flex items-center gap-2 rounded-lg border border-[#e1bec4] bg-white px-3 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[#9b0044] transition-colors hover:bg-[#fff0f4]"
+              disabled={isDownloading}
+              className={`inline-flex items-center gap-2 rounded-lg border border-[#e1bec4] bg-white px-3 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[#9b0044] transition-colors ${isDownloading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#fff0f4]'}`}
             >
-              <Download size={14} />
-              Download Album
+              <Download size={14} className={isDownloading ? 'animate-bounce' : ''} />
+              {isDownloading ? 'Downloading...' : 'Download Album'}
             </button>
 
             <button
@@ -856,6 +957,7 @@ export function FullscreenBook({
                 maxHeight={1200}
                 showCover
                 mobileScrollSupport
+                clickEventForward={true}
                 className="mx-auto"
                 onFlip={(event: any) => {
                   setCurrentPage(event.data);

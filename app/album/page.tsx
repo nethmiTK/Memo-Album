@@ -55,6 +55,8 @@ interface PublicBookAlbum {
   albumType?: string;
   mainSiteShowStatus?: boolean;
   status?: string;
+  endPhoto?: string;
+  endPhotoName?: string;
   template_data?: {
     accent?: string;
     pages?: TemplatePage[];
@@ -91,6 +93,12 @@ interface PublicBookAlbum {
     accent?: string;
     pages?: TemplatePage[];
     slots?: TemplatePage['slots'];
+  };
+  photographerId?: {
+    name?: string;
+    profilePic?: string;
+    profileImage?: string;
+    socials?: any;
   };
 }
 
@@ -266,23 +274,25 @@ const buildCollectionBookPayload = (bookAlbum: PublicBookAlbum) => {
   }));
 
   const templatePages =
-    bookAlbum.template_data?.pages && bookAlbum.template_data.pages.length > 0
-      ? bookAlbum.template_data.pages
-      : inferredPagesFromLayouts.length > 0
-        ? inferredPagesFromLayouts
-        : bookAlbum.template_data?.slots && bookAlbum.template_data.slots.length > 0
-          ? [{ pageNumber: 1, pageLabel: 'Page 1', slots: bookAlbum.template_data.slots }]
-          : [{
-              pageNumber: 1,
-              pageLabel: 'Page 1',
-              slots: [
-                {
-                  id: 'cover-slot-1',
-                  label: 'Cover Slot',
-                  kind: 'image',
-                },
-              ],
-            }];
+    bookAlbum.templateId?.pages && bookAlbum.templateId.pages.length > 0
+      ? bookAlbum.templateId.pages
+      : bookAlbum.template_data?.pages && bookAlbum.template_data.pages.length > 0
+        ? bookAlbum.template_data.pages
+        : inferredPagesFromLayouts.length > 0
+          ? inferredPagesFromLayouts
+          : bookAlbum.template_data?.slots && bookAlbum.template_data.slots.length > 0
+            ? [{ pageNumber: 1, pageLabel: 'Page 1', slots: bookAlbum.template_data.slots }]
+            : [{
+                pageNumber: 1,
+                pageLabel: 'Page 1',
+                slots: [
+                  {
+                    id: 'cover-slot-1',
+                    label: 'Cover Slot',
+                    kind: 'image',
+                  },
+                ],
+              }];
 
   const template: TemplateRecord = {
     _id: bookAlbum._id,
@@ -300,6 +310,11 @@ const buildCollectionBookPayload = (bookAlbum: PublicBookAlbum) => {
     coverPhoto: bookAlbum.curateId?.coverPhoto || '',
     coverPhotoName: bookAlbum.curateId?.coverPhotoName || bookAlbum.albumName || bookAlbum.curateId?.albumName || '',
     coverWeddingDate: bookAlbum.curateId?.weddingDate,
+    endPhoto: bookAlbum.endPhoto || '',
+    endPhotoName: bookAlbum.endPhotoName || '',
+    photographerName: bookAlbum.photographerId?.name || '',
+    photographerPhoto: bookAlbum.photographerId?.profilePic || bookAlbum.photographerId?.profileImage || '',
+    photographerSocials: bookAlbum.photographerId?.socials || undefined
   };
 };
 
@@ -1167,9 +1182,11 @@ export default function AlbumPage() {
                         Apply to Join
                       </button>
                     </Link>
-                    <button className="rounded-xl bg-white px-6 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-[#6d5b61]">
-                      Photographer Login
-                    </button>
+                    <Link href="/login">
+                      <button className="rounded-xl bg-white px-6 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-[#6d5b61]">
+                        Photographer Login
+                      </button>
+                    </Link>
                   </div>
                 </div>
 
@@ -1195,6 +1212,11 @@ export default function AlbumPage() {
                 coverPhoto={selectedCollectionBook.coverPhoto}
                 coverPhotoName={selectedCollectionBook.coverPhotoName}
                 coverWeddingDate={selectedCollectionBook.coverWeddingDate}
+                endPhoto={selectedCollectionBook.endPhoto}
+                endPhotoName={selectedCollectionBook.endPhotoName}
+                photographerName={selectedCollectionBook.photographerName}
+                photographerPhoto={selectedCollectionBook.photographerPhoto}
+                photographerSocials={selectedCollectionBook.photographerSocials}
                 onClose={closeCollectionBook}
               />
             ) : null}

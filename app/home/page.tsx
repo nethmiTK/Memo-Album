@@ -160,7 +160,18 @@ export default function HomePage() {
       mediaItems = collected;
     }
 
-    setSelectedPublicBook({ template, mediaItems, coverPhoto: book.curateId?.coverPhoto || '', coverPhotoName: book.curateId?.coverPhotoName || book.albumName || '' });
+    setSelectedPublicBook({ 
+      template, 
+      mediaItems, 
+      coverPhoto: book.curateId?.coverPhoto || '', 
+      coverPhotoName: book.curateId?.coverPhotoName || book.albumName || '',
+      coverWeddingDate: book.curateId?.weddingDate || '',
+      endPhoto: book.endPhoto || '',
+      endPhotoName: book.endPhotoName || '',
+      photographerName: book.photographerId?.name || '',
+      photographerPhoto: book.photographerId?.profilePic || book.photographerId?.profileImage || '',
+      photographerSocials: book.photographerId?.socials || undefined
+    });
   };
 
   const closePublicBook = () => setSelectedPublicBook(null);
@@ -754,6 +765,12 @@ export default function HomePage() {
           mediaItems={selectedPublicBook.mediaItems}
           coverPhoto={selectedPublicBook.coverPhoto}
           coverPhotoName={selectedPublicBook.coverPhotoName}
+          coverWeddingDate={selectedPublicBook.coverWeddingDate}
+          endPhoto={selectedPublicBook.endPhoto}
+          endPhotoName={selectedPublicBook.endPhotoName}
+          photographerName={selectedPublicBook.photographerName}
+          photographerPhoto={selectedPublicBook.photographerPhoto}
+          photographerSocials={selectedPublicBook.photographerSocials}
           onClose={closePublicBook}
         />
       ) : null}
