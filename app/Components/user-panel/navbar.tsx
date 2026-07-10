@@ -30,7 +30,7 @@ export default function UserNavbar({ onMenuClick }: UserNavbarProps) {
         user = {};
         userData = {};
       }
-      const name = user.name || user.fullName || userData.name || userData.fullName || 'User';
+      const name = user.name || user.username || user.businessName || user.fullName || userData.name || userData.username || userData.businessName || userData.fullName || 'User';
       const profilePic = user.profileImage || user.profilePic || userData.profileImage || userData.profilePic || '';
 
       setUserName(name);
@@ -53,7 +53,7 @@ export default function UserNavbar({ onMenuClick }: UserNavbarProps) {
 
         const nextUser = {
           id: result.user.id,
-          name: result.user.name || '',
+          name: result.user.name || result.user.username || result.user.businessName || '',
           email: result.user.email || '',
           profileImage: result.user.profilePic || '',
           profilePic: result.user.profilePic || '',

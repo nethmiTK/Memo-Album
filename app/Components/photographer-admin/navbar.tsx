@@ -38,7 +38,8 @@ export default function PhotographerNavbar({ onMenuClick }: PhotographerNavbarPr
             if (result.success && result.user) {
               const u = result.user;
               if (u.profilePic) setProfileImage(u.profilePic);
-              if (u.name) setProfileName(u.name);
+              const displayName = u.name || u.username || u.businessName || u.firstName || 'Photographer';
+              setProfileName(displayName);
               return;
             }
           }
@@ -61,7 +62,7 @@ export default function PhotographerNavbar({ onMenuClick }: PhotographerNavbarPr
       }
       const value = user.profilePic || user.profileImage || userData.profilePic || userData.profileImage || '';
       if (value) setProfileImage(value);
-      const name = user.name || user.username || userData.name || userData.username || 'Photographer';
+      const name = user.name || user.username || user.businessName || userData.name || userData.username || userData.businessName || 'Photographer';
       setProfileName(name);
     };
 

@@ -23,8 +23,13 @@ export default function Navbar() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const resolveUser = () => {
-      const token = localStorage.getItem('token');
+    const resolveUser = async () => {
+      const token =
+        localStorage.getItem('token') ||
+        localStorage.getItem('photographerToken') ||
+        localStorage.getItem('authToken') ||
+        localStorage.getItem('adminToken');
+
       const userRaw = localStorage.getItem('user');
       const userDataRaw = localStorage.getItem('userData');
 
@@ -34,14 +39,34 @@ export default function Navbar() {
         return;
       }
 
+      let localUser: any = {};
       try {
-        const user = userRaw ? JSON.parse(userRaw) : {};
-        const userData = userDataRaw ? JSON.parse(userDataRaw) : {};
-        setUser({ ...user, ...userData });
+        const u = userRaw ? JSON.parse(userRaw) : {};
+        const ud = userDataRaw ? JSON.parse(userDataRaw) : {};
+        localUser = { ...u, ...ud };
+        setUser(localUser);
       } catch (e) {
         console.error('Failed to parse user data');
         setUser(null);
       }
+
+      // Fetch latest from API to ensure we have the most up-to-date name and profile picture
+      try {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+        const response = await fetch(`${API_URL.replace(/\/api\/?$/, '')}/api/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.user) {
+            setUser((prev: any) => ({ ...(prev || {}), ...result.user }));
+            localStorage.setItem('user', JSON.stringify(result.user));
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch latest user profile', err);
+      }
+
       setLoading(false);
     };
 
@@ -66,6 +91,7 @@ export default function Navbar() {
     : '/user-panel/profile';
 
   const profileImageSrc = user?.profileImage || user?.profilePic || '';
+  const displayName = user?.name || user?.username || user?.businessName || user?.firstName || 'User';
 
   return (
     <header className="sticky top-0 z-50 border-b border-[#211a1b]/10 bg-[#fff8f8]">
@@ -105,13 +131,13 @@ export default function Navbar() {
               >
                 <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-[#890051] to-[#d23284] flex items-center justify-center text-white font-bold overflow-hidden border border-white/30">
                   {profileImageSrc ? (
-                    <img src={profileImageSrc} alt={user?.name} className="w-full h-full object-cover" />
+                    <img src={profileImageSrc} alt={displayName} className="w-full h-full object-cover" />
                   ) : (
-                    <span>{user?.name?.charAt(0)?.toUpperCase() || 'U'}</span>
+                    <span>{displayName.charAt(0).toUpperCase()}</span>
                   )}
                 </div>
                 <div className="hidden lg:flex flex-col items-start text-sm">
-                  <span className="font-semibold text-[#534345]">{user?.name?.split(' ')[0] || 'User'}</span>
+                  <span className="font-semibold text-[#534345]">{displayName}</span>
                   <span className="text-xs text-[#9B9095] -mt-0.5">{user?.role}</span>
                 </div>
               </button>
@@ -177,15 +203,15 @@ export default function Navbar() {
                   <div className="flex items-center gap-4">
                     <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-white/30">
                       {profileImageSrc ? (
-                        <img src={profileImageSrc} alt={user.name} className="w-full h-full object-cover" />
+                        <img src={profileImageSrc} alt={displayName} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full bg-white/20 flex items-center justify-center">
-                          <span className="text-3xl font-bold">{user?.name?.charAt(0)?.toUpperCase() || 'U'}</span>
+                          <span className="text-3xl font-bold">{displayName.charAt(0).toUpperCase()}</span>
                         </div>
                       )}
                     </div>
                     <div>
-                      <h3 className="text-xl font-semibold">{user.name || 'User'}</h3>
+                      <h3 className="text-xl font-semibold">{displayName}</h3>
                       <p className="text-white/80 text-sm">{user.role || 'Member'}</p>
                     </div>
                   </div>
