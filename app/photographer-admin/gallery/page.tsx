@@ -9,6 +9,7 @@ import {
   Folder,
   Plus,
   Search,
+  Share2,
   Trash2,
 } from 'lucide-react';
 import { apiFetch, handleAuthError } from '@/lib/api';
@@ -23,6 +24,7 @@ type CurateAlbum = {
   status?: string;
   coverPhoto?: string;
   selectedTemplate?: string;
+  photographerName?: string;
 };
 
 type BookAlbum = {
@@ -147,7 +149,23 @@ export default function GalleryPage() {
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [selectedFullscreenBook, setSelectedFullscreenBook] = useState<FullscreenBookData | null>(null);
+  const [shareFeedback, setShareFeedback] = useState('');
   const searchRef = useRef<HTMLDivElement | null>(null);
+
+  const buildBookShareSlug = (book: BookAlbum | CurateAlbum | undefined, fallbackId?: string) => {
+    const title = book?.albumName || 'album';
+    const photographerName = (book as CurateAlbum | undefined)?.photographerName || '';
+    const base = [title, photographerName].filter(Boolean).join(' ');
+    const normalized = base
+      .toLowerCase()
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+    const shortId = (fallbackId || (book as any)?._id || '').slice(0, 8);
+
+    return normalized ? `${normalized}${shortId ? `-${shortId}` : ''}` : `album${shortId ? `-${shortId}` : ''}`;
+  };
 
   const bookByCurateId = useMemo(() => {
     const map = new Map<string, BookAlbum>();
@@ -253,6 +271,45 @@ export default function GalleryPage() {
     router.push(`/photographer-admin/designer?curateId=${encodeURIComponent(album._id)}&templateId=${encodeURIComponent(templateId)}&openBook=1`);
   };
 
+  const shareAlbum = async (album: CurateAlbum) => {
+    if (typeof window === 'undefined') return;
+
+    const bookAlbum = bookByCurateId.get(album._id);
+    const shareId = bookAlbum?._id || album._id;
+    const shareSlug = buildBookShareSlug(bookAlbum || album, shareId);
+    const shareUrl = `${window.location.origin}${window.location.pathname}?slug=${encodeURIComponent(shareSlug)}`;
+    const shareData = {
+      title: `Share ${album.albumName}`,
+      text: `Check out ${album.albumName}`,
+      url: shareUrl,
+    };
+
+    try {
+      if (navigator.share && navigator.canShare?.(shareData)) {
+        await navigator.share(shareData);
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+        setShareFeedback(`Link copied for ${album.albumName}`);
+        window.setTimeout(() => setShareFeedback(''), 1800);
+      } else {
+        setShareFeedback('Sharing is unavailable on this device');
+        window.setTimeout(() => setShareFeedback(''), 1800);
+      }
+    } catch {
+      if (navigator.clipboard?.writeText) {
+        try {
+          await navigator.clipboard.writeText(shareUrl);
+          setShareFeedback(`Link copied for ${album.albumName}`);
+        } catch {
+          setShareFeedback('Sharing is unavailable on this device');
+        }
+      } else {
+        setShareFeedback('Sharing is unavailable on this device');
+      }
+      window.setTimeout(() => setShareFeedback(''), 1800);
+    }
+  };
+
   const albumOptions = useMemo(() => {
     const query = albumSearch.trim();
     return albums
@@ -294,6 +351,37 @@ export default function GalleryPage() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || albums.length === 0) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const slug = params.get('slug');
+    const bookId = params.get('bookId');
+
+    if (slug) {
+      const matchedBookAlbum = bookAlbums.find((entry) => buildBookShareSlug(entry, entry._id) === slug);
+      if (!matchedBookAlbum) return;
+
+      const curateId = typeof matchedBookAlbum.curateId === 'string' ? matchedBookAlbum.curateId : matchedBookAlbum.curateId?._id;
+      const matchedAlbum = albums.find((entry) => entry._id === curateId);
+      if (matchedAlbum) {
+        void openBookView(matchedAlbum);
+      }
+      return;
+    }
+
+    if (!bookId) return;
+
+    const matchedBookAlbum = bookAlbums.find((entry) => entry._id === bookId);
+    if (!matchedBookAlbum) return;
+
+    const curateId = typeof matchedBookAlbum.curateId === 'string' ? matchedBookAlbum.curateId : matchedBookAlbum.curateId?._id;
+    const matchedAlbum = albums.find((entry) => entry._id === curateId);
+    if (matchedAlbum) {
+      void openBookView(matchedAlbum);
+    }
+  }, [albums, bookAlbums, bookByCurateId]);
 
   const loadGallery = async () => {
     setIsLoading(true);
@@ -492,6 +580,16 @@ export default function GalleryPage() {
                       </button>
                     )}
                   </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void shareAlbum(album);
+                    }}
+                    className="absolute right-4 top-4 rounded-full bg-white/90 p-2 text-[#b10e6b] shadow-sm transition hover:bg-white"
+                    title="Share album"
+                  >
+                    <Share2 size={14} />
+                  </button>
                 </div>
                 <div className="p-6">
                   <div className="flex items-start justify-between gap-4">

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { Share2 } from 'lucide-react';
 import { Newsreader, Plus_Jakarta_Sans } from 'next/font/google';
 import { useEffect, useState } from 'react';
 import API_URL from '@/lib/api';
@@ -48,6 +49,22 @@ export default function HomePage() {
   const [activePhotographerCount, setActivePhotographerCount] = useState<number | null>(null);
   const [publicBookAlbums, setPublicBookAlbums] = useState<any[]>([]);
   const [selectedPublicBook, setSelectedPublicBook] = useState<any | null>(null);
+  const [shareFeedback, setShareFeedback] = useState<string | null>(null);
+
+  const buildBookShareSlug = (book: any, fallbackId?: string) => {
+    const title = book?.albumName || book?.curateId?.albumName || book?.templateId?.name || 'album';
+    const photographerName = book?.photographerId?.name || book?.photographerName || book?.curateId?.photographerName || '';
+    const base = [title, photographerName].filter(Boolean).join(' ');
+    const normalized = base
+      .toLowerCase()
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+    const shortId = (fallbackId || book?._id || '').slice(0, 8);
+
+    return normalized ? `${normalized}${shortId ? `-${shortId}` : ''}` : `album${shortId ? `-${shortId}` : ''}`;
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -125,6 +142,30 @@ export default function HomePage() {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || publicBookAlbums.length === 0) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const slug = params.get('slug');
+    const bookId = params.get('bookId');
+
+    if (slug) {
+      const matchedBook = publicBookAlbums.find((book) => buildBookShareSlug(book, book._id) === slug);
+      if (matchedBook) {
+        openPublicBookFullscreen(matchedBook);
+      }
+      return;
+    }
+
+    if (!bookId) return;
+
+    const matchedBook = publicBookAlbums.find((book) => book._id === bookId);
+    if (matchedBook) {
+      openPublicBookFullscreen(matchedBook);
+    }
+  }, [publicBookAlbums]);
+
   const openPublicBookFullscreen = (book: any) => {
     // Build template and mediaItems for FullscreenBook
     const template = book.templateId || { pages: [], slots: [] };
@@ -175,6 +216,44 @@ export default function HomePage() {
   };
 
   const closePublicBook = () => setSelectedPublicBook(null);
+
+  const sharePublicBook = async (book: any, title: string) => {
+    if (typeof window === 'undefined') return;
+
+    const shareSlug = buildBookShareSlug(book, book._id);
+    const shareUrl = `${window.location.origin}${window.location.pathname}?slug=${encodeURIComponent(shareSlug)}`;
+    const shareData = {
+      title: `Share ${title}`,
+      text: `Check out ${title}`,
+      url: shareUrl,
+    };
+
+    try {
+      if (navigator.share && navigator.canShare?.(shareData)) {
+        await navigator.share(shareData);
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+        setShareFeedback(`Link copied for ${title}`);
+        window.setTimeout(() => setShareFeedback(null), 1800);
+      } else {
+        setShareFeedback('Sharing is unavailable on this device');
+        window.setTimeout(() => setShareFeedback(null), 1800);
+      }
+    } catch {
+      if (navigator.clipboard?.writeText) {
+        try {
+          await navigator.clipboard.writeText(shareUrl);
+          setShareFeedback(`Link copied for ${title}`);
+        } catch {
+          setShareFeedback('Sharing is unavailable on this device');
+        }
+      } else {
+        setShareFeedback('Sharing is unavailable on this device');
+      }
+      window.setTimeout(() => setShareFeedback(null), 1800);
+    }
+  };
+
   const getImageUrl = (url: string | undefined) => {
     if (!url) return 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800';
     if (url.startsWith('http') || url.startsWith('data:')) return url;
@@ -631,6 +710,12 @@ export default function HomePage() {
         </div>
       </section>
 
+      {shareFeedback ? (
+        <div className="fixed bottom-5 right-5 z-50 rounded-full bg-[#211a1b] px-4 py-2 text-sm font-medium text-white shadow-lg">
+          {shareFeedback}
+        </div>
+      ) : null}
+
       {journalCards.length > 0 && (
         <section className="bg-[#fff8f7] py-12 sm:py-18 md:py-24">
         <div className="mx-auto max-w-6xl px-4 sm:px-5 md:px-10">
@@ -668,6 +753,19 @@ export default function HomePage() {
                   alt={journalCards[0]?.title}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
+                {journalCards[0]?.raw ? (
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      void sharePublicBook(journalCards[0].raw, journalCards[0].title);
+                    }}
+                    className="absolute right-4 top-4 z-10 rounded-full border border-white/30 bg-black/30 p-2 text-white backdrop-blur transition hover:bg-black/45"
+                    title="Share journal"
+                  >
+                    <Share2 size={16} />
+                  </button>
+                ) : null}
                 <div className="absolute inset-0 bg-linear-to-t from-black/50 via-black/20 to-transparent flex flex-col justify-end p-6">
                   <h3 className="text-2xl md:text-3xl text-white font-light" style={{ fontFamily: 'var(--font-newsreader)' }}>
                     {journalCards[0]?.title}
@@ -697,6 +795,19 @@ export default function HomePage() {
                     alt={entry.title}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
+                  {entry.raw ? (
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        void sharePublicBook(entry.raw, entry.title);
+                      }}
+                      className="absolute right-3 top-3 z-10 rounded-full border border-white/30 bg-black/30 p-2 text-white backdrop-blur transition hover:bg-black/45"
+                      title="Share journal"
+                    >
+                      <Share2 size={14} />
+                    </button>
+                  ) : null}
                   <div className="absolute inset-0 bg-linear-to-t from-black/45 to-transparent flex flex-col justify-end p-4">
                     <h3 className="text-base md:text-lg text-white font-light" style={{ fontFamily: 'var(--font-newsreader)' }}>
                       {entry.title}
@@ -730,6 +841,19 @@ export default function HomePage() {
                     alt={entry.title}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
+                  {entry.raw ? (
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        void sharePublicBook(entry.raw, entry.title);
+                      }}
+                      className="absolute right-3 top-3 z-10 rounded-full border border-white/30 bg-black/30 p-2 text-white backdrop-blur transition hover:bg-black/45"
+                      title="Share journal"
+                    >
+                      <Share2 size={14} />
+                    </button>
+                  ) : null}
                   <div className="absolute inset-0 bg-linear-to-t from-black/45 to-transparent flex flex-col justify-end p-4">
                     <h3 className="text-lg md:text-xl text-white font-light" style={{ fontFamily: 'var(--font-newsreader)' }}>
                       {entry.title}

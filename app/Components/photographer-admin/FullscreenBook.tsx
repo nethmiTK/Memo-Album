@@ -389,9 +389,19 @@ export function FullscreenBook({
   const [bookSize, setBookSize] = useState({ width: 600, height: 800 });
   const [bookScale, setBookScale] = useState(80);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isSharedBookView, setIsSharedBookView] = useState(false);
   const normalizedTransforms = useMemo(() => mediaTransforms || {}, [mediaTransforms]);
   const isMobileLayout = bookSize.width < 520;
   const isScrollMode = viewMode === 'scroll';
+  const canDownload = !isSharedBookView;
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const params = new URLSearchParams(window.location.search);
+    const slug = params.get('slug');
+    setIsSharedBookView(Boolean(params.get('bookId') || slug));
+  }, []);
 
   const pages = useMemo(() => {
     if (Array.isArray((template as any).pages) && (template as any).pages.length > 0) return getTemplatePages(template);
@@ -853,15 +863,17 @@ export function FullscreenBook({
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={handleDownloadAlbum}
-              disabled={isDownloading}
-              className={`inline-flex items-center gap-2 rounded-lg border border-[#e1bec4] bg-white px-3 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[#9b0044] transition-colors ${isDownloading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#fff0f4]'}`}
-            >
-              <Download size={14} className={isDownloading ? 'animate-bounce' : ''} />
-              {isDownloading ? 'Downloading...' : 'Download Album'}
-            </button>
+            {canDownload ? (
+              <button
+                type="button"
+                onClick={handleDownloadAlbum}
+                disabled={isDownloading}
+                className={`inline-flex items-center gap-2 rounded-lg border border-[#e1bec4] bg-white px-3 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[#9b0044] transition-colors ${isDownloading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#fff0f4]'}`}
+              >
+                <Download size={14} className={isDownloading ? 'animate-bounce' : ''} />
+                {isDownloading ? 'Downloading...' : 'Download Album'}
+              </button>
+            ) : null}
 
             <button
               type="button"
@@ -1032,17 +1044,19 @@ export function FullscreenBook({
             <X size={32} className="text-white" />
           </button>
 
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleDownloadMedia(selectedMedia);
-            }}
-            className="absolute bottom-4 right-4 p-3 rounded-full bg-[#b10e6b] hover:bg-[#9a0c59] transition-colors z-10 flex items-center gap-2 text-white font-semibold"
-            aria-label="Download media"
-          >
-            <Download size={20} />
-            <span className="text-sm">Download</span>
-          </button>
+          {canDownload ? (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDownloadMedia(selectedMedia);
+              }}
+              className="absolute bottom-4 right-4 p-3 rounded-full bg-[#b10e6b] hover:bg-[#9a0c59] transition-colors z-10 flex items-center gap-2 text-white font-semibold"
+              aria-label="Download media"
+            >
+              <Download size={20} />
+              <span className="text-sm">Download</span>
+            </button>
+          ) : null}
 
           {/* Zoom Controls */}
           <div className="absolute top-4 left-4 flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 backdrop-blur z-10">

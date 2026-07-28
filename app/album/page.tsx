@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence, useScroll, useTransform, useInView, useMotionValue, useSpring, Variants, MotionValue } from 'framer-motion';
+import { Share2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from '../Components/website/navbar';
@@ -902,9 +903,25 @@ export default function AlbumPage() {
   const [selectedAlbum, setSelectedAlbum] = useState<Album | null>(null);
   const [selectedCollectionBook, setSelectedCollectionBook] = useState<ReturnType<typeof buildCollectionBookPayload> | null>(null);
   const [viewMode, setViewMode] = useState<'browse' | 'book'>('browse');
+  const [shareFeedback, setShareFeedback] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState('All');
   const [activeTab, setActiveTab] = useState<'albums' | 'videos' | 'all'>('all');
   const router = useRouter();
+
+  const buildBookShareSlug = (book: PublicBookAlbum | null | undefined, fallbackId?: string) => {
+    const title = book?.albumName || book?.curateId?.albumName || book?.templateId?.name || 'album';
+    const photographerName = (book as any)?.photographerId?.name || (book as any)?.photographerName || (book as any)?.curateId?.photographerName || '';
+    const base = [title, photographerName].filter(Boolean).join(' ');
+    const normalized = base
+      .toLowerCase()
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+    const shortId = (fallbackId || (book as any)?._id || '').slice(0, 8);
+
+    return normalized ? `${normalized}${shortId ? `-${shortId}` : ''}` : `album${shortId ? `-${shortId}` : ''}`;
+  };
 
   // Parallax and scroll effects
   const heroRef = useRef<HTMLDivElement>(null);
@@ -940,6 +957,29 @@ export default function AlbumPage() {
     loadCollections();
   }, []);
 
+  useEffect(() => {
+    if (typeof window === 'undefined' || collectionAlbums.length === 0) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const slug = params.get('slug');
+    const bookId = params.get('bookId');
+
+    if (slug) {
+      const book = collectionAlbums.find((item) => buildBookShareSlug(item, item._id) === slug);
+      if (book) {
+        openBookCollection(book);
+      }
+      return;
+    }
+
+    if (!bookId) return;
+
+    const book = collectionAlbums.find((item) => item._id === bookId);
+    if (book) {
+      openBookCollection(book);
+    }
+  }, [collectionAlbums]);
+
   const categories = ['All', 'Wedding', 'Engagement'];
   const filteredAlbums = activeCategory === 'All' ? albums : albums.filter(a => a.category === activeCategory);
 
@@ -961,6 +1001,43 @@ export default function AlbumPage() {
 
   const openBookCollection = (bookAlbum: PublicBookAlbum) => {
     setSelectedCollectionBook(buildCollectionBookPayload(bookAlbum));
+  };
+
+  const shareBookCollection = async (bookAlbum: PublicBookAlbum, title: string) => {
+    if (typeof window === 'undefined') return;
+
+    const shareSlug = buildBookShareSlug(bookAlbum, bookAlbum._id);
+    const shareUrl = `${window.location.origin}${window.location.pathname}?slug=${encodeURIComponent(shareSlug)}`;
+    const shareData = {
+      title: `Share ${title}`,
+      text: `Check out ${title}`,
+      url: shareUrl,
+    };
+
+    try {
+      if (navigator.share && navigator.canShare?.(shareData)) {
+        await navigator.share(shareData);
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+        setShareFeedback(`Link copied for ${title}`);
+        window.setTimeout(() => setShareFeedback(null), 1800);
+      } else {
+        setShareFeedback('Sharing is unavailable on this device');
+        window.setTimeout(() => setShareFeedback(null), 1800);
+      }
+    } catch {
+      if (navigator.clipboard?.writeText) {
+        try {
+          await navigator.clipboard.writeText(shareUrl);
+          setShareFeedback(`Link copied for ${title}`);
+        } catch {
+          setShareFeedback('Sharing is unavailable on this device');
+        }
+      } else {
+        setShareFeedback('Sharing is unavailable on this device');
+      }
+      window.setTimeout(() => setShareFeedback(null), 1800);
+    }
   };
 
   const closeCollectionBook = () => {
@@ -1088,11 +1165,29 @@ export default function AlbumPage() {
                               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                               onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=800'; }}
                             />
-                            <button
-                              type="button"
+                            <div
+                              role="button"
+                              tabIndex={0}
                               onClick={() => openBookCollection(album)}
+                              onKeyDown={(event) => {
+                                if (event.key === 'Enter' || event.key === ' ') {
+                                  event.preventDefault();
+                                  openBookCollection(album);
+                                }
+                              }}
                               className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent flex flex-col items-start justify-end p-4 md:p-6 text-left"
                             >
+                              <button
+                                type="button"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  void shareBookCollection(album, album.albumName || album.curateId?.albumName || album.templateId?.name || 'Album Book');
+                                }}
+                                className="absolute right-4 top-4 z-10 rounded-full border border-white/30 bg-black/35 p-2 text-white backdrop-blur transition hover:bg-black/55"
+                                title="Share album"
+                              >
+                                <Share2 size={16} />
+                              </button>
                               <div className="absolute left-4 top-4 rounded-full border border-white/20 bg-black/35 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/90 backdrop-blur-md">
                                 {album.albumName || album.curateId?.albumName || album.templateId?.name || 'Album Book'}
                               </div>
@@ -1108,7 +1203,7 @@ export default function AlbumPage() {
                               <div className="mt-3 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-all">
                                 <span className="text-[10px] font-bold tracking-widest uppercase text-white">View</span>
                               </div>
-                            </button>
+                            </div>
                           </motion.div>
                           );
                         })
