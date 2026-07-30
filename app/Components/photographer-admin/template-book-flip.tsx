@@ -2,7 +2,6 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import HTMLFlipBook from 'react-pageflip';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   buildSlotMediaMap,
   getTemplatePages,
@@ -307,7 +306,7 @@ export function TemplateBookFlip({
         </div>
       ) : null}
 
-      <div className={`flex w-full justify-center ${variant === 'fullscreen' ? 'overflow-hidden' : 'overflow-x-auto'}`}>
+      <div className="flex w-full justify-center overflow-hidden">
         <div style={{ width: bookSize.width, height: bookSize.height }}>
           <FlipBook
             ref={bookRef}
@@ -343,29 +342,6 @@ export function TemplateBookFlip({
             </div>
           </FlipBook>
         </div>
-      </div>
-
-      <div className={`flex items-center justify-center gap-3 ${variant === 'fullscreen' ? 'hidden md:flex' : ''}`}>
-        <button
-          type="button"
-          onClick={flipPrev}
-          className="rounded-full bg-[#f0e2e6] p-2 transition hover:bg-[#BE126F] hover:text-white"
-          title="Previous page"
-        >
-          <ChevronLeft size={18} className="text-[#211A1B]" />
-        </button>
-        <span className="text-xs font-semibold text-[#211A1B]">
-          Page {Math.min(currentPage + 1, totalFlipPages)} of {totalFlipPages}
-          {draftedMedia.length > 0 ? ` · ${draftedMedia.length} photos` : ''}
-        </span>
-        <button
-          type="button"
-          onClick={flipNext}
-          className="rounded-full bg-[#f0e2e6] p-2 transition hover:bg-[#BE126F] hover:text-white"
-          title="Next page"
-        >
-          <ChevronRight size={18} className="text-[#211A1B]" />
-        </button>
       </div>
     </div>
   );

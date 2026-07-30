@@ -172,14 +172,14 @@ export default function GalleryPage() {
     bookAlbums.forEach((bookAlbum) => {
       const curateId = typeof bookAlbum.curateId === 'string' ? bookAlbum.curateId : bookAlbum.curateId?._id;
       if (curateId) {
-        map.set(curateId, bookAlbum);
+        map.set(String(curateId), bookAlbum);
       }
     });
     return map;
   }, [bookAlbums]);
 
   const openBookView = async (album: CurateAlbum) => {
-    const bookAlbum = bookByCurateId.get(album._id);
+    const bookAlbum = bookByCurateId.get(String(album._id));
     if (!bookAlbum) {
       setMessage('No album book found for this album yet.');
       return;
@@ -260,7 +260,7 @@ export default function GalleryPage() {
   };
 
   const openDesignerView = (album: CurateAlbum) => {
-    const linkedBook = bookByCurateId.get(album._id);
+    const linkedBook = bookByCurateId.get(String(album._id));
     const templateId = typeof linkedBook?.templateId === 'string' ? linkedBook.templateId : linkedBook?.templateId?._id || '';
 
     if (!templateId) {
@@ -274,7 +274,7 @@ export default function GalleryPage() {
   const shareAlbum = async (album: CurateAlbum) => {
     if (typeof window === 'undefined') return;
 
-    const bookAlbum = bookByCurateId.get(album._id);
+    const bookAlbum = bookByCurateId.get(String(album._id));
     const shareId = bookAlbum?._id || album._id;
     const shareSlug = buildBookShareSlug(bookAlbum || album, shareId);
     const shareUrl = `${window.location.origin}${window.location.pathname}?slug=${encodeURIComponent(shareSlug)}`;
@@ -314,7 +314,7 @@ export default function GalleryPage() {
     const query = albumSearch.trim();
     return albums
       .map((album) => {
-        const bookAlbum = bookByCurateId.get(album._id);
+        const bookAlbum = bookByCurateId.get(String(album._id));
         const templateName =
           typeof bookAlbum?.templateId === 'string'
             ? bookAlbum.templateName || bookAlbum.templateId
@@ -333,7 +333,7 @@ export default function GalleryPage() {
     const query = albumSearch.trim();
     if (!query) return albums;
     return albums.filter((album) => {
-      const bookAlbum = bookByCurateId.get(album._id);
+      const bookAlbum = bookByCurateId.get(String(album._id));
       const templateName =
         typeof bookAlbum?.templateId === 'string'
           ? bookAlbum.templateName || bookAlbum.templateId
@@ -564,10 +564,32 @@ export default function GalleryPage() {
                     alt={album.albumName}
                   />
                   <div className="absolute left-4 top-4 flex items-center gap-2">
-                    <div className="rounded-full bg-[#e8def8] px-3 py-1 text-[10px] font-bold uppercase tracking-tighter text-[#1f1a24]">
-                      {bookByCurateId.get(album._id) ? album.status || 'saved' : 'Not Assigned Template'}
-                    </div>
-                    {!bookByCurateId.get(album._id) && (
+                    {(() => {
+                      const bookAlbum = bookByCurateId.get(String(album._id));
+                      const templateName = bookAlbum?.templateName ||
+                        (typeof bookAlbum?.templateId === 'object' ? (bookAlbum?.templateId as any)?.name : null);
+                      const hasTemplate = Boolean(bookAlbum) || Boolean(album.selectedTemplate);
+                      const isPublished = album.status === 'published' || bookAlbum?.status === 'published';
+
+                      if (!hasTemplate) {
+                        return (
+                          <div className="rounded-full bg-orange-100 px-3 py-1 text-[10px] font-bold uppercase tracking-tighter text-orange-700">
+                            Not Assigned
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-tighter ${
+                          isPublished
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-[#e8def8] text-[#1f1a24]'
+                        }`}>
+                          {isPublished ? '✓ Published' : (templateName || 'Template Assigned')}
+                        </div>
+                      );
+                    })()}
+                    {!bookByCurateId.get(String(album._id)) && !album.selectedTemplate && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();

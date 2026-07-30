@@ -47,6 +47,8 @@ interface Album {
   status?: string;
   coverPhoto?: string;
   coverPhotoName?: string;
+  endPhoto?: string;
+  endPhotoName?: string;
 }
 
 const fuzzyMatch = (query: string, ...targets: (string | undefined)[]): boolean => {
@@ -219,7 +221,8 @@ const CreateAlbum: React.FC = () => {
 
   useEffect(() => {
     setCoverPhotoPreview(selectedAlbumData?.coverPhoto || null);
-  }, [selectedAlbumData?.coverPhoto]);
+    setEndPhotoPreview(selectedAlbumData?.endPhoto || null);
+  }, [selectedAlbumData?.coverPhoto, selectedAlbumData?.endPhoto]);
 
   const handleCoverPhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files?.[0]) return;
@@ -632,6 +635,26 @@ const CreateAlbum: React.FC = () => {
     setAlbumSuggestions([]);
     setIsAlbumDropdownOpen(false);
     setSelectedPreviewPage(0);
+
+    // Auto-load cover photo from album
+    setCoverPhotoPreview((album as any).coverPhoto || null);
+
+    // Auto-load end photo from album
+    if ((album as any).endPhoto) {
+      setEndPhotoPreview((album as any).endPhoto);
+      setEndPageMedia({
+        id: `end-photo-loaded`,
+        fileName: (album as any).endPhotoName || 'end-photo',
+        fileType: 'image/jpeg',
+        fileSize: 0,
+        mediaKind: 'image',
+        dataUrl: (album as any).endPhoto,
+      });
+    } else {
+      setEndPhotoPreview(null);
+      setEndPageMedia(null);
+    }
+
     const loaded = applyCurateMedia(album);
 
     // Show which album was selected
@@ -1135,7 +1158,7 @@ const CreateAlbum: React.FC = () => {
 
   const saveCurateDraft = async (
     showOnMainSite = false,
-    saveStatus: 'save_draft' | 'saved' = 'saved'
+    saveStatus: 'save_draft' | 'saved' | 'published' = 'saved'
   ) => {
     if (!selectedAlbum || !selectedTemplate) {
       toast.error('Please select album and template before saving', toastStyle);
@@ -1206,6 +1229,7 @@ const CreateAlbum: React.FC = () => {
           mediaTransforms,
           endPhoto: endPhotoPreview || '',
           endPhotoName: endPageMedia?.fileName || '',
+          status: saveStatus,
         }),
       });
 
@@ -1317,7 +1341,7 @@ const CreateAlbum: React.FC = () => {
   };
 
   const handleNext = async () => {
-    const saved = await saveCurateDraft(true);
+    const saved = await saveCurateDraft(true, 'published');
     if (saved) {
       window.location.href = '/photographer-admin/clients';
     }
@@ -1581,7 +1605,7 @@ const CreateAlbum: React.FC = () => {
             <div className="min-w-0 flex-1">
               {/* Template Book Preview (flip book with curate images in slots) */}
               {selectedTemplateData ? (
-                <div className="bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col border border-gray-100 xl:h-[760px]">
+                <div className="bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col border border-gray-100">
                   <div className="p-4 border-b border-gray-200 flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <h3 className="text-sm font-bold uppercase tracking-widest text-[#211A1B]">TEMPLATE BOOK</h3>
@@ -1602,7 +1626,7 @@ const CreateAlbum: React.FC = () => {
 
                   <div className="p-3 bg-[#FFF8F8]">
                     {filledSlotCount > 0 || selectedAlbumData?.coverPhoto ? (
-                      <div className="w-full h-72 md:h-[650px] rounded-xl overflow-hidden">
+                      <div className="w-full h-auto rounded-xl overflow-hidden flex justify-center pb-2">
                         <TemplateBookFlip
                           template={selectedTemplateData}
                           mediaItems={slotAlignedBookMedia}
@@ -1720,19 +1744,15 @@ const CreateAlbum: React.FC = () => {
                         </p>
                       </div>
                       <div
-                        className="mx-auto w-full max-w-[130px] rounded-2xl border border-[#ece8e9] bg-white p-2 shadow-sm h-full"
+                        className="mx-auto w-full max-w-[400px] rounded-2xl border border-[#ece8e9] bg-white p-2 shadow-sm"
                         style={{
                           background: `linear-gradient(180deg, ${templateAccent}29 0%, #fffdfd 24%, #fff8fb 72%, ${templateAccent}1a 100%)`,
                         }}
                       >
-                        <div className="mb-2 text-xs text-[#7a6268]">
-                          <p className="font-semibold text-[#211A1B]">{activePreviewPage?.pageLabel || 'Page'}</p>
-                          <p className="text-[10px]">Slots: {activePreviewPage?.slots?.length || 0} available</p>
-                        </div>
                         <div
-                          className={`relative w-full rounded-[1.1rem] border border-[#f2e8ec] bg-white h-full ${pageSlotBounds.get(activePreviewPage?.pageIndex || 0)?.usesAbsoluteLayout
+                          className={`relative w-full rounded-[1.1rem] border border-[#f2e8ec] bg-white ${pageSlotBounds.get(activePreviewPage?.pageIndex || 0)?.usesAbsoluteLayout
                             ? 'aspect-3/4 overflow-hidden'
-                            : 'min-h-32 h-full grid auto-rows-[minmax(56px,1fr)] grid-cols-2 gap-1.5 p-1.5'
+                            : 'min-h-[400px] grid auto-rows-[minmax(120px,1fr)] grid-cols-2 gap-2 p-2'
                             }`}
                           style={{ backgroundColor: templatePages[activePreviewPage?.pageIndex]?.pageColor || undefined }}
                         >

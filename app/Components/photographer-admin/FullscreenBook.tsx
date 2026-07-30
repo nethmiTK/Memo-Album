@@ -137,17 +137,14 @@ function CoverPage({
   coverPhoto,
   coverPhotoName,
   coverWeddingDate,
-  firstPhoto,
 }: {
   template: TemplateRecord;
   accent: string;
   coverPhoto?: string;
   coverPhotoName?: string;
   coverWeddingDate?: string | Date;
-  firstPhoto?: string;
 }) {
   const coverImage = coverPhoto || template.coverImage;
-  const bottomImage = firstPhoto || coverImage;
   const coverTitle = coverPhotoName || template.name || 'Album Book';
   const weddingDate = coverWeddingDate
     ? new Date(coverWeddingDate).toLocaleDateString(undefined, {
@@ -164,14 +161,6 @@ function CoverPage({
           <>
             {/* Main Background Image with opacity */}
             <img src={coverImage} alt={coverTitle} className="absolute inset-0 h-full w-full object-cover opacity-[0.55]" />
-            
-            {/* Bottom Strip Image */}
-            {bottomImage && (
-              <div className="absolute bottom-0 left-0 right-0 h-[25%] border-t-2 border-white/30 overflow-hidden">
-                <img src={bottomImage} alt="Bottom Strip" className="h-full w-full object-cover" />
-                <div className="absolute inset-0 bg-black/10" />
-              </div>
-            )}
 
             {/* Text Overlay */}
             <div className="absolute inset-0 flex flex-col justify-between py-12 px-8 text-white z-10 drop-shadow-md pointer-events-none">
@@ -188,7 +177,7 @@ function CoverPage({
               </div>
 
               {/* Center Text */}
-              <div className="text-center flex-1 flex flex-col justify-center pb-[25%]">
+              <div className="text-center flex-1 flex flex-col justify-center">
                 <motion.h1 
                   className={`${greatVibes.className} text-5xl md:text-7xl lg:text-8xl px-2 md:px-4 leading-[1.2] tracking-normal text-white drop-shadow-lg break-words`}
                   initial="hidden"
@@ -710,8 +699,6 @@ export function FullscreenBook({
     const children: React.ReactNode[] = [];
 
     // Always add cover page
-    const firstPhotoSrc = draftedMedia.find(m => m.mediaKind === 'image' && m.src !== coverPhoto)?.src || coverPhoto;
-
     children.push(
       <div key="cover-page">
         <CoverPage 
@@ -720,7 +707,6 @@ export function FullscreenBook({
           coverPhoto={coverPhoto} 
           coverPhotoName={coverPhotoName} 
           coverWeddingDate={coverWeddingDate}
-          firstPhoto={firstPhotoSrc} 
         />
       </div>
     );
