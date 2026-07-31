@@ -85,11 +85,11 @@ export default function UserSidebar({ isMobileOpen, onClose }: UserSidebarProps)
         {/* Overview Button (Positioned between Profile and Settings/Bottom Nav) */}
         <div className="px-3 py-6">
           <Link
-            href="/user-panel"
+            href="/user-panel/albums"
             onClick={onClose}
             className="flex items-center justify-center w-full py-4 bg-[#B11469] text-white rounded-xl font-semibold tracking-wide shadow-lg hover:bg-[#8c0053] transition-all duration-300"
           >
-            Overview
+            My Album
           </Link>
         </div>
       </nav>

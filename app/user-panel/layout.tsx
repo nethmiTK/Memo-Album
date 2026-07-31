@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { usePathname } from 'next/navigation';
 import UserSidebar from '../Components/user-panel/sidebar';
 import UserNavbar from '../Components/user-panel/navbar';
 import MobileBottomNav from '../Components/user-panel/mobile-nav';
@@ -11,6 +12,11 @@ export default function UserPanelLayout({
   children: React.ReactNode;
 }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const pathname = usePathname();
+
+  if (pathname?.includes('/book')) {
+    return <>{children}</>;
+  }
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden" style={{ backgroundColor: '#FFF8F7' }}>

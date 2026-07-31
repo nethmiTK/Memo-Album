@@ -1,23 +1,86 @@
 'use client';
 
 import Link from 'next/link';
-import { Image as ImageIcon, ArrowRight } from 'lucide-react';
+import { Image as ImageIcon, ArrowRight, Share2, BookOpen } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useProtectedRoute } from '@/lib/useAuth';
 import { apiFetch, handleAuthError } from '@/lib/api';
 
 interface Album {
   id: string;
+  bookAlbumId?: string;
   name: string;
+  photographerName?: string;
   coverImage?: string;
   photoCount: number;
   date: string;
+}
+
+function Toast({ message }: { message: string }) {
+  if (!message) return null;
+  return (
+    <div className="fixed right-5 top-5 z-50 rounded-2xl bg-[#2C1E26] px-4 py-3 text-sm text-white shadow-2xl">
+      {message}
+    </div>
+  );
 }
 
 export default function AlbumsPage() {
   const { user, loading: authLoading } = useProtectedRoute(['client', 'couple']);
   const [albums, setAlbums] = useState<Album[]>([]);
   const [loading, setLoading] = useState(true);
+  const [shareFeedback, setShareFeedback] = useState('');
+
+  const buildBookShareSlug = (albumName: string, photographerName: string, albumId: string) => {
+    const base = [albumName || 'album', photographerName].filter(Boolean).join(' ');
+    const normalized = base
+      .toLowerCase()
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+    const shortId = (albumId || '').slice(0, 8);
+    return normalized ? `${normalized}${shortId ? `-${shortId}` : ''}` : `album${shortId ? `-${shortId}` : ''}`;
+  };
+
+  const shareAlbum = async (album: Album, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (typeof window === 'undefined') return;
+
+    const shareSlug = buildBookShareSlug(album.name, album.photographerName || '', album.bookAlbumId || album.id);
+    const shareUrl = `${window.location.origin}/album?slug=${encodeURIComponent(shareSlug)}`;
+    const shareData = {
+      title: `Share ${album.name}`,
+      text: `Check out ${album.name}`,
+      url: shareUrl,
+    };
+
+    try {
+      if (navigator.share && navigator.canShare?.(shareData)) {
+        await navigator.share(shareData);
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+        setShareFeedback(`Link copied for ${album.name}`);
+        window.setTimeout(() => setShareFeedback(''), 1800);
+      } else {
+        setShareFeedback('Sharing is unavailable on this device');
+        window.setTimeout(() => setShareFeedback(''), 1800);
+      }
+    } catch {
+      if (navigator.clipboard?.writeText) {
+        try {
+          await navigator.clipboard.writeText(shareUrl);
+          setShareFeedback(`Link copied for ${album.name}`);
+        } catch {
+          setShareFeedback('Sharing is unavailable on this device');
+        }
+      } else {
+        setShareFeedback('Sharing is unavailable on this device');
+      }
+      window.setTimeout(() => setShareFeedback(''), 1800);
+    }
+  };
 
   useEffect(() => {
     if (!authLoading) {
@@ -37,7 +100,9 @@ export default function AlbumsPage() {
 
           const mapped: Album[] = result.albums.map((item: any) => ({
             id: item.id,
+            bookAlbumId: item.bookAlbumId || item.id,
             name: item.name || 'Album',
+            photographerName: item.photographerName || '',
             coverImage: item.coverImage || '',
             photoCount: Number(item.photoCount || 0),
             date: item.date ? new Date(item.date).toLocaleDateString() : '-',
@@ -70,6 +135,7 @@ export default function AlbumsPage() {
 
   return (
     <div className="min-h-screen pb-20 md:pb-8">
+      <Toast message={shareFeedback} />
       {/* Editorial Header Section */}
       <section className="px-4 md:px-8 lg:px-12 pt-12 md:pt-20 pb-12 md:pb-16">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-end justify-between gap-8">
@@ -155,6 +221,26 @@ export default function AlbumsPage() {
                       {albums[0].photoCount} Photos
                     </p>
                   </div>
+                  <div className="absolute right-4 top-4 z-10 flex flex-col gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+                    <button
+                      onClick={(e) => shareAlbum(albums[0], e)}
+                      className="rounded-full bg-white/90 p-2 text-[#D23284] shadow-sm transition hover:bg-white"
+                      title="Share album"
+                    >
+                      <Share2 size={16} />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        window.open(`/user-panel/albums/${albums[0].id}/book?source=session`, '_blank');
+                      }}
+                      className="rounded-full bg-white/90 p-2 text-[#D23284] shadow-sm transition hover:bg-white"
+                      title="Open Book"
+                    >
+                      <BookOpen size={16} />
+                    </button>
+                  </div>
                 </Link>
               )}
 
@@ -182,6 +268,26 @@ export default function AlbumsPage() {
                     <h3 className="font-serif text-lg md:text-xl font-light text-white">
                       {albums[1].name}
                     </h3>
+                  </div>
+                  <div className="absolute right-4 top-4 z-10 flex flex-col gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+                    <button
+                      onClick={(e) => shareAlbum(albums[1], e)}
+                      className="rounded-full bg-white/90 p-2 text-[#D23284] shadow-sm transition hover:bg-white"
+                      title="Share album"
+                    >
+                      <Share2 size={16} />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        window.open(`/user-panel/albums/${albums[1].id}/book?source=session`, '_blank');
+                      }}
+                      className="rounded-full bg-white/90 p-2 text-[#D23284] shadow-sm transition hover:bg-white"
+                      title="Open Book"
+                    >
+                      <BookOpen size={16} />
+                    </button>
                   </div>
                 </Link>
               )}
@@ -216,6 +322,26 @@ export default function AlbumsPage() {
                       </h3>
                       <p className="text-xs text-white/70">{album.photoCount} photos</p>
                     </div>
+                  </div>
+                  <div className="absolute right-4 top-4 z-10 flex flex-col gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+                    <button
+                      onClick={(e) => shareAlbum(album, e)}
+                      className="rounded-full bg-white/90 p-2 text-[#D23284] shadow-sm transition hover:bg-white"
+                      title="Share album"
+                    >
+                      <Share2 size={16} />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        window.open(`/user-panel/albums/${album.id}/book?source=session`, '_blank');
+                      }}
+                      className="rounded-full bg-white/90 p-2 text-[#D23284] shadow-sm transition hover:bg-white"
+                      title="Open Book"
+                    >
+                      <BookOpen size={16} />
+                    </button>
                   </div>
                 </Link>
               ))}

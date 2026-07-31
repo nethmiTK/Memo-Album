@@ -80,7 +80,7 @@ export default function UserNavbar({ onMenuClick }: UserNavbarProps) {
   }, [pathname]);
 
   const getNavTitle = () => {
-    if (pathname === '/user-panel') return 'Overview';
+    if (pathname === '/user-panel') return 'My Album';
     if (pathname.includes('/albums')) return 'My Albums';
     if (pathname.includes('/favorites')) return 'Favorites';
     if (pathname.includes('/profile')) return 'Profile';

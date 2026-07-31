@@ -965,7 +965,12 @@ export default function AlbumPage() {
     const bookId = params.get('bookId');
 
     if (slug) {
-      const book = collectionAlbums.find((item) => buildBookShareSlug(item, item._id) === slug);
+      const book = collectionAlbums.find((item) => {
+        const generatedSlug = buildBookShareSlug(item, item._id);
+        if (generatedSlug === slug) return true;
+        const shortId = item._id?.slice(0, 8);
+        return Boolean(shortId && slug.includes(shortId));
+      });
       if (book) {
         openBookCollection(book);
       }

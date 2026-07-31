@@ -277,7 +277,7 @@ export default function GalleryPage() {
     const bookAlbum = bookByCurateId.get(String(album._id));
     const shareId = bookAlbum?._id || album._id;
     const shareSlug = buildBookShareSlug(bookAlbum || album, shareId);
-    const shareUrl = `${window.location.origin}${window.location.pathname}?slug=${encodeURIComponent(shareSlug)}`;
+    const shareUrl = `${window.location.origin}/album?slug=${encodeURIComponent(shareSlug)}`;
     const shareData = {
       title: `Share ${album.albumName}`,
       text: `Check out ${album.albumName}`,

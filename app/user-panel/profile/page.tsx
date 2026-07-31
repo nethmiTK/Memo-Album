@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Camera, ImagePlus, Trash2, User as UserIcon } from 'lucide-react';
+import { Camera, ImagePlus, User as UserIcon } from 'lucide-react';
 import { useProtectedRoute } from '@/lib/useAuth';
 import { apiFetch, handleAuthError } from '@/lib/api';
 
@@ -13,6 +13,17 @@ interface UserProfile {
   bio?: string;
 }
 
+function Toast({ message, type }: { message: string; type: 'success' | 'error' }) {
+  if (!message) return null;
+  return (
+    <div className={`fixed right-5 top-5 z-50 rounded-2xl px-5 py-3 text-sm text-white shadow-2xl transition-all ${
+      type === 'success' ? 'bg-emerald-600' : 'bg-red-500'
+    }`}>
+      {message}
+    </div>
+  );
+}
+
 export default function ProfilePage() {
   const { user, loading: authLoading } = useProtectedRoute(['client', 'couple']);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -21,9 +32,16 @@ export default function ProfilePage() {
     email: '',
   });
   const [loading, setLoading] = useState(true);
-  const [saveMessage, setSaveMessage] = useState('');
-  const [saveError, setSaveError] = useState('');
+  const [toastMsg, setToastMsg] = useState('');
+  const [toastType, setToastType] = useState<'success' | 'error'>('success');
   const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (toastMsg) {
+      const t = window.setTimeout(() => setToastMsg(''), 2500);
+      return () => window.clearTimeout(t);
+    }
+  }, [toastMsg]);
 
   useEffect(() => {
     if (!authLoading) {
@@ -79,8 +97,7 @@ export default function ProfilePage() {
   const handleSaveProfile = async () => {
     try {
       setIsSaving(true);
-      setSaveError('');
-      setSaveMessage('');
+      setToastMsg('');
 
       const response = await apiFetch('/auth/me', {
         method: 'PATCH',
@@ -112,9 +129,12 @@ export default function ProfilePage() {
         profilePic: data.user?.profilePic || profile.profileImage || '',
       }));
 
-      setSaveMessage('Profile saved successfully.');
+      setToastType('success');
+      setToastMsg('Profile saved successfully!');
+      window.dispatchEvent(new Event('profile-updated'));
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : 'Failed to save profile');
+      setToastType('error');
+      setToastMsg(error instanceof Error ? error.message : 'Failed to save profile');
     } finally {
       setIsSaving(false);
     }
@@ -148,6 +168,7 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-[#fff8f8] px-4 py-8 pb-24 md:px-8 md:pb-8 lg:px-12">
+      <Toast message={toastMsg} type={toastType} />
       <div className="mx-auto max-w-6xl">
         <div className="mx-auto max-w-2xl">
           <div className="rounded-4xl border border-[#E5CCD4] bg-white p-6 shadow-sm md:p-8">
@@ -227,7 +248,7 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              <div className="flex w-full gap-3 pt-2">
+              <div className="flex w-full pt-2">
                 <button
                   onClick={handleSaveProfile}
                   disabled={isSaving}
@@ -235,22 +256,7 @@ export default function ProfilePage() {
                 >
                   {isSaving ? 'Saving...' : 'Save Changes'}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setProfile((current) => ({ ...current, profileImage: '' }))}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#E5CCD4] px-4 py-3 font-semibold text-[#6B7387] transition hover:bg-[#FEF0F1]"
-                >
-                  <Trash2 size={16} />
-                  Remove Photo
-                </button>
               </div>
-
-              {saveMessage ? (
-                <p className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">{saveMessage}</p>
-              ) : null}
-              {saveError ? (
-                <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{saveError}</p>
-              ) : null}
             </div>
           </div>
         </div>
